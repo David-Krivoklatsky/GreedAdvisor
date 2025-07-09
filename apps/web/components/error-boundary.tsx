@@ -24,7 +24,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, errorInfo: any) {
     console.error('Error caught by boundary:', error, errorInfo);
-    
+
     // You could send this to an error reporting service
     // reportError(error, errorInfo);
   }
@@ -54,9 +54,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               </svg>
             </div>
             <div className="mt-4 text-center">
-              <h3 className="text-lg font-medium text-gray-900">
-                Something went wrong
-              </h3>
+              <h3 className="text-lg font-medium text-gray-900">Something went wrong</h3>
               <p className="mt-2 text-sm text-gray-500">
                 We encountered an unexpected error. Please try refreshing the page.
               </p>

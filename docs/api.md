@@ -1,15 +1,19 @@
 # 📚 Greed Advisor API Documentation
 
 ## Overview
+
 RESTful API for managing user authentication and secure storage of API keys.
 
 ## Base URL
+
 ```
 http://localhost:3001/api
 ```
 
 ## Authentication
+
 All protected endpoints require a Bearer token in the Authorization header:
+
 ```
 Authorization: Bearer <jwt_token>
 ```
@@ -21,9 +25,11 @@ Authorization: Bearer <jwt_token>
 ### 🔐 Authentication
 
 #### POST /auth/register
+
 Create a new user account.
 
 **Request Body:**
+
 ```json
 {
   "email": "user@example.com",
@@ -32,6 +38,7 @@ Create a new user account.
 ```
 
 **Response (201):**
+
 ```json
 {
   "message": "User created successfully",
@@ -45,6 +52,7 @@ Create a new user account.
 ```
 
 **Error Responses:**
+
 - `400` - Validation error
 - `409` - Email already exists
 - `429` - Rate limit exceeded
@@ -52,9 +60,11 @@ Create a new user account.
 ---
 
 #### POST /auth/login
+
 Authenticate existing user.
 
 **Request Body:**
+
 ```json
 {
   "email": "user@example.com",
@@ -63,6 +73,7 @@ Authenticate existing user.
 ```
 
 **Response (200):**
+
 ```json
 {
   "message": "Login successful",
@@ -76,6 +87,7 @@ Authenticate existing user.
 ```
 
 **Error Responses:**
+
 - `400` - Validation error
 - `401` - Invalid credentials
 - `429` - Rate limit exceeded
@@ -85,14 +97,17 @@ Authenticate existing user.
 ### 👤 User Management
 
 #### GET /user/profile
+
 Get current user profile. **[Protected]**
 
 **Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Response (200):**
+
 ```json
 {
   "user": {
@@ -106,20 +121,24 @@ Authorization: Bearer <token>
 ```
 
 **Error Responses:**
+
 - `401` - Invalid or missing token
 - `404` - User not found
 
 ---
 
 #### PUT /user/api-keys
+
 Update user's API keys. **[Protected]**
 
 **Headers:**
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Request Body:**
+
 ```json
 {
   "openAiKey": "sk-new-key-here",
@@ -128,6 +147,7 @@ Authorization: Bearer <token>
 ```
 
 **Response (200):**
+
 ```json
 {
   "message": "API keys updated successfully",
@@ -142,18 +162,22 @@ Authorization: Bearer <token>
 ```
 
 **Error Responses:**
+
 - `400` - Validation error
 - `401` - Invalid or missing token
 
 ---
 
 ## Rate Limiting
+
 - **Limit:** 100 requests per 15 minutes per IP address
 - **Headers:** Response includes remaining requests in custom headers
 - **Reset:** Counter resets every 15 minutes
 
 ## Error Format
+
 All errors follow this format:
+
 ```json
 {
   "error": "Human readable error message",
@@ -162,6 +186,7 @@ All errors follow this format:
 ```
 
 ## Status Codes
+
 - `200` - Success
 - `201` - Created
 - `400` - Bad Request

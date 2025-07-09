@@ -59,6 +59,7 @@ export type { ComponentProps }
 ### Best Practices
 
 #### 1. Composition over Inheritance
+
 ```typescript
 // Good: Composable button
 <Button variant="ghost" size="sm">
@@ -71,22 +72,24 @@ export type { ComponentProps }
 ```
 
 #### 2. Prop Interface Design
+
 ```typescript
 // Good: Flexible and typed
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
-  size?: "default" | "sm" | "lg" | "icon"
-  asChild?: boolean
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  size?: 'default' | 'sm' | 'lg' | 'icon';
+  asChild?: boolean;
 }
 
 // Avoid: Too specific or untyped
 interface ButtonProps {
-  text: string
-  clickHandler: any
+  text: string;
+  clickHandler: any;
 }
 ```
 
 #### 3. Accessibility
+
 - Always include proper ARIA attributes
 - Ensure keyboard navigation works
 - Use semantic HTML elements
@@ -108,6 +111,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 ```
 
 #### 4. Performance
+
 - Use React.memo for expensive renders
 - Implement proper loading states
 - Avoid inline functions in JSX when possible
@@ -189,10 +193,10 @@ describe('Button', () => {
 
 Use JSDoc for component documentation:
 
-```typescript
+````typescript
 /**
  * A flexible button component with multiple variants and sizes.
- * 
+ *
  * @example
  * ```tsx
  * <Button variant="outline" size="sm" onClick={handleClick}>
@@ -201,4 +205,4 @@ Use JSDoc for component documentation:
  * ```
  */
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(...)
-```
+````

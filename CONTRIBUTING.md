@@ -37,33 +37,39 @@ By participating in this project, you agree to maintain a respectful and inclusi
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/your-username/greed-advisor.git
 cd greed-advisor
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Set up environment variables:
+
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
 ```
 
 4. Start the database:
+
 ```bash
 npm run db:up
 ```
 
 5. Run database migrations:
+
 ```bash
 npm run db:migrate
 ```
 
 6. Start the development server:
+
 ```bash
 npm run dev
 ```
@@ -73,6 +79,7 @@ npm run dev
 1. **Create an Issue**: Before starting work, create or comment on an issue describing the feature or bug fix.
 
 2. **Create a Branch**: Create a new branch from `develop`:
+
 ```bash
 git checkout develop
 git pull origin develop
@@ -82,6 +89,7 @@ git checkout -b feature/your-feature-name
 3. **Make Changes**: Implement your changes following our code style guidelines.
 
 4. **Test Your Changes**: Ensure all tests pass and add new tests if necessary:
+
 ```bash
 npm run test
 npm run lint
@@ -89,6 +97,7 @@ npm run type-check
 ```
 
 5. **Commit Your Changes**: Use our commit convention:
+
 ```bash
 git commit -m "feat: add new user registration validation"
 ```
@@ -174,7 +183,7 @@ test: add unit tests for user service
    - How to test the changes
    - Any breaking changes
 
-5. **Review Process**: 
+5. **Review Process**:
    - All PRs require at least one review
    - Address any feedback promptly
    - Ensure CI checks pass

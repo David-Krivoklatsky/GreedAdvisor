@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Environment configuration validation with Zod
 - Comprehensive TypeScript type definitions
 - Middleware package for API security and error handling
@@ -22,18 +23,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced API response standardization
 
 ### Changed
+
 - Updated API routes to use new middleware system
 - Improved error handling across the application
 - Enhanced database schema with better performance indexes
 - Standardized response format for all API endpoints
 
 ### Fixed
+
 - Type safety improvements across packages
 - Better error messages and validation feedback
 
 ## [0.1.0] - 2024-01-XX
 
 ### Added
+
 - Initial project setup with Turborepo
 - Next.js 14 web application with App Router
 - PostgreSQL database with Prisma ORM
@@ -45,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic testing setup with Jest
 
 ### Security
+
 - Password hashing with bcrypt
 - JWT token-based authentication
 - API rate limiting implementation

@@ -9,28 +9,28 @@ Zdieľaný balíček pre autentifikáciu obsahujúci funkcie pre:
 ## Použitie
 
 ```typescript
-import { 
-  hashPassword, 
-  comparePassword, 
-  signToken, 
-  verifyToken, 
-  extractTokenFromHeader 
-} from '@greed-advisor/auth'
+import {
+  hashPassword,
+  comparePassword,
+  signToken,
+  verifyToken,
+  extractTokenFromHeader,
+} from '@greed-advisor/auth';
 
 // Hašovanie hesla pri registrácii
-const hashedPassword = await hashPassword('userpassword')
+const hashedPassword = await hashPassword('userpassword');
 
 // Verifikácia hesla pri prihlásení
-const isValid = await comparePassword('userpassword', hashedPassword)
+const isValid = await comparePassword('userpassword', hashedPassword);
 
 // Generovanie JWT tokenu
-const token = signToken({ userId: 123, email: 'user@example.com' })
+const token = signToken({ userId: 123, email: 'user@example.com' });
 
 // Verifikácia tokenu
-const decoded = verifyToken(token)
+const decoded = verifyToken(token);
 
 // Extrahovanie tokenu z Authorization header
-const token = extractTokenFromHeader(req.headers.get('authorization'))
+const token = extractTokenFromHeader(req.headers.get('authorization'));
 ```
 
 ## Závislosti

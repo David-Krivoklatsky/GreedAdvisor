@@ -1,1 +1,1 @@
-export { prisma } from '@greed-advisor/db'
+export { prisma } from '@greed-advisor/db';

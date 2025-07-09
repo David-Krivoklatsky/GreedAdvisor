@@ -5,7 +5,7 @@ module.exports = {
   trailingComma: 'es5',
   printWidth: 100,
   arrowParens: 'avoid',
-  endOfLine: 'lf',
+  endOfLine: 'crlf',
   overrides: [
     {
       files: ['*.json'],

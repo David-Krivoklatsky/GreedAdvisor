@@ -30,7 +30,7 @@ GreedAdvisor/
 ## 🛠️ Technológie
 
 - **Frontend**: Next.js 14 (App Router), React, TypeScript
-- **Styling**: Tailwind CSS, shadcn/ui komponenty  
+- **Styling**: Tailwind CSS, shadcn/ui komponenty
 - **Backend**: Next.js API Routes (fullstack)
 - **Databáza**: PostgreSQL s Prisma ORM
 - **Autentifikácia**: JWT tokeny (vlastný package)
@@ -118,14 +118,17 @@ GreedAdvisor/
 ## 🛡️ Bezpečnosť
 
 ### Rate Limiting
+
 - 100 požiadaviek za 15 minút na IP adresu
 - Implementované v memory (pre produkciu odporúčam Redis)
 
 ### Autentifikácia
+
 - JWT tokeny s expiration time 7 dní
 - Bearer token autentifikácia
 
 ### Heslá
+
 - bcrypt hashing s salt rounds 12
 - Minimum 6 znakov
 
@@ -187,7 +190,7 @@ NEXTAUTH_SECRET="your-nextauth-secret"
 
 - [ ] Redis pre rate limiting
 - [ ] Email verifikácia
-- [ ] 2FA autentifikácia  
+- [ ] 2FA autentifikácia
 - [ ] API key encryption
 - [ ] Audit logging
 - [ ] Role-based permissions

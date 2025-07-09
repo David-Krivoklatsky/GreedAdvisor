@@ -27,9 +27,9 @@ jest.mock('@greed-advisor/validations', () => ({
   registerSchema: {
     safeParse: jest.fn(() => ({
       success: true,
-      data: { email: 'test@example.com', password: 'password123' }
-    }))
-  }
+      data: { email: 'test@example.com', password: 'password123' },
+    })),
+  },
 }));
 
 describe('/api/auth/register', () => {

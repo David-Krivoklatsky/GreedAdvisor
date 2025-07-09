@@ -45,11 +45,14 @@ npm run db:seed  # Optional: creates test user
 ### Option 1: Vercel (Recommended for MVP)
 
 #### Prerequisites
+
 - Vercel account
 - PostgreSQL database (Supabase, Railway, Neon, etc.)
 
 #### Steps
+
 1. **Connect Repository**
+
    ```bash
    npm i -g vercel
    vercel login
@@ -74,6 +77,7 @@ npm run db:seed  # Optional: creates test user
    ```
 
 #### Database Providers for Vercel:
+
 - **Supabase**: Free tier with 500MB
 - **Railway**: PostgreSQL with generous free tier
 - **Neon**: Serverless PostgreSQL
@@ -82,10 +86,12 @@ npm run db:seed  # Optional: creates test user
 ### Option 2: Railway
 
 #### Prerequisites
+
 - Railway account
 - GitHub repository
 
 #### Steps
+
 1. **Deploy to Railway**:
    - Go to [railway.app](https://railway.app)
    - Connect GitHub repository
@@ -96,6 +102,7 @@ npm run db:seed  # Optional: creates test user
    - Copy connection string to `DATABASE_URL`
 
 3. **Environment Variables**:
+
    ```bash
    JWT_SECRET=your-secure-secret
    NEXT_PUBLIC_APP_URL=https://yourapp.railway.app
@@ -109,17 +116,20 @@ npm run db:seed  # Optional: creates test user
 ### Option 3: AWS/Digital Ocean VPS
 
 #### Prerequisites
+
 - VPS with Node.js and PostgreSQL
 - Domain name
 - SSL certificate (Let's Encrypt)
 
 #### Steps
+
 1. **Server Setup**:
+
    ```bash
    # Install dependencies
    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
    sudo apt-get install -y nodejs postgresql nginx certbot
-   
+
    # Clone repository
    git clone https://github.com/yourusername/greed-advisor.git
    cd greed-advisor
@@ -127,6 +137,7 @@ npm run db:seed  # Optional: creates test user
    ```
 
 2. **Database Setup**:
+
    ```bash
    sudo -u postgres createdb greedadvisor
    sudo -u postgres createuser greedadvisor_user
@@ -135,17 +146,20 @@ npm run db:seed  # Optional: creates test user
    ```
 
 3. **Environment Configuration**:
+
    ```bash
    cp apps/web/.env.example apps/web/.env.production
    # Edit .env.production with your values
    ```
 
 4. **Build Application**:
+
    ```bash
    npm run build
    ```
 
 5. **Process Manager (PM2)**:
+
    ```bash
    npm install -g pm2
    pm2 start ecosystem.config.js
@@ -154,11 +168,12 @@ npm run db:seed  # Optional: creates test user
    ```
 
 6. **Nginx Configuration**:
+
    ```nginx
    server {
        listen 80;
        server_name yourdomain.com;
-       
+
        location / {
            proxy_pass http://localhost:3000;
            proxy_http_version 1.1;
@@ -181,43 +196,47 @@ npm run db:seed  # Optional: creates test user
 ### Option 4: Docker Deployment
 
 #### Prerequisites
+
 - Docker and Docker Compose
 - VPS or cloud instance
 
 #### Steps
+
 1. **Create Production Dockerfile**:
+
    ```dockerfile
    # apps/web/Dockerfile.prod
    FROM node:18-alpine AS deps
    WORKDIR /app
    COPY package*.json ./
    RUN npm ci --only=production
-   
+
    FROM node:18-alpine AS builder
    WORKDIR /app
    COPY . .
    COPY --from=deps /app/node_modules ./node_modules
    RUN npm run build
-   
+
    FROM node:18-alpine AS runner
    WORKDIR /app
    ENV NODE_ENV production
-   
+
    RUN addgroup -g 1001 -S nodejs
    RUN adduser -S nextjs -u 1001
-   
+
    COPY --from=builder /app/apps/web/.next/standalone ./
    COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
    COPY --from=builder /app/apps/web/public ./apps/web/public
-   
+
    USER nextjs
    EXPOSE 3000
    ENV PORT 3000
-   
+
    CMD ["node", "apps/web/server.js"]
    ```
 
 2. **Update docker-compose for production**:
+
    ```yaml
    # docker-compose.prod.yml
    version: '3.8'
@@ -227,14 +246,14 @@ npm run db:seed  # Optional: creates test user
          context: .
          dockerfile: apps/web/Dockerfile.prod
        ports:
-         - "3000:3000"
+         - '3000:3000'
        environment:
          - DATABASE_URL=postgresql://user:password@db:5432/greedadvisor
          - JWT_SECRET=your-secure-secret
          - NODE_ENV=production
        depends_on:
          - db
-   
+
      db:
        image: postgres:15
        environment:
@@ -244,8 +263,8 @@ npm run db:seed  # Optional: creates test user
        volumes:
          - postgres_data:/var/lib/postgresql/data
        ports:
-         - "5432:5432"
-   
+         - '5432:5432'
+
    volumes:
      postgres_data:
    ```
@@ -266,16 +285,19 @@ npm run db:seed  # Optional: creates test user
 ## Monitoring
 
 ### Basic Health Check
+
 ```bash
 curl https://yourdomain.com/api/health
 ```
 
 ### Database Health
+
 ```bash
 curl https://yourdomain.com/api/health/db
 ```
 
 ### Recommended Tools
+
 - **Uptime Monitoring**: UptimeRobot, Pingdom
 - **Error Tracking**: Sentry
 - **Analytics**: Vercel Analytics, Google Analytics
@@ -284,6 +306,7 @@ curl https://yourdomain.com/api/health/db
 ## Backup Strategy
 
 ### Database Backups
+
 ```bash
 # Daily automated backup
 pg_dump $DATABASE_URL > backup-$(date +%Y%m%d).sql
@@ -293,6 +316,7 @@ aws s3 cp backup-$(date +%Y%m%d).sql s3://your-backup-bucket/
 ```
 
 ### Environment Backups
+
 - Store environment variables securely
 - Use secret management tools (AWS Secrets Manager, etc.)
 - Document all configuration changes
@@ -304,6 +328,7 @@ aws s3 cp backup-$(date +%Y%m%d).sql s3://your-backup-bucket/
    - Revert to previous deployment
 
 2. **Database Rollback**:
+
    ```bash
    # Restore from backup
    psql $DATABASE_URL < backup-20231209.sql
@@ -318,6 +343,7 @@ aws s3 cp backup-$(date +%Y%m%d).sql s3://your-backup-bucket/
 ## Performance Optimization
 
 ### Production Checklist
+
 - [ ] Enable Next.js compression
 - [ ] Configure CDN for static assets
 - [ ] Optimize images with Next.js Image component
@@ -327,6 +353,7 @@ aws s3 cp backup-$(date +%Y%m%d).sql s3://your-backup-bucket/
 - [ ] Set up proper caching headers
 
 ### Database Optimization
+
 ```sql
 -- Add indexes for frequently queried fields
 CREATE INDEX idx_users_email ON users(email);

@@ -21,15 +21,15 @@ The main user table storing authentication and API key information.
 
 ### Columns
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | SERIAL | PRIMARY KEY | Auto-incrementing user ID |
-| email | TEXT | NOT NULL, UNIQUE | User's email address (login identifier) |
-| password | TEXT | NOT NULL | Bcrypt hashed password |
-| openAiKey | TEXT | NULL | Optional OpenAI API key for user |
-| t212Key | TEXT | NULL | Optional Trading 212 API key for user |
-| createdAt | TIMESTAMP(3) | NOT NULL, DEFAULT NOW() | Record creation timestamp |
-| updatedAt | TIMESTAMP(3) | NOT NULL | Record last update timestamp |
+| Column    | Type         | Constraints             | Description                             |
+| --------- | ------------ | ----------------------- | --------------------------------------- |
+| id        | SERIAL       | PRIMARY KEY             | Auto-incrementing user ID               |
+| email     | TEXT         | NOT NULL, UNIQUE        | User's email address (login identifier) |
+| password  | TEXT         | NOT NULL                | Bcrypt hashed password                  |
+| openAiKey | TEXT         | NULL                    | Optional OpenAI API key for user        |
+| t212Key   | TEXT         | NULL                    | Optional Trading 212 API key for user   |
+| createdAt | TIMESTAMP(3) | NOT NULL, DEFAULT NOW() | Record creation timestamp               |
+| updatedAt | TIMESTAMP(3) | NOT NULL                | Record last update timestamp            |
 
 ### Indexes
 

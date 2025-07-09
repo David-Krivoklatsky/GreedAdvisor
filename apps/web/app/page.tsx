@@ -1,6 +1,6 @@
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function HomePage() {
   return (
@@ -10,16 +10,18 @@ export default function HomePage() {
           Welcome to <span className="text-primary">Greed Advisor</span>
         </h1>
         <p className="text-lg leading-8 text-gray-600 mb-8">
-          Securely manage your API keys for OpenAI and Trading212. 
-          Keep your trading and AI automation credentials safe and organized.
+          Securely manage your API keys for OpenAI and Trading212. Keep your trading and AI
+          automation credentials safe and organized.
         </p>
-        
+
         <div className="flex gap-4 justify-center mb-16">
           <Link href="/register">
             <Button size="lg">Get Started</Button>
           </Link>
           <Link href="/login">
-            <Button variant="outline" size="lg">Sign In</Button>
+            <Button variant="outline" size="lg">
+              Sign In
+            </Button>
           </Link>
         </div>
 
@@ -27,9 +29,7 @@ export default function HomePage() {
           <Card>
             <CardHeader>
               <CardTitle>🔐 Secure Storage</CardTitle>
-              <CardDescription>
-                Your API keys are encrypted and stored securely
-              </CardDescription>
+              <CardDescription>Your API keys are encrypted and stored securely</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600">
@@ -41,9 +41,7 @@ export default function HomePage() {
           <Card>
             <CardHeader>
               <CardTitle>🚀 Easy Management</CardTitle>
-              <CardDescription>
-                Simple dashboard to manage all your keys
-              </CardDescription>
+              <CardDescription>Simple dashboard to manage all your keys</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600">
@@ -54,5 +52,5 @@ export default function HomePage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -13,38 +13,45 @@ export function withErrorHandler<T>(
       console.error('API Error:', error);
 
       if (error instanceof ZodError) {
-        return NextResponse.json({
-          success: false,
-          message: 'Validation failed',
-          error: error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', '),
-          statusCode: 400,
-        } as ApiError, { status: 400 });
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Validation failed',
+            error: error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
+            statusCode: 400,
+          } as ApiError,
+          { status: 400 }
+        );
       }
 
       if (error instanceof Error) {
-        return NextResponse.json({
-          success: false,
-          message: 'Internal server error',
-          error: error.message,
-          statusCode: 500,
-        } as ApiError, { status: 500 });
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Internal server error',
+            error: error.message,
+            statusCode: 500,
+          } as ApiError,
+          { status: 500 }
+        );
       }
 
-      return NextResponse.json({
-        success: false,
-        message: 'Unknown error occurred',
-        error: 'An unexpected error occurred',
-        statusCode: 500,
-      } as ApiError, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Unknown error occurred',
+          error: 'An unexpected error occurred',
+          statusCode: 500,
+        } as ApiError,
+        { status: 500 }
+      );
     }
   };
 }
 
 // Request validation middleware
 export function withValidation<T>(schema: ZodSchema<T>) {
-  return function (
-    handler: (req: NextRequest, validatedData: T) => Promise<NextResponse>
-  ) {
+  return function (handler: (req: NextRequest, validatedData: T) => Promise<NextResponse>) {
     return async (req: NextRequest): Promise<NextResponse> => {
       try {
         let data: any;
@@ -62,12 +69,15 @@ export function withValidation<T>(schema: ZodSchema<T>) {
         return await handler(req, data);
       } catch (error) {
         if (error instanceof ZodError) {
-          return NextResponse.json({
-            success: false,
-            message: 'Validation failed',
-            error: error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', '),
-            statusCode: 400,
-          } as ApiError, { status: 400 });
+          return NextResponse.json(
+            {
+              success: false,
+              message: 'Validation failed',
+              error: error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
+              statusCode: 400,
+            } as ApiError,
+            { status: 400 }
+          );
         }
 
         throw error; // Re-throw non-validation errors
@@ -77,9 +87,7 @@ export function withValidation<T>(schema: ZodSchema<T>) {
 }
 
 // CORS middleware
-export function withCors(
-  handler: (req: NextRequest) => Promise<NextResponse>
-) {
+export function withCors(handler: (req: NextRequest) => Promise<NextResponse>) {
   return async (req: NextRequest): Promise<NextResponse> => {
     // Handle preflight requests
     if (req.method === 'OPTIONS') {
@@ -106,9 +114,7 @@ export function withCors(
 }
 
 // Security headers middleware
-export function withSecurityHeaders(
-  handler: (req: NextRequest) => Promise<NextResponse>
-) {
+export function withSecurityHeaders(handler: (req: NextRequest) => Promise<NextResponse>) {
   return async (req: NextRequest): Promise<NextResponse> => {
     const response = await handler(req);
 
@@ -127,9 +133,7 @@ export function withSecurityHeaders(
 }
 
 // Rate limiting check (to be used with rate-limit package)
-export function withRateLimit(
-  handler: (req: NextRequest) => Promise<NextResponse>
-) {
+export function withRateLimit(handler: (req: NextRequest) => Promise<NextResponse>) {
   return async (req: NextRequest): Promise<NextResponse> => {
     // This would integrate with your rate-limit package
     // For now, just pass through
@@ -138,49 +142,48 @@ export function withRateLimit(
 }
 
 // Authentication middleware
-export function withAuth(
-  handler: (req: NextRequest, userId: number) => Promise<NextResponse>
-) {
+export function withAuth(handler: (req: NextRequest, userId: number) => Promise<NextResponse>) {
   return async (req: NextRequest): Promise<NextResponse> => {
     const authHeader = req.headers.get('authorization');
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({
-        success: false,
-        message: 'Unauthorized',
-        error: 'Missing or invalid authorization header',
-        statusCode: 401,
-      } as ApiError, { status: 401 });
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Unauthorized',
+          error: 'Missing or invalid authorization header',
+          statusCode: 401,
+        } as ApiError,
+        { status: 401 }
+      );
     }
 
     const token = authHeader.substring(7);
-    
+
     try {
       // Here you would verify the JWT token
       // This is a placeholder - you'd use your auth package
       const userId = 1; // Replace with actual token verification
-      
+
       return await handler(req, userId);
     } catch (error) {
-      return NextResponse.json({
-        success: false,
-        message: 'Unauthorized',
-        error: 'Invalid token',
-        statusCode: 401,
-      } as ApiError, { status: 401 });
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Unauthorized',
+          error: 'Invalid token',
+          statusCode: 401,
+        } as ApiError,
+        { status: 401 }
+      );
     }
   };
 }
 
 // Compose multiple middleware
-export function compose<T extends any[]>(
-  ...middlewares: Array<(handler: any) => any>
-) {
+export function compose<T extends any[]>(...middlewares: Array<(handler: any) => any>) {
   return (handler: (...args: T) => Promise<NextResponse>) => {
-    return middlewares.reduce(
-      (acc, middleware) => middleware(acc),
-      handler
-    );
+    return middlewares.reduce((acc, middleware) => middleware(acc), handler);
   };
 }
 

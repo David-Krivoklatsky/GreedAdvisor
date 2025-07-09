@@ -1,8 +1,5 @@
 {
-  "extends": [
-    "next/core-web-vitals",
-    "@next/eslint-config-next"
-  ],
+  "extends": ["next/core-web-vitals", "@next/eslint-config-next"],
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint"],
   "rules": {

@@ -1,115 +1,115 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface User {
-  id: number
-  email: string
-  openAiKey?: string
-  t212Key?: string
-  createdAt: string
+  id: number;
+  email: string;
+  openAiKey?: string;
+  t212Key?: string;
+  createdAt: string;
 }
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [openAiKey, setOpenAiKey] = useState('')
-  const [t212Key, setT212Key] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [updating, setUpdating] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const router = useRouter()
+  const [user, setUser] = useState<User | null>(null);
+  const [openAiKey, setOpenAiKey] = useState('');
+  const [t212Key, setT212Key] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const router = useRouter();
 
   useEffect(() => {
-    fetchUser()
-  }, [])
+    fetchUser();
+  }, []);
 
   const fetchUser = async () => {
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('token');
       if (!token) {
-        router.push('/login')
-        return
+        router.push('/login');
+        return;
       }
 
       const response = await fetch('/api/user/profile', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
-      })
+      });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch user data')
+        throw new Error('Failed to fetch user data');
       }
 
-      const data = await response.json()
-      setUser(data.user)
-      setOpenAiKey(data.user.openAiKey || '')
-      setT212Key(data.user.t212Key || '')
+      const data = await response.json();
+      setUser(data.user);
+      setOpenAiKey(data.user.openAiKey || '');
+      setT212Key(data.user.t212Key || '');
     } catch (err) {
-      setError('Failed to load user data')
-      router.push('/login')
+      setError('Failed to load user data');
+      router.push('/login');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleUpdateKeys = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setUpdating(true)
-    setError('')
-    setSuccess('')
+    e.preventDefault();
+    setUpdating(true);
+    setError('');
+    setSuccess('');
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('token');
       if (!token) {
-        router.push('/login')
-        return
+        router.push('/login');
+        return;
       }
 
       const response = await fetch('/api/user/api-keys', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           openAiKey: openAiKey || undefined,
           t212Key: t212Key || undefined,
         }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to update API keys')
+        throw new Error(data.error || 'Failed to update API keys');
       }
 
-      setUser(data.user)
-      setSuccess('API keys updated successfully!')
+      setUser(data.user);
+      setSuccess('API keys updated successfully!');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update API keys')
+      setError(err instanceof Error ? err.message : 'Failed to update API keys');
     } finally {
-      setUpdating(false)
+      setUpdating(false);
     }
-  }
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    router.push('/')
-  }
+    localStorage.removeItem('token');
+    router.push('/');
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Loading...</div>
       </div>
-    )
+    );
   }
 
   return (
@@ -133,9 +133,7 @@ export default function DashboardPage() {
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="space-y-8">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              API Key Management
-            </h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">API Key Management</h2>
             <p className="text-gray-600 mb-8">
               Securely store and manage your OpenAI and Trading212 API keys.
             </p>
@@ -155,7 +153,7 @@ export default function DashboardPage() {
                     {error}
                   </div>
                 )}
-                
+
                 {success && (
                   <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded">
                     {success}
@@ -172,9 +170,7 @@ export default function DashboardPage() {
                     className="mt-1"
                     placeholder="sk-..."
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Your OpenAI API key for GPT models
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Your OpenAI API key for GPT models</p>
                 </div>
 
                 <div>
@@ -192,11 +188,7 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
-                <Button
-                  type="submit"
-                  disabled={updating}
-                  className="w-full"
-                >
+                <Button type="submit" disabled={updating} className="w-full">
                   {updating ? 'Updating...' : 'Update API Keys'}
                 </Button>
               </form>
@@ -209,15 +201,24 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p><strong>Email:</strong> {user?.email}</p>
-                <p><strong>Account created:</strong> {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</p>
-                <p><strong>OpenAI Key:</strong> {user?.openAiKey ? '••••••••' : 'Not set'}</p>
-                <p><strong>Trading212 Key:</strong> {user?.t212Key ? '••••••••' : 'Not set'}</p>
+                <p>
+                  <strong>Email:</strong> {user?.email}
+                </p>
+                <p>
+                  <strong>Account created:</strong>{' '}
+                  {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                </p>
+                <p>
+                  <strong>OpenAI Key:</strong> {user?.openAiKey ? '••••••••' : 'Not set'}
+                </p>
+                <p>
+                  <strong>Trading212 Key:</strong> {user?.t212Key ? '••••••••' : 'Not set'}
+                </p>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
     </div>
-  )
+  );
 }
