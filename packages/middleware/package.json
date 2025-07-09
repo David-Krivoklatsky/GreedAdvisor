@@ -1,0 +1,17 @@
+{
+  "name": "@greed-advisor/middleware",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "dependencies": {
+    "@greed-advisor/types": "*",
+    "@greed-advisor/config": "*",
+    "next": "^14.0.4",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

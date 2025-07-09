@@ -5,20 +5,33 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
+    "lint:fix": "turbo lint:fix",
+    "type-check": "turbo type-check",
     "test": "turbo test",
     "test:watch": "turbo test:watch",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "test:coverage": "turbo test:coverage",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
     "db:up": "docker-compose up -d",
     "db:down": "docker-compose down",
     "db:generate": "turbo db:generate",
     "db:migrate": "turbo db:migrate",
     "db:push": "turbo db:push",
-    "db:seed": "turbo db:seed"
+    "db:seed": "turbo db:seed",
+    "db:reset": "turbo db:reset",
+    "clean": "turbo clean",
+    "clean:all": "turbo clean && rm -rf node_modules && npm install",
+    "check-updates": "npx npm-check-updates",
+    "security-audit": "npm audit --audit-level=moderate"
   },
   "devDependencies": {
     "@turbo/gen": "^1.10.12",
     "turbo": "latest",
-    "prettier": "^3.0.0"
+    "prettier": "^3.0.0",
+    "@commitlint/cli": "^18.4.0",
+    "@commitlint/config-conventional": "^18.4.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.1.0"
   },
   "engines": {
     "node": ">=18"

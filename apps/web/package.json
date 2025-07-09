@@ -19,10 +19,14 @@
     "@greed-advisor/utils": "*",
     "@greed-advisor/validations": "*",
     "@greed-advisor/rate-limit": "*",
+    "@greed-advisor/config": "*",
+    "@greed-advisor/types": "*",
+    "@greed-advisor/middleware": "*",
     "class-variance-authority": "^0.7.0",
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-label": "^2.0.2",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "typescript": "^5",

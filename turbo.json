@@ -7,6 +7,12 @@
       "outputs": [".next/**", "!.next/cache/**"]
     },
     "lint": {},
+    "lint:fix": {
+      "cache": false
+    },
+    "type-check": {
+      "dependsOn": ["^build"]
+    },
     "test": {
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"]
@@ -15,9 +21,16 @@
       "cache": false,
       "persistent": true
     },
+    "test:coverage": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "clean": {
+      "cache": false
     },
     "db:generate": {
       "cache": true,
@@ -30,6 +43,9 @@
       "cache": false
     },
     "db:seed": {
+      "cache": false
+    },
+    "db:reset": {
       "cache": false
     }
   }
