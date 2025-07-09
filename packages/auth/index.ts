@@ -1,5 +1,5 @@
-import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
@@ -15,9 +15,13 @@ export function signToken(payload: object): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 }
 
-export function verifyToken(token: string): any {
+export function verifyToken(token: string): { userId: any } | null {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: any };
+    if (!decoded || typeof decoded.userId === 'undefined') {
+      throw new Error('Invalid token payload');
+    }
+    return { userId: decoded.userId };
   } catch (error) {
     return null;
   }

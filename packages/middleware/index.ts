@@ -1,6 +1,7 @@
+import { extractTokenFromHeader, verifyToken } from '@greed-advisor/auth';
+import type { ApiError, ApiResponse } from '@greed-advisor/types';
 import { NextRequest, NextResponse } from 'next/server';
-import { ZodSchema, ZodError } from 'zod';
-import type { ApiResponse, ApiError } from '@greed-advisor/types';
+import { ZodError, ZodSchema } from 'zod';
 
 // Error handling middleware
 export function withErrorHandler<T>(
@@ -144,9 +145,9 @@ export function withRateLimit(handler: (req: NextRequest) => Promise<NextRespons
 // Authentication middleware
 export function withAuth(handler: (req: NextRequest, userId: number) => Promise<NextResponse>) {
   return async (req: NextRequest): Promise<NextResponse> => {
-    const authHeader = req.headers.get('authorization');
+    const token = extractTokenFromHeader(req.headers.get('authorization'));
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
       return NextResponse.json(
         {
           success: false,
@@ -158,14 +159,14 @@ export function withAuth(handler: (req: NextRequest, userId: number) => Promise<
       );
     }
 
-    const token = authHeader.substring(7);
-
     try {
-      // Here you would verify the JWT token
-      // This is a placeholder - you'd use your auth package
-      const userId = 1; // Replace with actual token verification
+      const decoded = verifyToken(token);
 
-      return await handler(req, userId);
+      if (!decoded || !decoded.userId) {
+        throw new Error('Invalid token');
+      }
+
+      return await handler(req, decoded.userId);
     } catch (error) {
       return NextResponse.json(
         {
