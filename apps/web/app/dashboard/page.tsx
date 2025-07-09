@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { TokenManager } from '@/lib/token-manager';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -9,19 +10,15 @@ import { useEffect, useState } from 'react';
 interface User {
   id: number;
   email: string;
-  openAiKey?: string;
-  t212Key?: string;
+  firstName?: string;
+  lastName?: string;
   createdAt: string;
 }
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
-  const [openAiKey, setOpenAiKey] = useState('');
-  const [t212Key, setT212Key] = useState('');
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [marketData, setMarketData] = useState({ price: '', symbol: 'USD/AUX' });
   const router = useRouter();
 
@@ -32,17 +29,7 @@ export default function DashboardPage() {
 
   const fetchUser = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/login');
-        return;
-      }
-
-      const response = await fetch('/api/user/profile', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await TokenManager.makeAuthenticatedRequest('/api/user/profile');
 
       if (!response.ok) {
         throw new Error('Failed to fetch user data');
@@ -50,11 +37,10 @@ export default function DashboardPage() {
 
       const data = await response.json();
       setUser(data.user);
-      setOpenAiKey(data.user.openAiKey || '');
-      setT212Key(data.user.t212Key || '');
     } catch (err) {
+      console.error('Error fetching user:', err);
       setError('Failed to load user data');
-      router.push('/login');
+      // TokenManager.makeAuthenticatedRequest already handles redirects
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken, extractTokenFromHeader } from '@greed-advisor/auth';
+import { extractTokenFromHeader, verifyAccessToken } from '@greed-advisor/auth';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,9 +11,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No token provided' }, { status: 401 });
     }
 
-    const decoded = verifyToken(token);
+    const decoded = verifyAccessToken(token);
     if (!decoded) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -21,9 +21,27 @@ export async function GET(req: NextRequest) {
       select: {
         id: true,
         email: true,
-        openAiKey: true,
-        t212Key: true,
+        firstName: true,
+        lastName: true,
         createdAt: true,
+        aiApiKeys: {
+          select: {
+            id: true,
+            title: true,
+            provider: true,
+            isActive: true,
+            createdAt: true,
+          },
+        },
+        t212ApiKeys: {
+          select: {
+            id: true,
+            title: true,
+            accessType: true,
+            isActive: true,
+            createdAt: true,
+          },
+        },
       },
     });
 

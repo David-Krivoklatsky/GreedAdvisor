@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { TokenManager } from '@/lib/token-manager';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -28,6 +29,7 @@ export default function LoginPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
+        credentials: 'include', // Include cookies for refresh token
       });
 
       const data = await response.json();
@@ -36,8 +38,8 @@ export default function LoginPage() {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Store token in localStorage
-      localStorage.setItem('token', data.token);
+      // Store access token in localStorage
+      TokenManager.setAccessToken(data.accessToken);
 
       // Redirect to dashboard
       router.push('/dashboard');

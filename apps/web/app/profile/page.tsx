@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { TokenManager } from '@/lib/token-manager';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -22,9 +23,8 @@ import { useEffect, useState } from 'react';
 interface User {
   id: number;
   email: string;
-  name?: string;
-  openAiKey?: string;
-  t212Key?: string;
+  firstName?: string;
+  lastName?: string;
   createdAt: string;
 }
 
@@ -47,17 +47,7 @@ export default function ProfilePage() {
 
   const fetchUser = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/login');
-        return;
-      }
-
-      const response = await fetch('/api/user/profile', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await TokenManager.makeAuthenticatedRequest('/api/user/profile');
 
       if (!response.ok) {
         throw new Error('Failed to fetch user data');
@@ -66,8 +56,7 @@ export default function ProfilePage() {
       const data = await response.json();
       setUser(data.user);
       setEmail(data.user.email);
-      setOpenAiKey(data.user.openAiKey || '');
-      setT212Key(data.user.t212Key || '');
+      // Note: API keys are now managed separately
     } catch (err) {
       setError('Failed to load user data');
     }
@@ -202,9 +191,9 @@ export default function ProfilePage() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    router.push('/');
+  const handleLogout = async () => {
+    await TokenManager.logout();
+    router.push('/login');
   };
 
   const renderContent = () => {
@@ -410,7 +399,11 @@ export default function ProfilePage() {
               className="rounded-full"
             />
             <div>
-              <h3 className="font-semibold text-gray-900">{user?.name || 'User'}</h3>
+              <h3 className="font-semibold text-gray-900">
+                {user?.firstName || user?.lastName
+                  ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
+                  : 'User'}
+              </h3>
               <p className="text-sm text-gray-600">{user?.email}</p>
             </div>
           </div>
