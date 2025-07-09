@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@greed-advisor/db": ["../../packages/db"],
+      "@greed-advisor/auth": ["../../packages/auth"],
+      "@greed-advisor/utils": ["../../packages/utils"],
+      "@greed-advisor/validations": ["../../packages/validations"],
+      "@greed-advisor/rate-limit": ["../../packages/rate-limit"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
