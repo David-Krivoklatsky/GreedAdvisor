@@ -1,5 +1,5 @@
+import { POST } from '@/app/api/auth/register/route';
 import { createMocks } from 'node-mocks-http';
-import handler from '@/app/api/auth/register/route';
 
 // Mock the database
 jest.mock('@/lib/prisma', () => ({
@@ -13,13 +13,27 @@ jest.mock('@/lib/prisma', () => ({
 
 // Mock rate limiter
 jest.mock('@greed-advisor/rate-limit', () => ({
-  rateLimit: jest.fn(() => Promise.resolve({ success: true })),
+  rateLimit: jest.fn(() => ({ success: true })),
 }));
 
 // Mock auth functions
 jest.mock('@greed-advisor/auth', () => ({
   hashPassword: jest.fn(() => Promise.resolve('hashedpassword')),
-  signToken: jest.fn(() => 'mocktoken'),
+  signAccessToken: jest.fn(() => 'accesstoken'),
+  signRefreshToken: jest.fn(() => 'refreshtoken'),
+}));
+
+// Mock middleware
+jest.mock('@greed-advisor/middleware', () => ({
+  withApiMiddleware: jest.fn((handler) => handler),
+  withValidation: jest.fn((schema) => (handler) => (req) => {
+    // Mock validation - assume valid data
+    const validatedData = {
+      email: 'test@example.com',
+      password: 'password123',
+    };
+    return handler(req, validatedData);
+  }),
 }));
 
 // Mock validations
@@ -55,7 +69,7 @@ describe('/api/auth/register', () => {
       createdAt: new Date(),
     });
 
-    const response = await handler.POST(req as any);
+    const response = await POST(req as any);
     const data = await response.json();
 
     expect(response.status).toBe(201);
@@ -79,10 +93,10 @@ describe('/api/auth/register', () => {
       email: 'existing@example.com',
     });
 
-    const response = await handler.POST(req as any);
+    const response = await POST(req as any);
     const data = await response.json();
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(409);
     expect(data.error).toBe('User already exists');
   });
 });
