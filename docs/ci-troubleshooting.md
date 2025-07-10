@@ -4,23 +4,49 @@
 
 ### Common Error: "Environment variable not found: DATABASE_URL"
 
-**Problem**: The migration fails because `DATABASE_URL` is not available in the CI environment.
+**Problem**: The migration fails because `DATABASE_URL` is not available to the Prisma process in the CI environment, even when environment variables are set at the workflow level.
 
-**Solution**: The CI workflow automatically sets up environment variables. If this error persists:
+**Root Cause**: Turbo runs the migration in the `packages/db` directory, and environment variables may not propagate correctly to the Prisma process.
 
-1. **Check PostgreSQL Service Status**:
-   - The workflow includes a PostgreSQL service that should start automatically
-   - The service has health checks to ensure it's ready before proceeding
+**Solution**: The updated CI workflow now:
 
-2. **Verify Environment Variables**:
+1. **Creates .env files**: Instead of relying only on environment variables, the workflow creates actual `.env` files
+2. **Uses setup script**: A dedicated `scripts/setup-env.sh` script handles environment setup
+3. **Configures Turbo**: The `turbo.json` is configured to pass environment variables to database tasks
 
-   ```yaml
-   env:
-     DATABASE_URL: postgresql://postgres:postgres@localhost:5432/greed_advisor_test
-     JWT_SECRET: test-jwt-secret-for-ci-environment-only
-     NEXTAUTH_SECRET: test-nextauth-secret-for-ci-environment
-     ENCRYPTION_KEY: test-encryption-key-32-characters
+### Updated CI Workflow Steps
+
+The workflow now includes these key steps:
+
+1. **PostgreSQL Service**: Starts automatically with health checks
+2. **Environment Setup**: Uses `scripts/setup-env.sh` to create `.env` files:
+
+   ```bash
+   - name: Setup environment files for CI
+     run: |
+       chmod +x scripts/setup-env.sh
+       ./scripts/setup-env.sh
+     env:
+       CI: true
+       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/greed_advisor_test
+       JWT_SECRET: test-jwt-secret-for-ci-environment-only
+       NEXTAUTH_SECRET: test-nextauth-secret-for-ci-environment
+       ENCRYPTION_KEY: test-encryption-key-32-characters
    ```
+
+3. **Environment Verification**: Checks that `.env` files are created correctly
+4. **Database Migration**: Runs with environment variables available
+
+### Turbo Configuration
+
+The `turbo.json` now includes environment variable configuration:
+
+```json
+"db:migrate": {
+  "cache": false,
+  "env": ["DATABASE_URL", "JWT_SECRET", "NEXTAUTH_SECRET", "ENCRYPTION_KEY"]
+}
+```
 
 3. **Database Readiness Check**:
    The workflow includes a step that waits for PostgreSQL to be ready:

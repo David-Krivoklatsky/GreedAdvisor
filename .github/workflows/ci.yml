@@ -48,6 +48,26 @@ jobs:
             sleep 2
           done
 
+      - name: Setup environment files for CI
+        run: |
+          chmod +x scripts/setup-env.sh
+          ./scripts/setup-env.sh
+        env:
+          CI: true
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/greed_advisor_test
+          JWT_SECRET: test-jwt-secret-for-ci-environment-only
+          NEXTAUTH_SECRET: test-nextauth-secret-for-ci-environment
+          ENCRYPTION_KEY: test-encryption-key-32-characters
+
+      - name: Verify environment setup
+        run: |
+          echo "Checking .env files..."
+          echo "Root .env exists: $(test -f .env && echo 'YES' || echo 'NO')"
+          echo "packages/db/.env exists: $(test -f packages/db/.env && echo 'YES' || echo 'NO')"
+          echo "apps/web/.env exists: $(test -f apps/web/.env && echo 'YES' || echo 'NO')"
+          echo "DATABASE_URL in packages/db/.env:"
+          grep DATABASE_URL packages/db/.env || echo "Not found"
+
       - name: Run linting
         run: npm run lint
 
@@ -56,19 +76,9 @@ jobs:
 
       - name: Run database migrations
         run: npm run db:migrate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/greed_advisor_test
-          JWT_SECRET: test-jwt-secret-for-ci-environment-only
-          NEXTAUTH_SECRET: test-nextauth-secret-for-ci-environment
-          ENCRYPTION_KEY: test-encryption-key-32-characters
 
       - name: Run tests
         run: npm run test
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/greed_advisor_test
-          JWT_SECRET: test-jwt-secret-for-ci-environment-only
-          NEXTAUTH_SECRET: test-nextauth-secret-for-ci-environment
-          ENCRYPTION_KEY: test-encryption-key-32-characters
 
       - name: Build application
         run: npm run build
@@ -127,10 +137,28 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U postgres; then
+              echo "PostgreSQL is ready"
+              break
+            fi
+            echo "Waiting for PostgreSQL... attempt $i"
+            sleep 2
+          done
+
+      - name: Setup environment files for production
+        run: |
+          chmod +x scripts/setup-env.sh
+          ./scripts/setup-env.sh
+        env:
+          CI: true
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/greed_advisor_prod
+          NODE_ENV: production
+
       - name: Run database migrations
         run: npm run db:migrate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/greed_advisor_prod
 
       - name: Build for production
         run: npm run build

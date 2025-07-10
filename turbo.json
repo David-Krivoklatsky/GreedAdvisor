@@ -37,16 +37,20 @@
       "inputs": ["prisma/schema.prisma", ".env"]
     },
     "db:migrate": {
-      "cache": false
+      "cache": false,
+      "env": ["DATABASE_URL", "JWT_SECRET", "NEXTAUTH_SECRET", "ENCRYPTION_KEY"]
     },
     "db:push": {
-      "cache": false
+      "cache": false,
+      "env": ["DATABASE_URL"]
     },
     "db:seed": {
-      "cache": false
+      "cache": false,
+      "env": ["DATABASE_URL"]
     },
     "db:reset": {
-      "cache": false
+      "cache": false,
+      "env": ["DATABASE_URL"]
     }
   }
 }
