@@ -25,13 +25,18 @@
     "security-audit": "npm audit --audit-level=moderate"
   },
   "devDependencies": {
-    "@turbo/gen": "^1.10.12",
-    "turbo": "latest",
-    "prettier": "^3.0.0",
     "@commitlint/cli": "^18.4.0",
     "@commitlint/config-conventional": "^18.4.0",
+    "@next/eslint-plugin-next": "^15.3.5",
+    "@turbo/gen": "^1.10.12",
+    "@typescript-eslint/eslint-plugin": "^8.36.0",
+    "@typescript-eslint/parser": "^8.36.0",
+    "eslint-config-next": "^15.3.5",
     "husky": "^8.0.3",
-    "lint-staged": "^15.1.0"
+    "lint-staged": "^15.1.0",
+    "prettier": "^3.0.0",
+    "prisma": "^6.11.1",
+    "turbo": "latest"
   },
   "engines": {
     "node": ">=18"
@@ -40,5 +45,9 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "@prisma/client": "^6.11.1",
+    "@radix-ui/react-alert-dialog": "^1.1.14"
+  }
 }

@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { comparePassword, signToken } from '@greed-advisor/auth';
-import { loginSchema } from '@greed-advisor/validations';
+import { comparePassword, signAccessToken, signRefreshToken } from '@greed-advisor/auth';
 import { rateLimit } from '@greed-advisor/rate-limit';
+import { loginSchema } from '@greed-advisor/validations';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,21 +42,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
-    // Generate JWT token
-    const token = signToken({ userId: user.id, email: user.email });
+    // Generate tokens
+    const payload = { userId: user.id, email: user.email };
+    const accessToken = signAccessToken(payload);
+    const refreshToken = signRefreshToken(payload);
 
-    return NextResponse.json(
+    // Create response
+    const response = NextResponse.json(
       {
         message: 'Login successful',
-        token,
+        accessToken,
         user: {
           id: user.id,
           email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
           createdAt: user.createdAt,
         },
       },
       { status: 200 }
     );
+
+    // Set refresh token as HTTP-only cookie
+    response.cookies.set('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

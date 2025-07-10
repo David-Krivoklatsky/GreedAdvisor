@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { TokenManager } from '@/lib/token-manager';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -27,6 +29,7 @@ export default function LoginPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
+        credentials: 'include', // Include cookies for refresh token
       });
 
       const data = await response.json();
@@ -35,8 +38,8 @@ export default function LoginPage() {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Store token in localStorage
-      localStorage.setItem('token', data.token);
+      // Store access token in localStorage
+      TokenManager.setAccessToken(data.accessToken);
 
       // Redirect to dashboard
       router.push('/dashboard');
@@ -51,10 +54,19 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
+          <Image
+            src="/greedadvisor.png"
+            alt="GreedAdvisor Logo"
+            width={100}
+            height={100}
+            className="mx-auto"
+          />
+          <h2 className="mt-6 text-3xl font-extrabold" style={{ color: '#1F09FF' }}>
+            Sign in to your account
+          </h2>
           <p className="mt-2 text-sm text-gray-600">
             Or{' '}
-            <Link href="/register" className="font-medium text-primary hover:text-primary/80">
+            <Link href="/register" className="font-medium" style={{ color: '#1F09FF' }}>
               create a new account
             </Link>
           </p>
