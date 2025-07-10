@@ -1,13 +1,18 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import './globals.css';
 import { ErrorBoundary } from '../components/error-boundary';
+import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Greed Advisor',
-  description: 'Manage your API keys securely',
+  title: 'GreedAdvisor',
+  description: 'Manage your AI and Trading API keys securely',
+  icons: {
+    icon: '/GA.png',
+    shortcut: '/GA.png',
+    apple: '/GA.png',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

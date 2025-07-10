@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { hashPassword, signToken } from '@greed-advisor/auth';
-import { registerSchema } from '@greed-advisor/validations';
-import { rateLimit } from '@greed-advisor/rate-limit';
+import { hashPassword, signAccessToken, signRefreshToken } from '@greed-advisor/auth';
 import { withApiMiddleware, withValidation } from '@greed-advisor/middleware';
+import { rateLimit } from '@greed-advisor/rate-limit';
 import type { RegisterRequest, RegisterResponse } from '@greed-advisor/types';
+import { registerSchema } from '@greed-advisor/validations';
+import { NextRequest, NextResponse } from 'next/server';
 
 async function registerHandler(
   req: NextRequest,
@@ -50,24 +50,39 @@ async function registerHandler(
     },
   });
 
-  // Generate JWT token
-  const token = signToken({ userId: user.id, email: user.email });
+  // Generate tokens
+  const payload = { userId: user.id, email: user.email };
+  const accessToken = signAccessToken(payload);
+  const refreshToken = signRefreshToken(payload);
 
-  return NextResponse.json(
+  // Create response
+  const response = NextResponse.json(
     {
       success: true,
       message: 'User created successfully',
+      accessToken,
       user: {
         id: user.id,
         email: user.email,
-        openAiKey: user.openAiKey,
-        t212Key: user.t212Key,
+        firstName: user.firstName,
+        lastName: user.lastName,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
     },
     { status: 201 }
   );
+
+  // Set refresh token as HTTP-only cookie
+  response.cookies.set('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    path: '/',
+  });
+
+  return response;
 }
 
 export const POST = withApiMiddleware(withValidation(registerSchema)(registerHandler));

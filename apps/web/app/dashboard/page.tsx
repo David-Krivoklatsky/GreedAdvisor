@@ -1,47 +1,55 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import Navbar from '@/components/navbar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Combobox } from '@/components/ui/combobox';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { TokenManager } from '@/lib/token-manager';
+import { useEffect, useState } from 'react';
 
 interface User {
   id: number;
   email: string;
-  openAiKey?: string;
-  t212Key?: string;
+  firstName?: string;
+  lastName?: string;
   createdAt: string;
 }
 
+interface TradingKey {
+  id: number;
+  title: string;
+  accessType: string;
+  isActive: boolean;
+}
+
+interface AiKey {
+  id: number;
+  title: string;
+  provider: string;
+  isActive: boolean;
+}
+
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [openAiKey, setOpenAiKey] = useState('');
-  const [t212Key, setT212Key] = useState('');
+  const [, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const router = useRouter();
+  const [, setError] = useState('');
+  const [marketData, setMarketData] = useState({ price: '', symbol: 'USD/AUX' });
+  const [tradingKeys, setTradingKeys] = useState<TradingKey[]>([]);
+  const [aiKeys, setAiKeys] = useState<AiKey[]>([]);
+  const [selectedTradingKey, setSelectedTradingKey] = useState<string>('');
+  const [selectedAiKey, setSelectedAiKey] = useState<string>('');
 
   useEffect(() => {
     fetchUser();
+    fetchMarketData();
+    fetchTradingKeys();
+    fetchAiKeys();
   }, []);
 
   const fetchUser = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/login');
-        return;
-      }
-
-      const response = await fetch('/api/user/profile', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await TokenManager.makeAuthenticatedRequest('/api/user/profile');
 
       if (!response.ok) {
         throw new Error('Failed to fetch user data');
@@ -49,60 +57,71 @@ export default function DashboardPage() {
 
       const data = await response.json();
       setUser(data.user);
-      setOpenAiKey(data.user.openAiKey || '');
-      setT212Key(data.user.t212Key || '');
     } catch (err) {
+      console.error('Error fetching user:', err);
       setError('Failed to load user data');
-      router.push('/login');
+      // TokenManager.makeAuthenticatedRequest already handles redirects
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdateKeys = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setUpdating(true);
-    setError('');
-    setSuccess('');
-
+  const fetchTradingKeys = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/login');
-        return;
-      }
-
-      const response = await fetch('/api/user/api-keys', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          openAiKey: openAiKey || undefined,
-          t212Key: t212Key || undefined,
-        }),
-      });
-
-      const data = await response.json();
+      const response = await TokenManager.makeAuthenticatedRequest('/api/user/trading-keys');
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to update API keys');
+        throw new Error('Failed to fetch trading keys');
       }
 
-      setUser(data.user);
-      setSuccess('API keys updated successfully!');
+      const data = await response.json();
+      setTradingKeys(data.tradingKeys.filter((key: TradingKey) => key.isActive));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update API keys');
-    } finally {
-      setUpdating(false);
+      console.error('Failed to load trading keys:', err);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    router.push('/');
+  const fetchAiKeys = async () => {
+    try {
+      const response = await TokenManager.makeAuthenticatedRequest('/api/user/ai-keys');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch AI keys');
+      }
+
+      const data = await response.json();
+      setAiKeys(data.aiKeys.filter((key: AiKey) => key.isActive));
+    } catch (err) {
+      console.error('Failed to load AI keys:', err);
+    }
   };
+
+  const fetchMarketData = async () => {
+    try {
+      const response = await fetch('https://api.example.com/market-data?symbol=USD/AUX');
+      const data = await response.json();
+      setMarketData({ price: data.price, symbol: 'USD/AUX' });
+    } catch {
+      console.error('Failed to fetch market data');
+    }
+  };
+
+  const symbolOptions = [
+    { value: 'USD/AUX', label: 'USD/AUX' },
+    { value: 'EUR/USD', label: 'EUR/USD' },
+    { value: 'GBP/USD', label: 'GBP/USD' },
+    { value: 'USD/JPY', label: 'USD/JPY' },
+  ];
+
+  const tradingKeyOptions = tradingKeys.map((key) => ({
+    value: key.id.toString(),
+    label: `${key.title} (${key.accessType})`,
+  }));
+
+  const aiKeyOptions = aiKeys.map((key) => ({
+    value: key.id.toString(),
+    label: `${key.title} (${key.provider})`,
+  }));
 
   if (loading) {
     return (
@@ -114,110 +133,94 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold">Greed Advisor Dashboard</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">{user?.email}</span>
-              <Button variant="outline" onClick={handleLogout}>
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar hasNewNotifications={true} />
 
-      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="space-y-8">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">API Key Management</h2>
-            <p className="text-gray-600 mb-8">
-              Securely store and manage your OpenAI and Trading212 API keys.
-            </p>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Update API Keys</CardTitle>
-              <CardDescription>
-                Enter your API keys below. Leave blank to remove a key.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleUpdateKeys} className="space-y-6">
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
-                    {error}
-                  </div>
-                )}
-
-                {success && (
-                  <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded">
-                    {success}
-                  </div>
-                )}
-
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <ResizablePanelGroup direction="horizontal" className="rounded-lg border">
+          <ResizablePanel defaultSize={80} minSize={25} maxSize={80}>
+            <Card className="h-full border-0 rounded-none">
+              <CardHeader>
+                <CardTitle>Market Graph</CardTitle>
+                <CardDescription>Select a symbol to view market data</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="openAiKey">OpenAI API Key</Label>
-                  <Input
-                    id="openAiKey"
-                    type="password"
-                    value={openAiKey}
-                    onChange={(e) => setOpenAiKey(e.target.value)}
-                    className="mt-1"
-                    placeholder="sk-..."
+                  <label className="text-sm font-medium">Symbol</label>
+                  <Combobox
+                    options={symbolOptions}
+                    value={marketData.symbol}
+                    onValueChange={(value) => setMarketData({ ...marketData, symbol: value })}
+                    placeholder="Select symbol..."
+                    className="w-full mt-1"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Your OpenAI API key for GPT models</p>
                 </div>
 
                 <div>
-                  <Label htmlFor="t212Key">Trading212 API Key</Label>
-                  <Input
-                    id="t212Key"
-                    type="password"
-                    value={t212Key}
-                    onChange={(e) => setT212Key(e.target.value)}
-                    className="mt-1"
-                    placeholder="Enter your Trading212 API key"
+                  <label className="text-sm font-medium">Trading Key</label>
+                  <Combobox
+                    options={tradingKeyOptions}
+                    value={selectedTradingKey}
+                    onValueChange={setSelectedTradingKey}
+                    placeholder="Select trading key..."
+                    emptyMessage="No active trading keys found."
+                    className="w-full mt-1"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Your Trading212 API key for trading operations
-                  </p>
                 </div>
 
-                <Button type="submit" disabled={updating} className="w-full">
-                  {updating ? 'Updating...' : 'Update API Keys'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+                <div className="mt-4 text-lg font-bold" style={{ color: '#1F09FF' }}>
+                  Price: {marketData.price || 'Loading...'}
+                </div>
+              </CardContent>
+            </Card>
+          </ResizablePanel>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <p>
-                  <strong>Email:</strong> {user?.email}
-                </p>
-                <p>
-                  <strong>Account created:</strong>{' '}
-                  {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
-                </p>
-                <p>
-                  <strong>OpenAI Key:</strong> {user?.openAiKey ? '••••••••' : 'Not set'}
-                </p>
-                <p>
-                  <strong>Trading212 Key:</strong> {user?.t212Key ? '••••••••' : 'Not set'}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          <ResizableHandle withHandle />
+
+          <ResizablePanel defaultSize={67}>
+            <Card className="h-full border-0 rounded-none">
+              <CardHeader>
+                <CardTitle>Generate Report</CardTitle>
+                <CardDescription>Select options and generate a report</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">AI Key</label>
+                    <Combobox
+                      options={aiKeyOptions}
+                      value={selectedAiKey}
+                      onValueChange={setSelectedAiKey}
+                      placeholder="Select AI key..."
+                      emptyMessage="No active AI keys found."
+                      className="w-full mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Report Type</label>
+                    <Combobox
+                      options={[
+                        { value: 'daily', label: 'Daily Summary' },
+                        { value: 'weekly', label: 'Weekly Analysis' },
+                        { value: 'monthly', label: 'Monthly Report' },
+                        { value: 'custom', label: 'Custom Range' },
+                      ]}
+                      placeholder="Select report type..."
+                      className="w-full mt-1"
+                    />
+                  </div>
+
+                  <Button
+                    className="w-full mt-4"
+                    style={{ backgroundColor: '#1F09FF', color: 'white' }}
+                  >
+                    Generate Report
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );

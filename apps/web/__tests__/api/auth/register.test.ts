@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { prisma } from '@/lib/prisma';
+import { beforeEach, describe, expect, it } from '@jest/globals';
 import { NextRequest } from 'next/server';
 import { POST } from '../../../app/api/auth/register/route';
-import { prisma } from '@/lib/prisma';
 
 // Mock the prisma client
 jest.mock('@/lib/prisma', () => ({
@@ -16,21 +16,45 @@ jest.mock('@/lib/prisma', () => ({
 // Mock auth functions
 jest.mock('@greed-advisor/auth', () => ({
   hashPassword: jest.fn().mockResolvedValue('hashedPassword'),
-  signToken: jest.fn().mockReturnValue('mockToken'),
+  signAccessToken: jest.fn().mockReturnValue('accessToken'),
+  signRefreshToken: jest.fn().mockReturnValue('refreshToken'),
 }));
 
 // Mock rate limiting
 jest.mock('@greed-advisor/rate-limit', () => ({
-  rateLimit: jest.fn().mockReturnValue({ success: true }),
+  rateLimit: jest.fn(() => ({ success: true })),
+}));
+
+// Mock middleware
+jest.mock('@greed-advisor/middleware', () => ({
+  withApiMiddleware: jest.fn((handler: any) => handler),
+  withValidation: jest.fn((schema: any) => (handler: any) => async (req: any) => {
+    try {
+      // Actually parse the request body for validation
+      const body = await req.json();
+      const { registerSchema } = require('@greed-advisor/validations');
+      const validatedData = registerSchema.parse(body);
+      return handler(req, validatedData);
+    } catch (error) {
+      // Return validation error
+      const { NextResponse } = require('next/server');
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Validation failed',
+          error: 'Validation error',
+        },
+        { status: 400 }
+      );
+    }
+  }),
 }));
 
 describe('/api/auth/register', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  afterEach(() => {
-    jest.resetAllMocks();
+    // Re-setup the rate limit mock after clearing
+    require('@greed-advisor/rate-limit').rateLimit.mockReturnValue({ success: true });
   });
 
   it('should create a new user successfully', async () => {
