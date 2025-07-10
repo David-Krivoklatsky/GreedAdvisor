@@ -189,6 +189,44 @@ npx shadcn-ui@latest add <component-name>
 
 ## 📈 Production Deployment
 
+### CI/CD with GitHub Actions
+
+The project includes automated CI/CD pipeline that runs on every push to `main` or `develop` branches.
+
+#### Environment Variables for GitHub Actions
+
+The CI pipeline automatically sets up test environment variables:
+
+- `DATABASE_URL`: Points to PostgreSQL test database
+- `JWT_SECRET`: Test JWT secret
+- `NEXTAUTH_SECRET`: Test NextAuth secret
+- `ENCRYPTION_KEY`: Test encryption key
+
+#### Fixing CI Migration Issues
+
+If you encounter database migration errors in GitHub Actions:
+
+1. **Check PostgreSQL Service**: The CI config includes PostgreSQL service that should start automatically
+2. **Environment Variables**: All required env vars are set in the workflow
+3. **Database Readiness**: The workflow waits for PostgreSQL to be ready before running migrations
+
+#### Manual CI Debugging
+
+To debug CI issues locally:
+
+```bash
+# Simulate CI environment
+export CI=true
+export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/greed_advisor_test"
+export JWT_SECRET="test-jwt-secret-for-ci-environment-only"
+
+# Start local PostgreSQL (if not using Docker)
+npm run db:up
+
+# Run migration
+npm run db:migrate
+```
+
 ### Vercel (odporúčané)
 
 1. Push do GitHub
