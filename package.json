@@ -50,5 +50,10 @@
   "dependencies": {
     "@prisma/client": "^6.11.1",
     "@radix-ui/react-alert-dialog": "^1.1.14"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,md}": [
+      "prettier --write"
+    ]
   }
 }
