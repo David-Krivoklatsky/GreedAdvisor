@@ -17,6 +17,7 @@ model User {
   name      String?  @db.VarChar(255)
   firstName String?  @db.VarChar(100)
   lastName  String?  @db.VarChar(100)
+  profilePicture String? @db.VarChar(500)
   isActive  Boolean  @default(true)
   lastLogin DateTime?
   createdAt DateTime @default(now())
@@ -77,6 +78,7 @@ model AiApiKey {
   provider  String   @db.VarChar(100) // 'openai', 'anthropic', 'google', etc.
   apiKey    String   @db.Text
   isActive  Boolean  @default(true)
+  lastUsed  DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
@@ -97,6 +99,7 @@ model T212ApiKey {
   apiKey     String   @db.Text
   accessType String   @db.VarChar(50) // 'read-only', 'full-access'
   isActive   Boolean  @default(true)
+  lastUsed   DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   deletedAt  DateTime?
