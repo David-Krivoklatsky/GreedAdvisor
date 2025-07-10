@@ -7,7 +7,7 @@ import Sidebar from '@/components/sidebar';
 import ApiKeyInput from '@/components/ui/api-key-input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Combobox } from '@/components/ui/combobox';
+import Select from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TokenManager } from '@/lib/token-manager';
@@ -527,8 +527,9 @@ export default function ProfilePage() {
                         </div>
 
                         <div>
-                          <Label htmlFor="aiProvider">Provider</Label>
-                          <Combobox
+                          <Select
+                            id="ai-provider-select"
+                            label="Provider"
                             options={[
                               { value: 'openai', label: 'OpenAI' },
                               { value: 'anthropic', label: 'Anthropic' },
@@ -536,8 +537,7 @@ export default function ProfilePage() {
                               { value: 'claude', label: 'Claude' },
                             ]}
                             value={newAiKey.provider}
-                            onValueChange={(value) => setNewAiKey({ ...newAiKey, provider: value })}
-                            placeholder="Select provider..."
+                            onChange={(value: string) => setNewAiKey({ ...newAiKey, provider: String(value) })}
                             className="w-full mt-1"
                           />
                         </div>
@@ -630,17 +630,15 @@ export default function ProfilePage() {
                         </div>
 
                         <div>
-                          <Label htmlFor="tradingAccessType">Access Type</Label>
-                          <Combobox
+                          <Select
+                            id="trading-access-type-select"
+                            label="Access Type"
                             options={[
                               { value: 'read-only', label: 'Read Only' },
                               { value: 'full-access', label: 'Full Access' },
                             ]}
                             value={newTradingKey.accessType}
-                            onValueChange={(value) =>
-                              setNewTradingKey({ ...newTradingKey, accessType: value })
-                            }
-                            placeholder="Select access type..."
+                            onChange={(value: string) => setNewTradingKey({ ...newTradingKey, accessType: String(value) })}
                             className="w-full mt-1"
                           />
                         </div>

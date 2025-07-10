@@ -3,6 +3,7 @@
 import Navbar from '@/components/navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Select from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { TokenManager } from '@/lib/token-manager';
@@ -39,6 +40,7 @@ export default function DashboardPage() {
   const [aiKeys, setAiKeys] = useState<AiKey[]>([]);
   const [selectedTradingKey, setSelectedTradingKey] = useState<string>('');
   const [selectedAiKey, setSelectedAiKey] = useState<string>('');
+  const [selectedReportType, setSelectedReportType] = useState<string>('');
 
   useEffect(() => {
     fetchUser();
@@ -145,22 +147,20 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">Symbol</label>
                   <Combobox
                     options={symbolOptions}
-                    value={marketData.symbol}
-                    onValueChange={(value) => setMarketData({ ...marketData, symbol: value })}
+                    value={marketData.symbol || symbolOptions[0].value}
+                    onValueChange={(value: string) => setMarketData({ ...marketData, symbol: String(value) })}
                     placeholder="Select symbol..."
                     className="w-full mt-1"
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium">Trading Key</label>
                   <Combobox
                     options={tradingKeyOptions}
                     value={selectedTradingKey}
-                    onValueChange={setSelectedTradingKey}
+                    onValueChange={(value: string) => setSelectedTradingKey(String(value))}
                     placeholder="Select trading key..."
                     emptyMessage="No active trading keys found."
                     className="w-full mt-1"
@@ -185,11 +185,10 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium">AI Key</label>
                     <Combobox
                       options={aiKeyOptions}
                       value={selectedAiKey}
-                      onValueChange={setSelectedAiKey}
+                      onValueChange={(value: string) => setSelectedAiKey(String(value))}
                       placeholder="Select AI key..."
                       emptyMessage="No active AI keys found."
                       className="w-full mt-1"
@@ -197,7 +196,6 @@ export default function DashboardPage() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium">Report Type</label>
                     <Combobox
                       options={[
                         { value: 'daily', label: 'Daily Summary' },
@@ -205,6 +203,8 @@ export default function DashboardPage() {
                         { value: 'monthly', label: 'Monthly Report' },
                         { value: 'custom', label: 'Custom Range' },
                       ]}
+                      value={selectedReportType}
+                      onValueChange={(value: string) => setSelectedReportType(String(value))}
                       placeholder="Select report type..."
                       className="w-full mt-1"
                     />

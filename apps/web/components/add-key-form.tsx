@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import Select from '@/components/ui/select';
 
 interface FormField {
   id: string;
@@ -43,12 +44,12 @@ export default function AddKeyForm({
             <div key={field.id}>
               {field.type === 'select' ? (
                 <div>
-                  <Label htmlFor={field.id}>{field.label}</Label>
-                  <Combobox
+                  <Select
+                    id={field.id}
+                    label={field.label}
                     options={field.options || []}
                     value={field.value}
-                    onValueChange={(value) => onFieldChange(field.id, value)}
-                    placeholder={field.placeholder || 'Select option...'}
+                    onChange={(value: string) => onFieldChange(field.id, String(value))}
                     className="w-full mt-1"
                   />
                 </div>

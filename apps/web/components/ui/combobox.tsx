@@ -15,6 +15,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
+// WARNING: The Command component (cmdk) must be version 0.2.1 due to a bug in newer versions
+// that prevents mouse selection inside popovers. See: https://github.com/shadcn-ui/ui/issues/2944
 interface ComboboxOption {
   value: string;
   label: string;
@@ -40,11 +42,20 @@ export function Combobox({
   className,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+
+  // Forzar re-render cuando cambia el valor
+  React.useEffect(() => {
+    if (!open && triggerRef.current) {
+      triggerRef.current.blur();
+    }
+  }, [open, value]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          ref={triggerRef}
           variant="outline"
           role="combobox"
           aria-expanded={open}
@@ -60,24 +71,28 @@ export function Combobox({
           <CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.value}
-                  onSelect={(currentValue) => {
-                    onValueChange?.(currentValue === value ? '' : currentValue);
-                    setOpen(false);
-                  }}
-                >
-                  {option.label}
-                  <Check
-                    className={cn(
-                      'ml-auto h-4 w-4',
-                      value === option.value ? 'opacity-100' : 'opacity-0'
-                    )}
-                  />
-                </CommandItem>
-              ))}
+              {options.length === 0 ? (
+                <div className="p-4 text-center text-sm text-gray-500">{emptyMessage}</div>
+              ) : (
+                options.map((option) => (
+                  <CommandItem
+                    key={option.value}
+                    value={option.value}
+                    onSelect={() => {
+                      onValueChange?.(option.value);
+                      setOpen(false);
+                    }}
+                  >
+                    {option.label}
+                    <Check
+                      className={cn(
+                        'ml-auto h-4 w-4',
+                        value === option.value ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                  </CommandItem>
+                ))
+              )}
             </CommandGroup>
           </CommandList>
         </Command>
