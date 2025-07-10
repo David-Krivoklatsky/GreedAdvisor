@@ -22,7 +22,8 @@
     "clean": "turbo clean",
     "clean:all": "turbo clean && rm -rf node_modules && npm install",
     "check-updates": "npx npm-check-updates",
-    "security-audit": "npm audit --audit-level=moderate"
+    "security-audit": "npm audit --audit-level=moderate",
+    "prepare": "husky install"
   },
   "devDependencies": {
     "@commitlint/cli": "^18.4.0",
