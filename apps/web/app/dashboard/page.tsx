@@ -39,6 +39,7 @@ export default function DashboardPage() {
   const [aiKeys, setAiKeys] = useState<AiKey[]>([]);
   const [selectedTradingKey, setSelectedTradingKey] = useState<string>('');
   const [selectedAiKey, setSelectedAiKey] = useState<string>('');
+  const [selectedReportType, setSelectedReportType] = useState<string>('');
 
   useEffect(() => {
     fetchUser();
@@ -145,23 +146,21 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">Symbol</label>
                   <Combobox
                     options={symbolOptions}
-                    value={marketData.symbol}
-                    onValueChange={(value) => setMarketData({ ...marketData, symbol: value })}
-                    placeholder="Select symbol..."
+                    value={marketData.symbol || symbolOptions[0].value}
+                    onValueChange={(value: string) => setMarketData({ ...marketData, symbol: String(value) })}
+                    placeholder="Select option..."
                     className="w-full mt-1"
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium">Trading Key</label>
                   <Combobox
                     options={tradingKeyOptions}
                     value={selectedTradingKey}
-                    onValueChange={setSelectedTradingKey}
-                    placeholder="Select trading key..."
+                    onValueChange={(value: string) => setSelectedTradingKey(String(value))}
+                    placeholder="Select option..."
                     emptyMessage="No active trading keys found."
                     className="w-full mt-1"
                   />
@@ -185,19 +184,17 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium">AI Key</label>
                     <Combobox
                       options={aiKeyOptions}
                       value={selectedAiKey}
-                      onValueChange={setSelectedAiKey}
-                      placeholder="Select AI key..."
+                      onValueChange={(value: string) => setSelectedAiKey(String(value))}
+                      placeholder="Select option..."
                       emptyMessage="No active AI keys found."
                       className="w-full mt-1"
                     />
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium">Report Type</label>
                     <Combobox
                       options={[
                         { value: 'daily', label: 'Daily Summary' },
@@ -205,7 +202,9 @@ export default function DashboardPage() {
                         { value: 'monthly', label: 'Monthly Report' },
                         { value: 'custom', label: 'Custom Range' },
                       ]}
-                      placeholder="Select report type..."
+                      value={selectedReportType}
+                      onValueChange={(value: string) => setSelectedReportType(String(value))}
+                      placeholder="Select option..."
                       className="w-full mt-1"
                     />
                   </div>

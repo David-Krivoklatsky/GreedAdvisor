@@ -527,7 +527,6 @@ export default function ProfilePage() {
                         </div>
 
                         <div>
-                          <Label htmlFor="aiProvider">Provider</Label>
                           <Combobox
                             options={[
                               { value: 'openai', label: 'OpenAI' },
@@ -536,8 +535,8 @@ export default function ProfilePage() {
                               { value: 'claude', label: 'Claude' },
                             ]}
                             value={newAiKey.provider}
-                            onValueChange={(value) => setNewAiKey({ ...newAiKey, provider: value })}
-                            placeholder="Select provider..."
+                            onValueChange={(value: string) => setNewAiKey({ ...newAiKey, provider: String(value) })}
+                            placeholder="Select option..."
                             className="w-full mt-1"
                           />
                         </div>
@@ -630,17 +629,14 @@ export default function ProfilePage() {
                         </div>
 
                         <div>
-                          <Label htmlFor="tradingAccessType">Access Type</Label>
                           <Combobox
                             options={[
                               { value: 'read-only', label: 'Read Only' },
                               { value: 'full-access', label: 'Full Access' },
                             ]}
                             value={newTradingKey.accessType}
-                            onValueChange={(value) =>
-                              setNewTradingKey({ ...newTradingKey, accessType: value })
-                            }
-                            placeholder="Select access type..."
+                            onValueChange={(value: string) => setNewTradingKey({ ...newTradingKey, accessType: String(value) })}
+                            placeholder="Select option..."
                             className="w-full mt-1"
                           />
                         </div>
