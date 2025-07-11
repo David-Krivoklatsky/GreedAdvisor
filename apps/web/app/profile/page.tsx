@@ -7,7 +7,7 @@ import Sidebar from '@/components/sidebar';
 import ApiKeyInput from '@/components/ui/api-key-input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import Select from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TokenManager } from '@/lib/token-manager';
@@ -527,9 +527,7 @@ export default function ProfilePage() {
                         </div>
 
                         <div>
-                          <Select
-                            id="ai-provider-select"
-                            label="Provider"
+                          <Combobox
                             options={[
                               { value: 'openai', label: 'OpenAI' },
                               { value: 'anthropic', label: 'Anthropic' },
@@ -537,7 +535,8 @@ export default function ProfilePage() {
                               { value: 'claude', label: 'Claude' },
                             ]}
                             value={newAiKey.provider}
-                            onChange={(value: string) => setNewAiKey({ ...newAiKey, provider: String(value) })}
+                            onValueChange={(value: string) => setNewAiKey({ ...newAiKey, provider: String(value) })}
+                            placeholder="Select option..."
                             className="w-full mt-1"
                           />
                         </div>
@@ -630,15 +629,14 @@ export default function ProfilePage() {
                         </div>
 
                         <div>
-                          <Select
-                            id="trading-access-type-select"
-                            label="Access Type"
+                          <Combobox
                             options={[
                               { value: 'read-only', label: 'Read Only' },
                               { value: 'full-access', label: 'Full Access' },
                             ]}
                             value={newTradingKey.accessType}
-                            onChange={(value: string) => setNewTradingKey({ ...newTradingKey, accessType: String(value) })}
+                            onValueChange={(value: string) => setNewTradingKey({ ...newTradingKey, accessType: String(value) })}
+                            placeholder="Select option..."
                             className="w-full mt-1"
                           />
                         </div>

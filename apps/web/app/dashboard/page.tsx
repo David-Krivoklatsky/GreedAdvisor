@@ -3,7 +3,6 @@
 import Navbar from '@/components/navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import Select from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { TokenManager } from '@/lib/token-manager';
@@ -151,7 +150,7 @@ export default function DashboardPage() {
                     options={symbolOptions}
                     value={marketData.symbol || symbolOptions[0].value}
                     onValueChange={(value: string) => setMarketData({ ...marketData, symbol: String(value) })}
-                    placeholder="Select symbol..."
+                    placeholder="Select option..."
                     className="w-full mt-1"
                   />
                 </div>
@@ -161,7 +160,7 @@ export default function DashboardPage() {
                     options={tradingKeyOptions}
                     value={selectedTradingKey}
                     onValueChange={(value: string) => setSelectedTradingKey(String(value))}
-                    placeholder="Select trading key..."
+                    placeholder="Select option..."
                     emptyMessage="No active trading keys found."
                     className="w-full mt-1"
                   />
@@ -189,7 +188,7 @@ export default function DashboardPage() {
                       options={aiKeyOptions}
                       value={selectedAiKey}
                       onValueChange={(value: string) => setSelectedAiKey(String(value))}
-                      placeholder="Select AI key..."
+                      placeholder="Select option..."
                       emptyMessage="No active AI keys found."
                       className="w-full mt-1"
                     />
@@ -205,7 +204,7 @@ export default function DashboardPage() {
                       ]}
                       value={selectedReportType}
                       onValueChange={(value: string) => setSelectedReportType(String(value))}
-                      placeholder="Select report type..."
+                      placeholder="Select option..."
                       className="w-full mt-1"
                     />
                   </div>

@@ -49,6 +49,9 @@
   "dependencies": {
     "@prisma/client": "^6.11.1",
     "@radix-ui/react-alert-dialog": "^1.1.14",
-    "cmdk": "^0.2.1"
+    "cmdk": "0.2.1"
+  },
+  "overrides": {
+    "cmdk": "0.2.1"
   }
 }
