@@ -1,0 +1,4 @@
+# This file defines code owners for specific paths
+# All files (*) require approval from @David-Krivoklatsky
+
+* @David-Krivoklatsky
