@@ -42,16 +42,13 @@ export default function AddKeyForm({
           {fields.map((field) => (
             <div key={field.id}>
               {field.type === 'select' ? (
-                <div>
-                  <Label htmlFor={field.id}>{field.label}</Label>
-                  <Combobox
-                    options={field.options || []}
-                    value={field.value}
-                    onValueChange={(value) => onFieldChange(field.id, value)}
-                    placeholder={field.placeholder || 'Select option...'}
-                    className="w-full mt-1"
-                  />
-                </div>
+                <Combobox
+                  options={field.options || []}
+                  value={field.value}
+                  onValueChange={(value) => onFieldChange(field.id, value)}
+                  placeholder="Select option..."
+                  className="w-full mt-1"
+                />
               ) : field.type === 'password' ? (
                 <ApiKeyInput
                   id={field.id}
