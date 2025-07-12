@@ -133,6 +133,9 @@ secrets/
 keys/
 .secrets
 
+# User uploads
+apps/web/public/uploads/
+
 # ===============================================
 # Temporary & Cache Files
 # ===============================================
