@@ -1,31 +1,31 @@
 # @greed-advisor/utils
 
-Zdieľané utility funkcie pre celú aplikáciu.
+Shared utility functions for the entire application.
 
-## Funkcie
+## Functions
 
 ### `cn(...inputs)`
 
-Kombinuje CSS triedy pomocou `clsx` a `tailwind-merge` pre optimálne Tailwind CSS zlúčenie.
+Combines CSS classes using `clsx` and `tailwind-merge` for optimal Tailwind CSS merging.
 
 ```typescript
 import { cn } from '@greed-advisor/utils'
 
-// Základné použitie
+// Basic usage
 const className = cn('px-4 py-2', 'bg-blue-500', 'text-white')
 
-// S podmienkami
+// With conditions
 const className = cn(
   'px-4 py-2',
   isActive && 'bg-blue-500',
   isDisabled ? 'opacity-50' : 'hover:bg-blue-600'
 )
 
-// V komponentoch
+// In components
 <div className={cn('base-classes', className, props.className)} />
 ```
 
-## Závislosti
+## Dependencies
 
-- `clsx` - Podmienené CSS triedy
-- `tailwind-merge` - Inteligentné zlúčenie Tailwind CSS tried
+- `clsx` - Conditional CSS classes
+- `tailwind-merge` - Intelligent Tailwind CSS class merging

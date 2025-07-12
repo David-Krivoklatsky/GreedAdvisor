@@ -1,12 +1,12 @@
 # @greed-advisor/auth
 
-Zdieľaný balíček pre autentifikáciu obsahujúci funkcie pre:
+Shared package for authentication containing functions for:
 
-- **Hašovanie hesiel** - pomocou bcrypt
-- **JWT tokeny** - generovanie a verifikácia
-- **Autorizácia** - extrakcia tokenov z headerov
+- **Password hashing** - using bcrypt
+- **JWT tokens** - generation and verification
+- **Authorization** - token extraction from headers
 
-## Použitie
+## Usage
 
 ```typescript
 import {
@@ -17,23 +17,23 @@ import {
   extractTokenFromHeader,
 } from '@greed-advisor/auth';
 
-// Hašovanie hesla pri registrácii
+// Password hashing during registration
 const hashedPassword = await hashPassword('userpassword');
 
-// Verifikácia hesla pri prihlásení
+// Password verification during login
 const isValid = await comparePassword('userpassword', hashedPassword);
 
-// Generovanie JWT tokenu
+// JWT token generation
 const token = signToken({ userId: 123, email: 'user@example.com' });
 
-// Verifikácia tokenu
+// Token verification
 const decoded = verifyToken(token);
 
-// Extrahovanie tokenu z Authorization header
+// Token extraction from Authorization header
 const token = extractTokenFromHeader(req.headers.get('authorization'));
 ```
 
-## Závislosti
+## Dependencies
 
-- `jsonwebtoken` - JWT tokeny
-- `bcryptjs` - Hašovanie hesiel
+- `jsonwebtoken` - JWT tokens
+- `bcryptjs` - Password hashing

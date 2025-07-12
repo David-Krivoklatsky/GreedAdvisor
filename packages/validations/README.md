@@ -1,46 +1,46 @@
 # @greed-advisor/validations
 
-Zdieľané Zod schémy a validácie pre celú aplikáciu.
+Shared Zod schemas and validations for the entire application.
 
-## Schémy
+## Schemas
 
 ### `registerSchema`
 
-Validácia pre registráciu používateľa:
+Validation for user registration:
 
-- `email` - validný email
-- `password` - minimálne 6 znakov
+- `email` - valid email
+- `password` - minimum 6 characters
 
 ### `loginSchema`
 
-Validácia pre prihlásenie:
+Validation for login:
 
-- `email` - validný email
-- `password` - povinné
+- `email` - valid email
+- `password` - required
 
 ### `apiKeysSchema`
 
-Validácia pre API kľúče:
+Validation for API keys:
 
-- `openAiKey` - nepovinný OpenAI API kľúč
-- `t212Key` - nepovinný Trading212 API kľúč
+- `openAiKey` - optional OpenAI API key
+- `t212Key` - optional Trading212 API key
 
-## Použitie
+## Usage
 
 ```typescript
 import { registerSchema, loginSchema, apiKeysSchema } from '@greed-advisor/validations';
 
-// Validácia vstupných dát
+// Input data validation
 const result = registerSchema.safeParse(body);
 if (!result.success) {
-  // Chyby validácie v result.error.errors
+  // Validation errors in result.error.errors
   return error;
 }
 
-// Použitie typov
+// Using types
 import type { RegisterInput, LoginInput, ApiKeysInput } from '@greed-advisor/validations';
 ```
 
-## Závislosti
+## Dependencies
 
-- `zod` - Runtime validácie a typová bezpečnosť
+- `zod` - Runtime validations and type safety

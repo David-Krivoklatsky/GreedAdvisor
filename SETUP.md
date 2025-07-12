@@ -8,26 +8,26 @@
 
 ## Setup Instructions
 
-### 1. Klonuj repozitár
+### 1. Clone Repository
 
 ```bash
 git clone <your-repository-url>
 cd GreedAdvisor
 ```
 
-### 2. Spusti PostgreSQL databázu
+### 2. Start PostgreSQL Database
 
 ```bash
 npm run db:up
 ```
 
-### 3. Nainštaluj závislosti
+### 3. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 4. Nastav databázu
+### 4. Set up Database
 
 ```bash
 cd apps/web
@@ -36,54 +36,54 @@ npm run generate
 npm run db:push
 ```
 
-### 5. Spusti aplikáciu
+### 5. Start Application
 
 ```bash
 npm run dev
 ```
 
-Aplikácia bude dostupná na `http://localhost:3001`
+Application will be available at `http://localhost:3001`
 
-## 📋 Testovanie funkcionalít
+## 📋 Testing Functionality
 
-### 1. Registrácia nového používateľa
+### 1. New User Registration
 
-- Choď na `/register`
-- Vyplň email a heslo (min. 6 znakov)
-- Klikni "Create account"
+- Go to `/register`
+- Fill in email and password (min. 6 characters)
+- Click "Create account"
 
-### 2. Prihlásenie
+### 2. Login
 
-- Choď na `/login`
-- Zadaj svoje prihlasovacie údaje
-- Klikni "Sign in"
+- Go to `/login`
+- Enter your login credentials
+- Click "Sign in"
 
-### 3. Správa API kľúčov
+### 3. API Key Management
 
-- Po prihlásení si na dashboard (`/dashboard`)
-- Pridaj svoje OpenAI a Trading212 API kľúče
-- Klikni "Update API Keys"
+- After login go to dashboard (`/dashboard`)
+- Add your OpenAI and Trading212 API keys
+- Click "Update API Keys"
 
-## 🔧 Užitočné príkazy
+## 🔧 Useful Commands
 
 ```bash
-# Zastavenie databázy
+# Stop database
 npm run db:down
 
-# Reštart databázy
+# Restart database
 npm run db:down && npm run db:up
 
-# Formátovanie kódu
+# Format code
 npm run format
 
-# Kontrola syntaxe
+# Check syntax
 npm run lint
 
-# Build aplikácie
+# Build application
 npm run build
 ```
 
-## 🗄️ Databáza
+## 🗄️ Database
 
 ### Pripojenie k PostgreSQL
 
@@ -95,22 +95,22 @@ Username: user
 Password: password
 ```
 
-### Prisma Studio (GUI pre databázu)
+### Prisma Studio (GUI for database)
 
 ```bash
 cd apps/web
 npx prisma studio
 ```
 
-## 🛡️ Bezpečnostné funkcie
+## 🛡️ Security Features
 
-- ✅ JWT autentifikácia
-- ✅ bcrypt hashovanie hesiel
+- ✅ JWT authentication
+- ✅ bcrypt password hashing
 - ✅ Rate limiting (100 req/15min)
-- ✅ Validácia vstupov (Zod)
+- ✅ Input validation (Zod)
 - ✅ CORS middleware
 
-## 📝 API Dokumentácia
+## 📝 API Documentation
 
 ### POST /api/auth/register
 
@@ -145,45 +145,45 @@ Headers: `Authorization: Bearer <token>`
 }
 ```
 
-## 🚨 Riešenie problémov
+## 🚨 Troubleshooting
 
-### Port 5432 už používaný
+### Port 5432 already in use
 
 ```bash
-# Zmení port v docker-compose.yml na 5433
-# Už je nastavené v tomto projekte
+# Change port in docker-compose.yml to 5433
+# Already set in this project
 ```
 
-### TypeScript chyby
+### TypeScript errors
 
 ```bash
-# Reštartuj TypeScript server v VS Code
+# Restart TypeScript server in VS Code
 Ctrl+Shift+P -> "TypeScript: Restart TS Server"
 ```
 
-### Prisma problémy
+### Prisma problems
 
 ```bash
-# Resetuj databázu
+# Reset database
 cd apps/web
 npx prisma db push --force-reset
 ```
 
-## 🎨 Prispôsobenie UI
+## 🎨 UI Customization
 
-Projekt používa **shadcn/ui** + **Tailwind CSS**.
+Project uses **shadcn/ui** + **Tailwind CSS**.
 
-Komponenty sú v `components/ui/`:
+Components are in `components/ui/`:
 
-- `Button` - tlačidlá
-- `Input` - vstupné polia
-- `Card` - kontajnery
-- `Label` - popisky
+- `Button` - buttons
+- `Input` - input fields
+- `Card` - containers
+- `Label` - labels
 
-### Pridanie novej komponenty
+### Adding new component
 
 ```bash
-# Pomocou shadcn CLI
+# Using shadcn CLI
 npx shadcn-ui@latest add <component-name>
 ```
 
@@ -227,14 +227,14 @@ npm run db:up
 npm run db:migrate
 ```
 
-### Vercel (odporúčané)
+### Vercel (recommended)
 
-1. Push do GitHub
-2. Pripoj Vercel k repozitáru
-3. Nastav environment variables
-4. Deploy automaticky
+1. Push to GitHub
+2. Connect Vercel to repository
+3. Set environment variables
+4. Automatic deployment
 
-### Environment variables pre produkciu
+### Environment variables for production
 
 ```env
 DATABASE_URL="postgresql://..."
