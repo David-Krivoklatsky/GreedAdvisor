@@ -46,11 +46,23 @@ interface TradingApiKey {
   apiKey: string;
 }
 
+interface MarketDataApiKey {
+  id: number;
+  title: string;
+  provider: string;
+  isActive: boolean;
+  lastUsed?: string;
+  createdAt: string;
+  updatedAt: string;
+  apiKey: string;
+}
+
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [activeSection, setActiveSection] = useState('profile');
   const [aiKeys, setAiKeys] = useState<AiApiKey[]>([]);
   const [tradingKeys, setTradingKeys] = useState<TradingApiKey[]>([]);
+  const [marketDataKeys, setMarketDataKeys] = useState<MarketDataApiKey[]>([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -61,6 +73,7 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState('');
   const [showAddAiKey, setShowAddAiKey] = useState(false);
   const [showAddTradingKey, setShowAddTradingKey] = useState(false);
+  const [showAddMarketDataKey, setShowAddMarketDataKey] = useState(false);
   const router = useRouter();
 
   // New AI Key form state
@@ -77,10 +90,18 @@ export default function ProfilePage() {
     apiKey: '',
   });
 
+  // New Market Data Key form state
+  const [newMarketDataKey, setNewMarketDataKey] = useState({
+    title: '',
+    provider: 'alphavantage',
+    apiKey: '',
+  });
+
   useEffect(() => {
     fetchUser();
     fetchAiKeys();
     fetchTradingKeys();
+    fetchMarketDataKeys();
   }, []);
 
   const fetchUser = async () => {
@@ -127,6 +148,21 @@ export default function ProfilePage() {
       setTradingKeys(data.tradingKeys);
     } catch (err) {
       console.error('Failed to load trading keys:', err);
+    }
+  };
+
+  const fetchMarketDataKeys = async () => {
+    try {
+      const response = await TokenManager.makeAuthenticatedRequest('/api/user/market-data-keys');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch market data keys');
+      }
+
+      const data = await response.json();
+      setMarketDataKeys(data.marketDataKeys);
+    } catch (err) {
+      console.error('Failed to load market data keys:', err);
     }
   };
 
@@ -392,6 +428,93 @@ export default function ProfilePage() {
     }
   };
 
+  // Market Data Key handlers
+  const handleAddMarketDataKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdating(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await TokenManager.makeAuthenticatedRequest('/api/user/market-data-keys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newMarketDataKey),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to add market data key');
+      }
+
+      setSuccess('Market data key added successfully!');
+      setNewMarketDataKey({ title: '', provider: 'alphavantage', apiKey: '' });
+      setShowAddMarketDataKey(false);
+      fetchMarketDataKeys();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add market data key');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteMarketDataKey = async (keyId: number) => {
+    setUpdating(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await TokenManager.makeAuthenticatedRequest(
+        `/api/user/market-data-keys?id=${keyId}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete market data key');
+      }
+
+      setSuccess('Market data key deleted successfully!');
+      fetchMarketDataKeys();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete market data key');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleToggleMarketDataKey = async (keyId: number, isActive: boolean) => {
+    setUpdating(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await TokenManager.makeAuthenticatedRequest('/api/user/market-data-keys', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: keyId, isActive: !isActive }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to toggle market data key');
+      }
+
+      setSuccess(`Market data key ${!isActive ? 'activated' : 'deactivated'} successfully!`);
+      fetchMarketDataKeys();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to toggle market data key');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleLogout = async () => {
     await TokenManager.logout();
     router.push('/login');
@@ -535,7 +658,9 @@ export default function ProfilePage() {
                               { value: 'claude', label: 'Claude' },
                             ]}
                             value={newAiKey.provider}
-                            onValueChange={(value: string) => setNewAiKey({ ...newAiKey, provider: String(value) })}
+                            onValueChange={(value: string) =>
+                              setNewAiKey({ ...newAiKey, provider: String(value) })
+                            }
                             placeholder="Select option..."
                             className="w-full mt-1"
                           />
@@ -635,7 +760,9 @@ export default function ProfilePage() {
                               { value: 'full-access', label: 'Full Access' },
                             ]}
                             value={newTradingKey.accessType}
-                            onValueChange={(value: string) => setNewTradingKey({ ...newTradingKey, accessType: String(value) })}
+                            onValueChange={(value: string) =>
+                              setNewTradingKey({ ...newTradingKey, accessType: String(value) })
+                            }
                             placeholder="Select option..."
                             className="w-full mt-1"
                           />
@@ -678,6 +805,114 @@ export default function ProfilePage() {
                         keyType="trading"
                         onToggle={handleToggleTradingKey}
                         onDelete={handleDeleteTradingKey}
+                        updating={updating}
+                      />
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      case 'market-data-keys':
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Market Data API Keys</CardTitle>
+                <CardDescription>
+                  Manage your market data API keys for different providers
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ErrorSuccessAlert error={error} success={success} />
+
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Your Market Data Keys</h3>
+                  <Button
+                    onClick={() => setShowAddMarketDataKey(!showAddMarketDataKey)}
+                    style={{ backgroundColor: '#1F09FF', color: 'white' }}
+                  >
+                    {showAddMarketDataKey ? 'Cancel' : 'Add Market Data Key'}
+                  </Button>
+                </div>
+
+                {showAddMarketDataKey && (
+                  <Card className="mb-4">
+                    <CardHeader>
+                      <CardTitle>Add New Market Data Key</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <form onSubmit={handleAddMarketDataKey} className="space-y-4">
+                        <div>
+                          <Label htmlFor="marketDataTitle">Title</Label>
+                          <Input
+                            id="marketDataTitle"
+                            type="text"
+                            placeholder="e.g., Alpha Vantage - Premium"
+                            value={newMarketDataKey.title}
+                            onChange={(e) =>
+                              setNewMarketDataKey({ ...newMarketDataKey, title: e.target.value })
+                            }
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="marketDataProvider">Provider</Label>
+                          <Combobox
+                            options={[
+                              { value: 'alphavantage', label: 'Alpha Vantage' },
+                              { value: 'finnhub', label: 'Finnhub' },
+                              { value: 'iexcloud', label: 'IEX Cloud' },
+                              { value: 'polygon', label: 'Polygon.io' },
+                              { value: 'tradingview', label: 'TradingView' },
+                              { value: 'other', label: 'Other' },
+                            ]}
+                            value={newMarketDataKey.provider}
+                            onValueChange={(value: string) =>
+                              setNewMarketDataKey({ ...newMarketDataKey, provider: value })
+                            }
+                            placeholder="Select provider..."
+                            className="w-full mt-1"
+                          />
+                        </div>
+                        <div>
+                          <ApiKeyInput
+                            id="marketDataApiKey"
+                            label="API Key"
+                            placeholder="Enter your API key"
+                            value={newMarketDataKey.apiKey}
+                            onChange={(value: string) =>
+                              setNewMarketDataKey({ ...newMarketDataKey, apiKey: value })
+                            }
+                            required
+                          />
+                        </div>
+                        <Button
+                          type="submit"
+                          disabled={updating}
+                          style={{ backgroundColor: '#1F09FF', color: 'white' }}
+                        >
+                          {updating ? 'Adding...' : 'Add Market Data Key'}
+                        </Button>
+                      </form>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <div className="space-y-4">
+                  {marketDataKeys.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">
+                      No market data keys found. Add one to get started.
+                    </p>
+                  ) : (
+                    marketDataKeys.map((key) => (
+                      <KeyCard
+                        key={key.id}
+                        keyData={key}
+                        keyType="marketdata"
+                        onToggle={handleToggleMarketDataKey}
+                        onDelete={handleDeleteMarketDataKey}
                         updating={updating}
                       />
                     ))

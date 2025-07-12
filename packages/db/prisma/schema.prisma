@@ -29,6 +29,7 @@ model User {
   apiKeyLogs ApiKeyLog[]
   aiApiKeys AiApiKey[]
   t212ApiKeys T212ApiKey[]
+  marketDataApiKeys MarketDataApiKey[]
 
   @@index([email])
   @@index([isActive])
@@ -111,4 +112,25 @@ model T212ApiKey {
   @@index([accessType])
   @@index([isActive])
   @@map("t212_api_keys")
+}
+
+model MarketDataApiKey {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String   @db.VarChar(255)
+  provider  String   @db.VarChar(100) // 'alphavantage', 'finnhub', 'iexcloud', 'polygon', etc.
+  apiKey    String   @db.Text
+  isActive  Boolean  @default(true)
+  lastUsed  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([provider])
+  @@index([isActive])
+  @@map("market_data_api_keys")
 }
