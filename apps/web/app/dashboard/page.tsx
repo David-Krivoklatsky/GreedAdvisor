@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Combobox } from '@/components/ui/combobox';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { TokenManager } from '@/lib/token-manager';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface User {
   id: number;
@@ -55,7 +55,10 @@ export default function DashboardPage() {
   const [, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [, setError] = useState('');
-  const [marketData, setMarketData] = useState({ price: '', symbol: 'EUR/USD' });
+  const [marketData, setMarketData] = useState({
+    price: 'No market key selected',
+    symbol: 'EUR/USD',
+  });
   const [tradingKeys, setTradingKeys] = useState<TradingKey[]>([]);
   const [aiKeys, setAiKeys] = useState<AiKey[]>([]);
   const [selectedTradingKey, setSelectedTradingKey] = useState<string>('');
@@ -66,14 +69,49 @@ export default function DashboardPage() {
   const [marketDataKeys, setMarketDataKeys] = useState<MarketDataKey[]>([]);
   const [selectedMarketDataKey, setSelectedMarketDataKey] = useState<string>('');
 
+  const fetchMarketData = useCallback(
+    async (symbol?: string, marketKeyId?: string) => {
+      try {
+        if (!marketKeyId) {
+          setMarketData({ price: 'No market key selected', symbol: symbol || marketData.symbol });
+          return;
+        }
+
+        // Fetch data using the selected market key
+        const response = await TokenManager.makeAuthenticatedRequest(
+          `/api/market-data?symbol=${symbol || marketData.symbol}&keyId=${marketKeyId}`
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch market data');
+        }
+
+        const data = await response.json();
+        setMarketData({ price: data.price, symbol: symbol || marketData.symbol });
+      } catch (err) {
+        console.error('Failed to fetch market data:', err);
+        setMarketData({ price: 'Error fetching data', symbol: symbol || marketData.symbol });
+      }
+    },
+    [marketData.symbol]
+  );
+
   useEffect(() => {
     fetchUser();
-    fetchMarketData();
     fetchTradingKeys();
     fetchAiKeys();
     fetchPositions();
     fetchMarketDataKeys();
   }, []);
+
+  // Fetch market data when key or symbol changes
+  useEffect(() => {
+    if (selectedMarketDataKey && marketData.symbol) {
+      fetchMarketData(marketData.symbol, selectedMarketDataKey);
+    } else if (!selectedMarketDataKey) {
+      setMarketData((prev) => ({ ...prev, price: 'No market key selected' }));
+    }
+  }, [selectedMarketDataKey, marketData.symbol, fetchMarketData]);
 
   const fetchUser = async () => {
     try {
@@ -121,16 +159,6 @@ export default function DashboardPage() {
       setAiKeys(data.aiKeys.filter((key: AiKey) => key.isActive));
     } catch (err) {
       console.error('Failed to load AI keys:', err);
-    }
-  };
-
-  const fetchMarketData = async () => {
-    try {
-      const response = await fetch('https://api.example.com/market-data?symbol=EUR/USD');
-      const data = await response.json();
-      setMarketData({ price: data.price, symbol: 'EUR/USD' });
-    } catch {
-      console.error('Failed to fetch market data');
     }
   };
 
@@ -263,23 +291,9 @@ export default function DashboardPage() {
             <CardDescription>Select a currency pair and view real-time market data</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Market Selection - Updated Layout */}
+            {/* Market Selection - Reorganized Layout */}
             <div className="p-4 bg-gray-50 rounded-lg space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Currency Pair
-                  </label>
-                  <Combobox
-                    options={symbolOptions}
-                    value={marketData.symbol || symbolOptions[0].value}
-                    onValueChange={(value: string) =>
-                      setMarketData({ ...marketData, symbol: String(value) })
-                    }
-                    placeholder="Select currency pair..."
-                    className="w-full"
-                  />
-                </div>
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Market Data API
@@ -293,12 +307,41 @@ export default function DashboardPage() {
                     className="w-full"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Currency Pair
+                  </label>
+                  <div className={!selectedMarketDataKey ? 'opacity-50 pointer-events-none' : ''}>
+                    <Combobox
+                      options={symbolOptions}
+                      value={marketData.symbol || symbolOptions[0].value}
+                      onValueChange={(value: string) =>
+                        setMarketData({ ...marketData, symbol: String(value) })
+                      }
+                      placeholder="Select currency pair..."
+                      className="w-full"
+                    />
+                  </div>
+                  {!selectedMarketDataKey && (
+                    <p className="text-sm text-gray-500 mt-1">Select a market data API first</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Current Price
+                  </label>
+                  <div
+                    className="text-2xl font-bold p-3 bg-white rounded border"
+                    style={{ color: '#1F09FF' }}
+                  >
+                    {marketData.price || 'No market key selected'}
+                  </div>
+                </div>
               </div>
 
-              <div className="flex justify-between items-center">
-                <div className="text-lg font-bold" style={{ color: '#1F09FF' }}>
-                  Price: {marketData.price || 'Loading...'}
-                </div>
+              <div className="flex justify-end">
                 <Button onClick={() => setShowRealtimeOptions(true)} variant="outline" size="sm">
                   API Options
                 </Button>
