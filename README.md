@@ -1,138 +1,138 @@
 # Greed Advisor
 
-Moderná fullstack aplikácia pre bezpečné ukladanie API kľúčov pre OpenAI a Trading212.
+Modern fullstack application for secure storage of API keys for OpenAI and Trading212.
 
-## 🏗️ Architektúra
+## 🏗️ Architecture
 
-### Monorepo štruktúra
+### Monorepo Structure
 
 ```
 GreedAdvisor/
 ├── apps/
-│   └── web/               # Next.js 14 aplikácia (App Router)
-│       ├── app/           # Next.js App Router stránky a API
+│   └── web/               # Next.js 14 application (App Router)
+│       ├── app/           # Next.js App Router pages and API
 │       │   ├── api/       # API endpoints
-│       │   ├── dashboard/ # Dashboard stránky
-│       │   ├── login/     # Login stránka
-│       │   └── register/  # Register stránka
-│       ├── components/    # React komponenty
-│       │   └── ui/        # shadcn/ui základné komponenty
-│       └── lib/           # App-špecifické utilities
-├── packages/              # Zdieľané balíčky
-│   ├── db/               # Prisma databáza & klient
-│   ├── auth/             # Autentifikácia (JWT, bcrypt)
-│   ├── utils/            # Všeobecné utilities (cn, clsx)
-│   ├── validations/      # Zod schémy a validácie
+│       │   ├── dashboard/ # Dashboard pages
+│       │   ├── login/     # Login page
+│       │   └── register/  # Register page
+│       ├── components/    # React components
+│       │   └── ui/        # shadcn/ui base components
+│       └── lib/           # App-specific utilities
+├── packages/              # Shared packages
+│   ├── db/               # Prisma database & client
+│   ├── auth/             # Authentication (JWT, bcrypt)
+│   ├── utils/            # General utilities (cn, clsx)
+│   ├── validations/      # Zod schemas and validations
 │   └── rate-limit/       # Rate limiting middleware
-└── docs/                 # Dokumentácia
+└── docs/                 # Documentation
 ```
 
-## 🛠️ Technológie
+## 🛠️ Technologies
 
 - **Frontend**: Next.js 14 (App Router), React, TypeScript
-- **Styling**: Tailwind CSS, shadcn/ui komponenty
+- **Styling**: Tailwind CSS, shadcn/ui components
 - **Backend**: Next.js API Routes (fullstack)
-- **Databáza**: PostgreSQL s Prisma ORM
-- **Autentifikácia**: JWT tokeny (vlastný package)
-- **Security**: bcrypt pre heslá, rate limiting
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: JWT tokens (custom package)
+- **Security**: bcrypt for passwords, rate limiting
 - **DevOps**: Docker, Turborepo monorepo
 
-## 🚀 Rýchly štart
+## 🚀 Quick Start
 
-### 1. Nastavenie prostredia
+### 1. Environment Setup
 
 ```bash
-# Klonuj repozitár
+# Clone repository
 git clone <repository-url>
 cd GreedAdvisor
 
-# Nainštaluj závislosti
+# Install dependencies
 npm install
 ```
 
-### 2. Spusti PostgreSQL databázu
+### 2. Start PostgreSQL Database
 
 ```bash
-# Spusti Docker container s PostgreSQL
+# Start Docker container with PostgreSQL
 npm run db:up
 ```
 
-### 3. Nastavenie databázy
+### 3. Database Setup
 
 ```bash
 cd apps/web
 
-# Vytvor .env súbor (skopíruj z .env.example)
+# Create .env file (copy from .env.example)
 cp .env.example .env
 
-# Vygeneruj Prisma klienta
+# Generate Prisma client
 npm run generate
 
-# Spusti migrácie
+# Run migrations
 npm run migrate
 ```
 
-### 4. Spusti vývojový server
+### 4. Start Development Server
 
 ```bash
-# Z root zložky
+# From root folder
 npm run dev
 
-# Alebo z apps/web
+# Or from apps/web
 cd apps/web
 npm run dev
 ```
 
-Aplikácia bude dostupná na `http://localhost:3000`
+Application will be available at `http://localhost:3000`
 
-## 📁 Štruktúra projektu
+## 📁 Project Structure
 
 ```
 GreedAdvisor/
 ├── apps/
-│   └── web/                 # Next.js aplikácia
+│   └── web/                 # Next.js application
 │       ├── app/            # App Router pages
 │       │   ├── api/        # API routes
-│       │   ├── dashboard/  # Dashboard stránka
-│       │   ├── login/      # Login stránka
-│       │   └── register/   # Registračná stránka
-│       ├── components/     # UI komponenty
-│       ├── lib/           # Utility funkcie
-│       └── prisma/        # Databázová schéma
+│       │   ├── dashboard/  # Dashboard page
+│       │   ├── login/      # Login page
+│       │   └── register/   # Registration page
+│       ├── components/     # UI components
+│       ├── lib/           # Utility functions
+│       └── prisma/        # Database schema
 ├── docker-compose.yml     # PostgreSQL setup
-└── package.json          # Monorepo konfigurácia
+└── package.json          # Monorepo configuration
 ```
 
 ## 🔐 API Endpoints
 
-### Autentifikácia
+### Authentication
 
-- `POST /api/auth/register` - Registrácia používateľa
-- `POST /api/auth/login` - Prihlásenie používateľa
-- `GET /api/me` - Získanie údajov používateľa (protected)
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `GET /api/me` - Get user data (protected)
 
-### API kľúče
+### API Keys
 
-- `PUT /api/api-keys` - Aktualizácia API kľúčov (protected)
+- `PUT /api/api-keys` - Update API keys (protected)
 
-## 🛡️ Bezpečnosť
+## 🛡️ Security
 
 ### Rate Limiting
 
-- 100 požiadaviek za 15 minút na IP adresu
-- Implementované v memory (pre produkciu odporúčam Redis)
+- 100 requests per 15 minutes per IP address
+- Implemented in memory (Redis recommended for production)
 
-### Autentifikácia
+### Authentication
 
-- JWT tokeny s expiration time 7 dní
-- Bearer token autentifikácia
+- JWT tokens with 7-day expiration time
+- Bearer token authentication
 
-### Heslá
+### Passwords
 
-- bcrypt hashing s salt rounds 12
-- Minimum 6 znakov
+- bcrypt hashing with salt rounds 12
+- Minimum 6 characters
 
-## 🗄️ Databáza
+## 🗄️ Database
 
 ### User model
 
@@ -148,36 +148,36 @@ model User {
 }
 ```
 
-## 🎨 UI Komponenty
+## 🎨 UI Components
 
-Používame **shadcn/ui** komponenty s Tailwind CSS:
+We use **shadcn/ui** components with Tailwind CSS:
 
-- `Button` - Tlačidlá s rôznymi variantmi
-- `Input` - Vstupné polia s validáciou
-- `Card` - Kontajnery pre obsah
-- `Label` - Popisky pre formuláre
+- `Button` - Buttons with various variants
+- `Input` - Input fields with validation
+- `Card` - Content containers
+- `Label` - Form labels
 
-## 🛠️ Dostupné skripty
+## 🛠️ Available Scripts
 
 ```bash
 # Development
-npm run dev          # Spusti dev server
-npm run build        # Build aplikácie
-npm run lint         # ESLint kontrola
+npm run dev          # Start dev server
+npm run build        # Build applications
+npm run lint         # ESLint check
 
-# Databáza
-npm run db:up        # Spusti PostgreSQL
-npm run db:down      # Zastavi PostgreSQL
-npm run generate     # Vygeneruj Prisma klienta
-npm run migrate      # Spusti migrácie
+# Database
+npm run db:up        # Start PostgreSQL
+npm run db:down      # Stop PostgreSQL
+npm run generate     # Generate Prisma client
+npm run migrate      # Run migrations
 
-# Formatovanie
+# Formatting
 npm run format       # Prettier formatting
 ```
 
 ## 🌍 Environment Variables
 
-V `apps/web/.env`:
+In `apps/web/.env`:
 
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/apikeys"
@@ -186,25 +186,25 @@ NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-nextauth-secret"
 ```
 
-## 📝 Ďalšie možnosti rozšírenia
+## 📝 Future Extension Possibilities
 
-- [ ] Redis pre rate limiting
-- [ ] Email verifikácia
-- [ ] 2FA autentifikácia
+- [ ] Redis for rate limiting
+- [ ] Email verification
+- [ ] 2FA authentication
 - [ ] API key encryption
 - [ ] Audit logging
 - [ ] Role-based permissions
 - [ ] API versioning
-- [ ] Swagger dokumentácia
+- [ ] Swagger documentation
 
-## 🤝 Príspevky
+## 🤝 Contributions
 
-1. Fork repozitár
-2. Vytvor feature branch
-3. Commit zmeny
-4. Push do branch
-5. Otvor Pull Request
+1. Fork repository
+2. Create feature branch
+3. Commit changes
+4. Push to branch
+5. Open Pull Request
 
-## 📄 Licencia
+## 📄 License
 
 MIT License

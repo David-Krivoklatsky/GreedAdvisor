@@ -1,30 +1,30 @@
 # Web App
 
-Hlavná Next.js 14 aplikácia pre Greed Advisor - fullstack aplikácia s App Router.
+Main Next.js 14 application for Greed Advisor - fullstack application with App Router.
 
-## Štruktúra
+## Structure
 
-- `app/` - Next.js App Router stránky a API routes
+- `app/` - Next.js App Router pages and API routes
   - `api/` - Backend API endpoints
-  - `dashboard/`, `login/`, `register/` - Frontend stránky
-- `components/` - React komponenty
-  - `ui/` - shadcn/ui základné UI komponenty
-- `lib/` - App-špecifické utilities (napr. Prisma klient)
+  - `dashboard/`, `login/`, `register/` - Frontend pages
+- `components/` - React components
+  - `ui/` - shadcn/ui base UI components
+- `lib/` - App-specific utilities (e.g., Prisma client)
 
 ## Packages
 
-Táto aplikácia používa zdieľané packages z `../../packages/`:
+This application uses shared packages from `../../packages/`:
 
-- `@greed-advisor/auth` - JWT a bcrypt funkcie
-- `@greed-advisor/db` - Prisma databáza
-- `@greed-advisor/utils` - Utility funkcie (cn, clsx)
-- `@greed-advisor/validations` - Zod schémy
+- `@greed-advisor/auth` - JWT and bcrypt functions
+- `@greed-advisor/db` - Prisma database
+- `@greed-advisor/utils` - Utility functions (cn, clsx)
+- `@greed-advisor/validations` - Zod schemas
 - `@greed-advisor/rate-limit` - Rate limiting middleware
 
-## Spustenie
+## Running
 
 ```bash
 npm run dev
 ```
 
-Aplikácia bude dostupná na `http://localhost:3000`.
+Application will be available at `http://localhost:3000`.

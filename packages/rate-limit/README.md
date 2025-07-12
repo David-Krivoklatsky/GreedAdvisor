@@ -1,17 +1,17 @@
 # @greed-advisor/rate-limit
 
-Zdieľaný balíček pre rate limiting API requestov.
+Shared package for API request rate limiting.
 
-## Funkcie
+## Functions
 
 ### `rateLimit(req: NextRequest)`
 
-Implementuje rate limiting s in-memory úložiskom:
+Implements rate limiting with in-memory storage:
 
-- **Window**: 15 minút
-- **Max requests**: 100 za window
-- **IP tracking**: Automatické rozpoznanie IP adresy
-- **Cleanup**: Automatické mazanie expirovaných záznamov
+- **Window**: 15 minutes
+- **Max requests**: 100 per window
+- **IP tracking**: Automatic IP address detection
+- **Cleanup**: Automatic removal of expired records
 
 ```typescript
 import { rateLimit } from '@greed-advisor/rate-limit';
@@ -27,18 +27,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // rateLimitResult.remaining - zostávajúce requesty
+  // rateLimitResult.remaining - remaining requests
 
-  // Pokračuj s API logikou...
+  // Continue with API logic...
 }
 ```
 
-## Konfigurácia
+## Configuration
 
-- `RATE_LIMIT_WINDOW` - 15 minút (15 _ 60 _ 1000ms)
-- `RATE_LIMIT_MAX_REQUESTS` - 100 requestov na window
-- Automatický cleanup každých 5 minút
+- `RATE_LIMIT_WINDOW` - 15 minutes (15 _ 60 _ 1000ms)
+- `RATE_LIMIT_MAX_REQUESTS` - 100 requests per window
+- Automatic cleanup every 5 minutes
 
-## Závislosti
+## Dependencies
 
-- `next/server` - NextRequest typ
+- `next/server` - NextRequest type
