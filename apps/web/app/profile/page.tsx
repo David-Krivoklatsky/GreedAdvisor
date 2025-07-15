@@ -1,6 +1,7 @@
 'use client';
 
 import ErrorSuccessAlert from '@/components/error-success-alert';
+import PageLayout from '@/components/layout/page-layout';
 import AiKeysSection from '@/components/profile/sections/ai-keys-section';
 import ProfileSection from '@/components/profile/sections/profile-section';
 import TradingKeysSection from '@/components/profile/sections/trading-keys-section';
@@ -268,55 +269,57 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <div className="w-96 bg-white shadow-lg">
-        <Sidebar
-          user={user}
-          activeSection={activeSection}
-          onSectionChange={setActiveSection}
-          onLogout={handleLogout}
-        />
-      </div>
+    <PageLayout logoPosition="sidebar">
+      <div className="min-h-screen bg-gray-50 flex">
+        <div className="w-96 bg-white shadow-lg">
+          <Sidebar
+            user={user}
+            activeSection={activeSection}
+            onSectionChange={setActiveSection}
+            onLogout={handleLogout}
+          />
+        </div>
 
-      <div className="flex-1 p-8">
-        <div className="max-w-4xl">
-          <ErrorSuccessAlert error={error} success={success} />
+        <div className="flex-1 p-8">
+          <div className="max-w-4xl">
+            <ErrorSuccessAlert error={error} success={success} />
 
-          {activeSection === 'profile' && (
-            <ProfileSection
-              user={user}
-              onUpdate={handleUpdateProfile}
-              updating={updating}
-              error={error}
-              success={success}
-            />
-          )}
+            {activeSection === 'profile' && (
+              <ProfileSection
+                user={user}
+                onUpdate={handleUpdateProfile}
+                updating={updating}
+                error={error}
+                success={success}
+              />
+            )}
 
-          {activeSection === 'ai-keys' && (
-            <AiKeysSection
-              aiKeys={aiKeys}
-              onAdd={handleAddAiKey}
-              onToggle={handleToggleAiKey}
-              onDelete={handleDeleteAiKey}
-              updating={updating}
-              error={error}
-              success={success}
-            />
-          )}
+            {activeSection === 'ai-keys' && (
+              <AiKeysSection
+                aiKeys={aiKeys}
+                onAdd={handleAddAiKey}
+                onToggle={handleToggleAiKey}
+                onDelete={handleDeleteAiKey}
+                updating={updating}
+                error={error}
+                success={success}
+              />
+            )}
 
-          {activeSection === 'trading-keys' && (
-            <TradingKeysSection
-              tradingKeys={tradingKeys}
-              onAdd={handleAddTradingKey}
-              onToggle={handleToggleTradingKey}
-              onDelete={handleDeleteTradingKey}
-              updating={updating}
-              error={error}
-              success={success}
-            />
-          )}
+            {activeSection === 'trading-keys' && (
+              <TradingKeysSection
+                tradingKeys={tradingKeys}
+                onAdd={handleAddTradingKey}
+                onToggle={handleToggleTradingKey}
+                onDelete={handleDeleteTradingKey}
+                updating={updating}
+                error={error}
+                success={success}
+              />
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }
