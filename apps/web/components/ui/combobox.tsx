@@ -13,7 +13,7 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { cn } from '@greed-advisor/utils';
 
 // WARNING: The Command component (cmdk) must be version 0.2.1 due to a bug in newer versions
 // that prevents mouse selection inside popovers. See: https://github.com/shadcn-ui/ui/issues/2944
@@ -61,7 +61,7 @@ export function Combobox({
           aria-expanded={open}
           className={cn('w-[200px] justify-between', className)}
         >
-          {value ? options.find((option) => option.value === value)?.label : placeholder}
+          {value ? options.find(option => option.value === value)?.label : placeholder}
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -74,7 +74,7 @@ export function Combobox({
               {options.length === 0 ? (
                 <div className="p-4 text-center text-sm text-gray-500">{emptyMessage}</div>
               ) : (
-                options.map((option) => (
+                options.map(option => (
                   <CommandItem
                     key={option.value}
                     value={option.value}

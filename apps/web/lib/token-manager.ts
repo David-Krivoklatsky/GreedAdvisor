@@ -38,6 +38,10 @@ export class TokenManager {
     let token = this.getAccessToken();
 
     if (!token) {
+      // Redirect to login if no token
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
       throw new Error('No access token available');
     }
 
@@ -56,6 +60,10 @@ export class TokenManager {
 
       if (!token) {
         // Refresh failed, redirect to login
+        if (typeof window !== 'undefined') {
+          this.removeAccessToken();
+          window.location.href = '/login';
+        }
         throw new Error('Authentication failed');
       }
 
