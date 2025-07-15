@@ -38,7 +38,6 @@ const sidebarItems: SidebarItem[] = [
   { id: 'profile', label: 'Public Profile', icon: '👤' },
   { id: 'ai-keys', label: 'AI API Keys', icon: '🤖' },
   { id: 'trading-keys', label: 'Trading Keys', icon: '📈' },
-  { id: 'market-data-keys', label: 'Market Data Keys', icon: '📊' },
 ];
 
 export default function Sidebar({ user, activeSection, onSectionChange, onLogout }: SidebarProps) {
@@ -66,7 +65,7 @@ export default function Sidebar({ user, activeSection, onSectionChange, onLogout
 
         {/* Menu Items */}
         <nav className="space-y-2">
-          {sidebarItems.map((item) => (
+          {sidebarItems.map(item => (
             <button
               key={item.id}
               onClick={() => onSectionChange(item.id)}

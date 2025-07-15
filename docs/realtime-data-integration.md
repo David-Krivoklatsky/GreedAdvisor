@@ -131,7 +131,7 @@ useEffect(() => {
   socket.addEventListener('message', function (event) {
     const data = JSON.parse(event.data);
     if (data.type === 'trade') {
-      setMarketData((prev) => ({ ...prev, price: data.data[0].p.toString() }));
+      setMarketData(prev => ({ ...prev, price: data.data[0].p.toString() }));
     }
   });
 
@@ -195,7 +195,7 @@ const fetchWithRetry = async (url: string, retries = 3) => {
       return await response.json();
     } catch (error) {
       if (i === retries - 1) throw error;
-      await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, i)));
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
     }
   }
 };
@@ -226,12 +226,12 @@ const trackApiCall = (provider: string, endpoint: string, responseTime: number) 
 
 // Monitor WebSocket connection health
 const monitorWebSocket = (socket: WebSocket) => {
-  socket.addEventListener('error', (error) => {
+  socket.addEventListener('error', error => {
     console.error('WebSocket error:', error);
     // Implement reconnection logic
   });
 
-  socket.addEventListener('close', (event) => {
+  socket.addEventListener('close', event => {
     console.log('WebSocket closed:', event.code, event.reason);
     // Implement reconnection logic
   });

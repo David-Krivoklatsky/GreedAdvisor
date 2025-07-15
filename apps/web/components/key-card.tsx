@@ -1,3 +1,4 @@
+import ApiKeyDisplay from '@/components/forms/api-key-display';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,7 +10,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import ApiKeyDisplay from '@/components/ui/api-key-display';
 import { Button } from '@/components/ui/button';
 
 interface BaseKey {
@@ -39,10 +39,18 @@ interface KeyCardProps {
   keyType: 'ai' | 'trading' | 'marketdata';
   onToggle: (keyId: number, isActive: boolean) => void;
   onDelete: (keyId: number) => void;
+  onTest?: (keyData: MarketDataKey) => void; // Optional test function for market data keys
   updating: boolean;
 }
 
-export default function KeyCard({ keyData, keyType, onToggle, onDelete, updating }: KeyCardProps) {
+export default function KeyCard({
+  keyData,
+  keyType,
+  onToggle,
+  onDelete,
+  onTest,
+  updating,
+}: KeyCardProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
@@ -102,6 +110,20 @@ export default function KeyCard({ keyData, keyType, onToggle, onDelete, updating
         >
           {keyData.isActive ? 'Deactivate' : 'Activate'}
         </Button>
+
+        {/* Test button for market data keys */}
+        {keyType === 'marketdata' && onTest && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onTest(keyData as MarketDataKey)}
+            disabled={updating}
+            className="flex-1 border-blue-300 text-blue-600 hover:bg-blue-50"
+          >
+            Test API
+          </Button>
+        )}
+
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button size="sm" variant="destructive" className="flex-1">
