@@ -23,7 +23,7 @@
     "clean:all": "turbo clean && rm -rf node_modules && npm install",
     "check-updates": "npx npm-check-updates",
     "security-audit": "npm audit --audit-level=moderate",
-    "prepare": "is-ci || husky install"
+    "prepare": "node scripts/setup-husky.js"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
@@ -34,7 +34,6 @@
     "@typescript-eslint/parser": "^8.37.0",
     "eslint-config-next": "^15.4.1",
     "husky": "^9.1.7",
-    "is-ci": "^3.0.1",
     "lint-staged": "^16.1.2",
     "prettier": "^3.6.2",
     "prisma": "^6.12.0",
