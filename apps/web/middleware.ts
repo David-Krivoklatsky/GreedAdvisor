@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 export function middleware(request: NextRequest) {
   // Handle preflight OPTIONS requests for CORS
@@ -8,7 +8,9 @@ export function middleware(request: NextRequest) {
       status: 200,
       headers: {
         'Access-Control-Allow-Origin':
-          process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : '*',
+          process.env.NODE_ENV === 'production'
+            ? process.env.NEXT_PUBLIC_APP_URL || 'https://greed-advisor-web.vercel.app'
+            : '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Max-Age': '86400', // 24 hours
@@ -23,7 +25,9 @@ export function middleware(request: NextRequest) {
     // CORS headers
     response.headers.set(
       'Access-Control-Allow-Origin',
-      process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : '*'
+      process.env.NODE_ENV === 'production'
+        ? process.env.NEXT_PUBLIC_APP_URL || 'https://greed-advisor-web.vercel.app'
+        : '*'
     );
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
