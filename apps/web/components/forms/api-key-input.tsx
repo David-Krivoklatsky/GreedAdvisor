@@ -1,10 +1,10 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 
 interface ApiKeyInputProps {
   id: string;
@@ -34,29 +34,25 @@ export default function ApiKeyInput({
   return (
     <div className={className}>
       <Label htmlFor={id}>{label}</Label>
-      <div className="relative mt-1">
+      <div className="flex space-x-2 mt-1">
         <Input
           id={id}
           type={isVisible ? 'text' : 'password'}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           required={required}
-          className="pr-10"
+          className="flex-1"
         />
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={toggleVisibility}
-          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+          className="h-10 w-10 p-0"
           title={isVisible ? 'Hide API key' : 'Show API key'}
         >
-          {isVisible ? (
-            <EyeOff className="h-4 w-4 text-gray-400" />
-          ) : (
-            <Eye className="h-4 w-4 text-gray-400" />
-          )}
+          {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </Button>
       </div>
     </div>

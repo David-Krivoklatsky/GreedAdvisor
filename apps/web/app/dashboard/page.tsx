@@ -1,226 +1,92 @@
 'use client';
 
-import Navbar from '@/components/navbar';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Combobox } from '@/components/ui/combobox';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { TokenManager } from '@/lib/token-manager';
-import { useEffect, useState } from 'react';
-
-interface User {
-  id: number;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  createdAt: string;
-}
-
-interface TradingKey {
-  id: number;
-  title: string;
-  accessType: string;
-  isActive: boolean;
-}
-
-interface AiKey {
-  id: number;
-  title: string;
-  provider: string;
-  isActive: boolean;
-}
+import AiReportModal from '@/components/ai-report-modal';
+import ErrorState from '@/components/common/error-state';
+import LoadingState from '@/components/common/loading-state';
+import DashboardPanels from '@/components/dashboard/dashboard-panels';
+import TradingChart from '@/components/dashboard/trading-chart';
+import PageLayout from '@/components/layout/page-layout';
+import Notification from '@/components/notification';
+import RealtimeApiOptions from '@/components/realtime-api-options';
+import { useAiReport } from '@/hooks/useAiReport';
+import { useDashboardData } from '@/hooks/useDashboardData';
+import { useState } from 'react';
 
 export default function DashboardPage() {
-  const [, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [, setError] = useState('');
-  const [marketData, setMarketData] = useState({ price: '', symbol: 'USD/AUX' });
-  const [tradingKeys, setTradingKeys] = useState<TradingKey[]>([]);
-  const [aiKeys, setAiKeys] = useState<AiKey[]>([]);
+  // UI state
   const [selectedTradingKey, setSelectedTradingKey] = useState<string>('');
   const [selectedAiKey, setSelectedAiKey] = useState<string>('');
   const [selectedReportType, setSelectedReportType] = useState<string>('');
+  const [showRealtimeOptions, setShowRealtimeOptions] = useState(false);
 
-  useEffect(() => {
-    fetchUser();
-    fetchMarketData();
-    fetchTradingKeys();
-    fetchAiKeys();
-  }, []);
+  // Custom hooks for data and AI reports
+  const {
+    loading,
+    error,
+    tradingKeys,
+    aiKeys,
+    positions,
+    notification,
+    showNotification,
+    clearNotification,
+  } = useDashboardData();
 
-  const fetchUser = async () => {
-    try {
-      const response = await TokenManager.makeAuthenticatedRequest('/api/user/profile');
+  const { generatingReport, aiReport, showAiReport, generateReport, closeAiReport } =
+    useAiReport(showNotification);
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch user data');
-      }
-
-      const data = await response.json();
-      setUser(data.user);
-    } catch (err) {
-      console.error('Error fetching user:', err);
-      setError('Failed to load user data');
-      // TokenManager.makeAuthenticatedRequest already handles redirects
-    } finally {
-      setLoading(false);
-    }
+  // Handle AI report generation
+  const handleGenerateReport = () => {
+    generateReport(selectedTradingKey, selectedAiKey, selectedReportType, 'EUR/USD');
   };
 
-  const fetchTradingKeys = async () => {
-    try {
-      const response = await TokenManager.makeAuthenticatedRequest('/api/user/trading-keys');
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch trading keys');
-      }
-
-      const data = await response.json();
-      setTradingKeys(data.tradingKeys.filter((key: TradingKey) => key.isActive));
-    } catch (err) {
-      console.error('Failed to load trading keys:', err);
-    }
-  };
-
-  const fetchAiKeys = async () => {
-    try {
-      const response = await TokenManager.makeAuthenticatedRequest('/api/user/ai-keys');
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch AI keys');
-      }
-
-      const data = await response.json();
-      setAiKeys(data.aiKeys.filter((key: AiKey) => key.isActive));
-    } catch (err) {
-      console.error('Failed to load AI keys:', err);
-    }
-  };
-
-  const fetchMarketData = async () => {
-    try {
-      const response = await fetch('https://api.example.com/market-data?symbol=USD/AUX');
-      const data = await response.json();
-      setMarketData({ price: data.price, symbol: 'USD/AUX' });
-    } catch {
-      console.error('Failed to fetch market data');
-    }
-  };
-
-  const symbolOptions = [
-    { value: 'USD/AUX', label: 'USD/AUX' },
-    { value: 'EUR/USD', label: 'EUR/USD' },
-    { value: 'GBP/USD', label: 'GBP/USD' },
-    { value: 'USD/JPY', label: 'USD/JPY' },
-  ];
-
-  const tradingKeyOptions = tradingKeys.map((key) => ({
-    value: key.id.toString(),
-    label: `${key.title} (${key.accessType})`,
-  }));
-
-  const aiKeyOptions = aiKeys.map((key) => ({
-    value: key.id.toString(),
-    label: `${key.title} (${key.provider})`,
-  }));
-
+  // Loading state
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
-      </div>
-    );
+    return <LoadingState message="Loading dashboard..." />;
+  }
+
+  // Error state
+  if (error) {
+    return <ErrorState error={error} onRetry={() => window.location.reload()} />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar hasNewNotifications={true} />
+    <PageLayout hasNewNotifications={true}>
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-6">
+        {/* Trading Chart Section */}
+        <TradingChart />
 
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <ResizablePanelGroup direction="horizontal" className="rounded-lg border">
-          <ResizablePanel defaultSize={80} minSize={25} maxSize={80}>
-            <Card className="h-full border-0 rounded-none">
-              <CardHeader>
-                <CardTitle>Market Graph</CardTitle>
-                <CardDescription>Select a symbol to view market data</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Combobox
-                    options={symbolOptions}
-                    value={marketData.symbol || symbolOptions[0].value}
-                    onValueChange={(value: string) => setMarketData({ ...marketData, symbol: String(value) })}
-                    placeholder="Select option..."
-                    className="w-full mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Combobox
-                    options={tradingKeyOptions}
-                    value={selectedTradingKey}
-                    onValueChange={(value: string) => setSelectedTradingKey(String(value))}
-                    placeholder="Select option..."
-                    emptyMessage="No active trading keys found."
-                    className="w-full mt-1"
-                  />
-                </div>
-
-                <div className="mt-4 text-lg font-bold" style={{ color: '#1F09FF' }}>
-                  Price: {marketData.price || 'Loading...'}
-                </div>
-              </CardContent>
-            </Card>
-          </ResizablePanel>
-
-          <ResizableHandle withHandle />
-
-          <ResizablePanel defaultSize={67}>
-            <Card className="h-full border-0 rounded-none">
-              <CardHeader>
-                <CardTitle>Generate Report</CardTitle>
-                <CardDescription>Select options and generate a report</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <Combobox
-                      options={aiKeyOptions}
-                      value={selectedAiKey}
-                      onValueChange={(value: string) => setSelectedAiKey(String(value))}
-                      placeholder="Select option..."
-                      emptyMessage="No active AI keys found."
-                      className="w-full mt-1"
-                    />
-                  </div>
-
-                  <div>
-                    <Combobox
-                      options={[
-                        { value: 'daily', label: 'Daily Summary' },
-                        { value: 'weekly', label: 'Weekly Analysis' },
-                        { value: 'monthly', label: 'Monthly Report' },
-                        { value: 'custom', label: 'Custom Range' },
-                      ]}
-                      value={selectedReportType}
-                      onValueChange={(value: string) => setSelectedReportType(String(value))}
-                      placeholder="Select option..."
-                      className="w-full mt-1"
-                    />
-                  </div>
-
-                  <Button
-                    className="w-full mt-4"
-                    style={{ backgroundColor: '#1F09FF', color: 'white' }}
-                  >
-                    Generate Report
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+        {/* Dashboard Panels - AI Report & Positions */}
+        <DashboardPanels
+          tradingKeys={tradingKeys}
+          aiKeys={aiKeys}
+          positions={positions}
+          selectedTradingKey={selectedTradingKey}
+          setSelectedTradingKey={setSelectedTradingKey}
+          selectedAiKey={selectedAiKey}
+          setSelectedAiKey={setSelectedAiKey}
+          selectedReportType={selectedReportType}
+          setSelectedReportType={setSelectedReportType}
+          generatingReport={generatingReport}
+          onGenerateReport={handleGenerateReport}
+          onShowNotification={showNotification}
+        />
       </div>
-    </div>
+
+      {/* Modals and Notifications */}
+      <RealtimeApiOptions
+        isVisible={showRealtimeOptions}
+        onClose={() => setShowRealtimeOptions(false)}
+      />
+
+      <AiReportModal isVisible={showAiReport} onClose={closeAiReport} report={aiReport} />
+
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={clearNotification}
+        />
+      )}
+    </PageLayout>
   );
 }

@@ -1,8 +1,8 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '../ui/button';
 
 interface ApiKeyDisplayProps {
   apiKey: string;

@@ -65,7 +65,7 @@ export default function Sidebar({ user, activeSection, onSectionChange, onLogout
 
         {/* Menu Items */}
         <nav className="space-y-2">
-          {sidebarItems.map((item) => (
+          {sidebarItems.map(item => (
             <button
               key={item.id}
               onClick={() => onSectionChange(item.id)}

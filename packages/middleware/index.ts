@@ -18,7 +18,7 @@ export function withErrorHandler<T>(
           {
             success: false,
             message: 'Validation failed',
-            error: error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
+            error: error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', '),
             statusCode: 400,
           } as ApiError,
           { status: 400 }
@@ -74,7 +74,7 @@ export function withValidation<T>(schema: ZodSchema<T>) {
             {
               success: false,
               message: 'Validation failed',
-              error: error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
+              error: error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', '),
               statusCode: 400,
             } as ApiError,
             { status: 400 }
