@@ -30,14 +30,17 @@
     "@commitlint/config-conventional": "^19.8.1",
     "@next/eslint-plugin-next": "^15.4.1",
     "@turbo/gen": "^2.5.4",
+    "@types/node": "^20",
     "@typescript-eslint/eslint-plugin": "^8.37.0",
     "@typescript-eslint/parser": "^8.37.0",
+    "eslint": "^8",
     "eslint-config-next": "^15.4.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
     "prettier": "^3.6.2",
     "prisma": "^6.12.0",
-    "turbo": "latest"
+    "turbo": "^2.5.4",
+    "typescript": "^5"
   },
   "engines": {
     "node": ">=18"
