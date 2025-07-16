@@ -34,7 +34,7 @@
     },
     "db:generate": {
       "cache": true,
-      "inputs": ["prisma/schema.prisma", ".env"]
+      "inputs": ["packages/db/prisma/schema.prisma", ".env"]
     },
     "db:migrate": {
       "cache": false,
