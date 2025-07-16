@@ -30,11 +30,11 @@ export const clientConfigSchema = z.object({
   NEXT_PUBLIC_API_URL: z.string().url('Invalid API URL'),
   NEXT_PUBLIC_ENABLE_REGISTRATION: z
     .string()
-    .transform((val) => val === 'true')
+    .transform(val => val === 'true')
     .default('true'),
   NEXT_PUBLIC_ENABLE_API_KEYS: z
     .string()
-    .transform((val) => val === 'true')
+    .transform(val => val === 'true')
     .default('true'),
 });
 

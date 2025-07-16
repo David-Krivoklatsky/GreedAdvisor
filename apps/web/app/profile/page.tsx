@@ -1,81 +1,25 @@
 'use client';
 
 import ErrorSuccessAlert from '@/components/error-success-alert';
-import KeyCard from '@/components/key-card';
-import Navbar from '@/components/navbar';
+import PageLayout from '@/components/layout/page-layout';
+import AiKeysSection from '@/components/profile/sections/ai-keys-section';
+import ProfileSection from '@/components/profile/sections/profile-section';
+import TradingKeysSection from '@/components/profile/sections/trading-keys-section';
 import Sidebar from '@/components/sidebar';
-import ApiKeyInput from '@/components/ui/api-key-input';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Combobox } from '@/components/ui/combobox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { TokenManager } from '@/lib/token-manager';
-import Image from 'next/image';
+import { AiApiKey, TradingApiKey, User } from '@/types/profile';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-
-interface User {
-  id: number;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  profilePicture?: string;
-  createdAt: string;
-}
-
-interface AiApiKey {
-  id: number;
-  title: string;
-  provider: string;
-  isActive: boolean;
-  lastUsed?: string;
-  createdAt: string;
-  updatedAt: string;
-  apiKey: string;
-}
-
-interface TradingApiKey {
-  id: number;
-  title: string;
-  accessType: string;
-  isActive: boolean;
-  lastUsed?: string;
-  createdAt: string;
-  updatedAt: string;
-  apiKey: string;
-}
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [activeSection, setActiveSection] = useState('profile');
   const [aiKeys, setAiKeys] = useState<AiApiKey[]>([]);
   const [tradingKeys, setTradingKeys] = useState<TradingApiKey[]>([]);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [profilePicture, setProfilePicture] = useState<string>('');
-  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [showAddAiKey, setShowAddAiKey] = useState(false);
-  const [showAddTradingKey, setShowAddTradingKey] = useState(false);
   const router = useRouter();
-
-  // New AI Key form state
-  const [newAiKey, setNewAiKey] = useState({
-    title: '',
-    provider: 'openai',
-    apiKey: '',
-  });
-
-  // New Trading Key form state
-  const [newTradingKey, setNewTradingKey] = useState({
-    title: '',
-    accessType: 'read-only',
-    apiKey: '',
-  });
 
   useEffect(() => {
     fetchUser();
@@ -86,15 +30,10 @@ export default function ProfilePage() {
   const fetchUser = async () => {
     try {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/profile');
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user data');
-      }
+      if (!response.ok) throw new Error('Failed to fetch user data');
 
       const data = await response.json();
       setUser(data.user);
-      setEmail(data.user.email);
-      setProfilePicture(data.user.profilePicture || '');
     } catch {
       setError('Failed to load user data');
     }
@@ -103,10 +42,7 @@ export default function ProfilePage() {
   const fetchAiKeys = async () => {
     try {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/ai-keys');
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch AI keys');
-      }
+      if (!response.ok) throw new Error('Failed to fetch AI keys');
 
       const data = await response.json();
       setAiKeys(data.aiKeys);
@@ -118,10 +54,7 @@ export default function ProfilePage() {
   const fetchTradingKeys = async () => {
     try {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/trading-keys');
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch trading keys');
-      }
+      if (!response.ok) throw new Error('Failed to fetch trading keys');
 
       const data = await response.json();
       setTradingKeys(data.tradingKeys);
@@ -130,89 +63,58 @@ export default function ProfilePage() {
     }
   };
 
-  const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setProfilePictureFile(file);
-
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setProfilePicture(event.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const uploadProfilePicture = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append('profilePicture', file);
 
-    const response = await TokenManager.makeAuthenticatedRequest('/api/user/profile-picture', {
-      method: 'POST',
-      body: formData,
-    });
+    const response = await TokenManager.makeAuthenticatedRequest(
+      '/api/user/upload-profile-picture',
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
 
     if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || 'Failed to upload profile picture');
+      throw new Error('Failed to upload profile picture');
     }
 
     const data = await response.json();
     return data.profilePictureUrl;
   };
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUpdateProfile = async (data: {
+    email: string;
+    password?: string;
+    profilePictureFile?: File;
+  }) => {
     setUpdating(true);
     setError('');
     setSuccess('');
 
-    if (password && password !== confirmPassword) {
-      setError('Passwords do not match');
-      setUpdating(false);
-      return;
-    }
-
     try {
-      let uploadedProfilePictureUrl = profilePicture;
+      let profilePictureUrl = user?.profilePicture;
 
-      // Upload profile picture if a new file was selected
-      if (profilePictureFile) {
-        uploadedProfilePictureUrl = await uploadProfilePicture(profilePictureFile);
+      if (data.profilePictureFile) {
+        profilePictureUrl = await uploadProfilePicture(data.profilePictureFile);
       }
 
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/login');
-        return;
-      }
-
-      const response = await fetch('/api/user/profile', {
+      const response = await TokenManager.makeAuthenticatedRequest('/api/user/profile', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email,
-          password: password || undefined,
-          profilePicture: uploadedProfilePictureUrl,
+          email: data.email,
+          ...(data.password && { password: data.password }),
+          ...(profilePictureUrl && { profilePicture: profilePictureUrl }),
         }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to update profile');
+        throw new Error('Failed to update profile');
       }
 
-      setSuccess('Profile updated successfully!');
-      setPassword('');
-      setConfirmPassword('');
-      setProfilePictureFile(null);
-      // Refresh user data to get updated profile picture
-      fetchUser();
+      setSuccess('Profile updated successfully');
+      await fetchUser();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update profile');
     } finally {
@@ -220,8 +122,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAddAiKey = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddAiKey = async (data: { title: string; provider: string; apiKey: string }) => {
     setUpdating(true);
     setError('');
     setSuccess('');
@@ -229,21 +130,16 @@ export default function ProfilePage() {
     try {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/ai-keys', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newAiKey),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to add AI key');
+        throw new Error('Failed to add AI key');
       }
 
-      setSuccess('AI key added successfully!');
-      setNewAiKey({ title: '', provider: 'openai', apiKey: '' });
-      setShowAddAiKey(false);
-      fetchAiKeys();
+      setSuccess('AI key added successfully');
+      await fetchAiKeys();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add AI key');
     } finally {
@@ -251,8 +147,11 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAddTradingKey = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddTradingKey = async (data: {
+    title: string;
+    accessType: string;
+    apiKey: string;
+  }) => {
     setUpdating(true);
     setError('');
     setSuccess('');
@@ -260,21 +159,16 @@ export default function ProfilePage() {
     try {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/trading-keys', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newTradingKey),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to add trading key');
+        throw new Error('Failed to add trading key');
       }
 
-      setSuccess('Trading key added successfully!');
-      setNewTradingKey({ title: '', accessType: 'read-only', apiKey: '' });
-      setShowAddTradingKey(false);
-      fetchTradingKeys();
+      setSuccess('Trading key added successfully');
+      await fetchTradingKeys();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add trading key');
     } finally {
@@ -282,78 +176,17 @@ export default function ProfilePage() {
     }
   };
 
-  const handleDeleteAiKey = async (keyId: number) => {
+  const handleToggleAiKey = async (id: number, isActive: boolean) => {
     setUpdating(true);
-    setError('');
-    setSuccess('');
-
     try {
-      const response = await TokenManager.makeAuthenticatedRequest(`/api/user/ai-keys/${keyId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to delete AI key');
-      }
-
-      setSuccess('AI key deleted successfully!');
-      fetchAiKeys();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete AI key');
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const handleDeleteTradingKey = async (keyId: number) => {
-    setUpdating(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      const response = await TokenManager.makeAuthenticatedRequest(
-        `/api/user/trading-keys/${keyId}`,
-        {
-          method: 'DELETE',
-        }
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to delete trading key');
-      }
-
-      setSuccess('Trading key deleted successfully!');
-      fetchTradingKeys();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete trading key');
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const handleToggleAiKey = async (keyId: number, isActive: boolean) => {
-    setUpdating(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      const response = await TokenManager.makeAuthenticatedRequest(`/api/user/ai-keys/${keyId}`, {
+      const response = await TokenManager.makeAuthenticatedRequest(`/api/user/ai-keys/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ isActive: !isActive }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to toggle AI key');
-      }
-
-      setSuccess(`AI key ${!isActive ? 'activated' : 'deactivated'} successfully!`);
-      fetchAiKeys();
+      if (!response.ok) throw new Error('Failed to toggle AI key');
+      await fetchAiKeys();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to toggle AI key');
     } finally {
@@ -361,30 +194,33 @@ export default function ProfilePage() {
     }
   };
 
-  const handleToggleTradingKey = async (keyId: number, isActive: boolean) => {
+  const handleDeleteAiKey = async (id: number) => {
     setUpdating(true);
-    setError('');
-    setSuccess('');
-
     try {
-      const response = await TokenManager.makeAuthenticatedRequest(
-        `/api/user/trading-keys/${keyId}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ isActive: !isActive }),
-        }
-      );
+      const response = await TokenManager.makeAuthenticatedRequest(`/api/user/ai-keys/${id}`, {
+        method: 'DELETE',
+      });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to toggle trading key');
-      }
+      if (!response.ok) throw new Error('Failed to delete AI key');
+      await fetchAiKeys();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete AI key');
+    } finally {
+      setUpdating(false);
+    }
+  };
 
-      setSuccess(`Trading key ${!isActive ? 'activated' : 'deactivated'} successfully!`);
-      fetchTradingKeys();
+  const handleToggleTradingKey = async (id: number, isActive: boolean) => {
+    setUpdating(true);
+    try {
+      const response = await TokenManager.makeAuthenticatedRequest(`/api/user/trading-keys/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive }),
+      });
+
+      if (!response.ok) throw new Error('Failed to toggle trading key');
+      await fetchTradingKeys();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to toggle trading key');
     } finally {
@@ -392,325 +228,98 @@ export default function ProfilePage() {
     }
   };
 
-  const handleLogout = async () => {
-    await TokenManager.logout();
-    router.push('/login');
-  };
+  const handleDeleteTradingKey = async (id: number) => {
+    setUpdating(true);
+    try {
+      const response = await TokenManager.makeAuthenticatedRequest(`/api/user/trading-keys/${id}`, {
+        method: 'DELETE',
+      });
 
-  const renderContent = () => {
-    switch (activeSection) {
-      case 'profile':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Public Profile</CardTitle>
-              <CardDescription>Manage your account settings</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleUpdateProfile} className="space-y-6">
-                <ErrorSuccessAlert error={error} success={success} />
-
-                {/* Profile Picture Section */}
-                <div className="space-y-4">
-                  <Label>Profile Picture</Label>
-                  <div className="flex items-center space-x-4">
-                    <div className="relative">
-                      <Image
-                        src={profilePicture || '/profile-picture.svg'}
-                        alt="Profile Picture"
-                        width={80}
-                        height={80}
-                        className="rounded-full border-2 border-gray-200"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleProfilePictureChange}
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                      />
-                      <p className="text-xs text-gray-500">
-                        Upload a JPG, PNG, or GIF image. Max size 5MB.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="mt-1"
-                    placeholder="Enter your email"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="password">New Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="mt-1"
-                    placeholder="Enter new password (leave blank to keep current)"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="mt-1"
-                    placeholder="Confirm new password"
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={updating}
-                  className="w-full"
-                  style={{ backgroundColor: '#1F09FF', color: 'white' }}
-                >
-                  {updating ? 'Updating...' : 'Update Profile'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        );
-      case 'ai-keys':
-        return (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>AI API Keys</CardTitle>
-                <CardDescription>Manage your AI API keys for different providers</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ErrorSuccessAlert error={error} success={success} />
-
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Your AI Keys</h3>
-                  <Button
-                    onClick={() => setShowAddAiKey(!showAddAiKey)}
-                    style={{ backgroundColor: '#1F09FF', color: 'white' }}
-                  >
-                    {showAddAiKey ? 'Cancel' : 'Add AI Key'}
-                  </Button>
-                </div>
-
-                {showAddAiKey && (
-                  <Card className="mb-4">
-                    <CardHeader>
-                      <CardTitle>Add New AI Key</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <form onSubmit={handleAddAiKey} className="space-y-4">
-                        <div>
-                          <Label htmlFor="aiTitle">Title</Label>
-                          <Input
-                            id="aiTitle"
-                            type="text"
-                            value={newAiKey.title}
-                            onChange={(e) => setNewAiKey({ ...newAiKey, title: e.target.value })}
-                            className="mt-1"
-                            placeholder="e.g., My OpenAI Key"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <Combobox
-                            options={[
-                              { value: 'openai', label: 'OpenAI' },
-                              { value: 'anthropic', label: 'Anthropic' },
-                              { value: 'google', label: 'Google' },
-                              { value: 'claude', label: 'Claude' },
-                            ]}
-                            value={newAiKey.provider}
-                            onValueChange={(value: string) => setNewAiKey({ ...newAiKey, provider: String(value) })}
-                            placeholder="Select option..."
-                            className="w-full mt-1"
-                          />
-                        </div>
-
-                        <ApiKeyInput
-                          id="aiApiKey"
-                          label="API Key"
-                          value={newAiKey.apiKey}
-                          onChange={(value) => setNewAiKey({ ...newAiKey, apiKey: value })}
-                          placeholder="Enter your API key"
-                          required
-                        />
-
-                        <Button
-                          type="submit"
-                          disabled={updating}
-                          className="w-full"
-                          style={{ backgroundColor: '#1F09FF', color: 'white' }}
-                        >
-                          {updating ? 'Adding...' : 'Add AI Key'}
-                        </Button>
-                      </form>
-                    </CardContent>
-                  </Card>
-                )}
-
-                <div className="space-y-4">
-                  {aiKeys.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">
-                      No AI keys found. Add your first AI key above.
-                    </p>
-                  ) : (
-                    aiKeys.map((key) => (
-                      <KeyCard
-                        key={key.id}
-                        keyData={key}
-                        keyType="ai"
-                        onToggle={handleToggleAiKey}
-                        onDelete={handleDeleteAiKey}
-                        updating={updating}
-                      />
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        );
-      case 'trading-keys':
-        return (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Trading API Keys</CardTitle>
-                <CardDescription>Manage your Trading212 API keys</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ErrorSuccessAlert error={error} success={success} />
-
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Your Trading Keys</h3>
-                  <Button
-                    onClick={() => setShowAddTradingKey(!showAddTradingKey)}
-                    style={{ backgroundColor: '#1F09FF', color: 'white' }}
-                  >
-                    {showAddTradingKey ? 'Cancel' : 'Add Trading Key'}
-                  </Button>
-                </div>
-
-                {showAddTradingKey && (
-                  <Card className="mb-4">
-                    <CardHeader>
-                      <CardTitle>Add New Trading Key</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <form onSubmit={handleAddTradingKey} className="space-y-4">
-                        <div>
-                          <Label htmlFor="tradingTitle">Title</Label>
-                          <Input
-                            id="tradingTitle"
-                            type="text"
-                            value={newTradingKey.title}
-                            onChange={(e) =>
-                              setNewTradingKey({ ...newTradingKey, title: e.target.value })
-                            }
-                            className="mt-1"
-                            placeholder="e.g., My Trading212 Key"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <Combobox
-                            options={[
-                              { value: 'read-only', label: 'Read Only' },
-                              { value: 'full-access', label: 'Full Access' },
-                            ]}
-                            value={newTradingKey.accessType}
-                            onValueChange={(value: string) => setNewTradingKey({ ...newTradingKey, accessType: String(value) })}
-                            placeholder="Select option..."
-                            className="w-full mt-1"
-                          />
-                        </div>
-
-                        <ApiKeyInput
-                          id="tradingApiKey"
-                          label="API Key"
-                          value={newTradingKey.apiKey}
-                          onChange={(value) =>
-                            setNewTradingKey({ ...newTradingKey, apiKey: value })
-                          }
-                          placeholder="Enter your Trading212 API key"
-                          required
-                        />
-
-                        <Button
-                          type="submit"
-                          disabled={updating}
-                          className="w-full"
-                          style={{ backgroundColor: '#1F09FF', color: 'white' }}
-                        >
-                          {updating ? 'Adding...' : 'Add Trading Key'}
-                        </Button>
-                      </form>
-                    </CardContent>
-                  </Card>
-                )}
-
-                <div className="space-y-4">
-                  {tradingKeys.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">
-                      No trading keys found. Add your first trading key above.
-                    </p>
-                  ) : (
-                    tradingKeys.map((key) => (
-                      <KeyCard
-                        key={key.id}
-                        keyData={key}
-                        keyType="trading"
-                        onToggle={handleToggleTradingKey}
-                        onDelete={handleDeleteTradingKey}
-                        updating={updating}
-                      />
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        );
-      default:
-        return null;
+      if (!response.ok) throw new Error('Failed to delete trading key');
+      await fetchTradingKeys();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete trading key');
+    } finally {
+      setUpdating(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar
-        logoPosition="over-sidebar"
-        profileRedirectTo="/dashboard"
-        hasNewNotifications={false}
-      />
+  const handleLogout = async () => {
+    try {
+      await TokenManager.makeAuthenticatedRequest('/api/auth/logout', {
+        method: 'POST',
+      });
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      TokenManager.removeAccessToken();
+      router.push('/');
+    }
+  };
 
-      <div className="flex">
-        <Sidebar
-          user={user}
-          activeSection={activeSection}
-          onSectionChange={setActiveSection}
-          onLogout={handleLogout}
-        />
-
-        {/* Right Content */}
-        <div className="flex-1 p-8">{renderContent()}</div>
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="text-lg">Loading profile...</div>
+        </div>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <PageLayout logoPosition="sidebar">
+      <div className="min-h-screen bg-gray-50 flex">
+        <div className="w-96 bg-white shadow-lg">
+          <Sidebar
+            user={user}
+            activeSection={activeSection}
+            onSectionChange={setActiveSection}
+            onLogout={handleLogout}
+          />
+        </div>
+
+        <div className="flex-1 p-8">
+          <div className="max-w-4xl">
+            <ErrorSuccessAlert error={error} success={success} />
+
+            {activeSection === 'profile' && (
+              <ProfileSection
+                user={user}
+                onUpdate={handleUpdateProfile}
+                updating={updating}
+                error={error}
+                success={success}
+              />
+            )}
+
+            {activeSection === 'ai-keys' && (
+              <AiKeysSection
+                aiKeys={aiKeys}
+                onAdd={handleAddAiKey}
+                onToggle={handleToggleAiKey}
+                onDelete={handleDeleteAiKey}
+                updating={updating}
+                error={error}
+                success={success}
+              />
+            )}
+
+            {activeSection === 'trading-keys' && (
+              <TradingKeysSection
+                tradingKeys={tradingKeys}
+                onAdd={handleAddTradingKey}
+                onToggle={handleToggleTradingKey}
+                onDelete={handleDeleteTradingKey}
+                updating={updating}
+                error={error}
+                success={success}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    </PageLayout>
   );
 }

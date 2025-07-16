@@ -108,7 +108,7 @@ import { getUserProfile } from '@/routes/user/profile';
 1. **Add middleware composition**:
 
    ```typescript
-   export const withAuth = (handler) => async (req) => {
+   export const withAuth = handler => async req => {
      // Auth middleware logic
      return handler(req);
    };
