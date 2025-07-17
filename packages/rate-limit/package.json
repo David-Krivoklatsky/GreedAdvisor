@@ -4,7 +4,7 @@
   "private": true,
   "main": "index.ts",
   "types": "index.ts",
-  "peerDependencies": {
-    "next": "^14.0.0"
+  "dependencies": {
+    "next": "^14.2.30"
   }
 }

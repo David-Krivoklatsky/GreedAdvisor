@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: NextRequest) {
   try {
     // Rate limiting
-    const rateLimitResult = rateLimit(req);
+    const rateLimitResult = rateLimit(req as any);
     if (!rateLimitResult.success) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },

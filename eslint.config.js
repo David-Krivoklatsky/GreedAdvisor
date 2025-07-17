@@ -1,37 +1,38 @@
-// ESLint Flat Config for v9+
-const js = require('@eslint/js');
-const tseslint = require('typescript-eslint');
-
-module.exports = [
-  js.configs.recommended,
-  ...tseslint.configs.recommended,
-  {
-    files: ['**/*.ts', '**/*.tsx'],
-    languageOptions: {
-      parser: tseslint.parser,
-      parserOptions: {
-        project: ['./apps/*/tsconfig.json', './packages/*/tsconfig.json'],
-        tsconfigRootDir: __dirname,
+// ESLint Config for v8
+module.exports = {
+  env: {
+    browser: true,
+    es2021: true,
+    node: true,
+  },
+  extends: [
+    'eslint:recommended',
+    '@typescript-eslint/recommended',
+  ],
+  parser: '@typescript-eslint/parser',
+  parserOptions: {
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+    project: ['./apps/*/tsconfig.json', './packages/*/tsconfig.json'],
+    tsconfigRootDir: __dirname,
+  },
+  plugins: [
+    '@typescript-eslint',
+  ],
+  rules: {
+    '@typescript-eslint/no-unused-vars': 'warn',
+    'no-console': 'warn',
+  },
+  overrides: [
+    {
+      files: ['eslint.config.js', '**/postcss.config.js'],
+      env: {
+        node: true,
+      },
+      rules: {
+        '@typescript-eslint/no-require-imports': 'off',
+        'no-undef': 'off',
       },
     },
-    rules: {
-      // Add or override rules here
-      '@typescript-eslint/no-unused-vars': 'warn',
-      'no-console': 'warn',
-    },
-  },
-  {
-    files: ['eslint.config.js'],
-    languageOptions: {
-      globals: {
-        require: 'readonly',
-        module: 'readonly',
-        __dirname: 'readonly',
-      },
-    },
-    rules: {
-      '@typescript-eslint/no-require-imports': 'off',
-      'no-undef': 'off',
-    },
-  },
-];
+  ],
+};
