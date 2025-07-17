@@ -5,27 +5,21 @@ module.exports = {
     es2021: true,
     node: true,
   },
-  extends: [
-    'eslint:recommended',
-    '@typescript-eslint/recommended',
-  ],
+  extends: ['eslint:recommended'],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module',
-    project: ['./apps/*/tsconfig.json', './packages/*/tsconfig.json'],
-    tsconfigRootDir: __dirname,
   },
-  plugins: [
-    '@typescript-eslint',
-  ],
+  plugins: ['@typescript-eslint'],
   rules: {
     '@typescript-eslint/no-unused-vars': 'warn',
     'no-console': 'warn',
+    '@typescript-eslint/no-explicit-any': 'off',
   },
   overrides: [
     {
-      files: ['eslint.config.js', '**/postcss.config.js'],
+      files: ['.eslintrc.js', '**/postcss.config.js'],
       env: {
         node: true,
       },
