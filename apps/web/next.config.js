@@ -1,15 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // App directory is now the default in Next.js 14
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'prisma'],
-  },
+  // Move serverComponentsExternalPackages to the top level
+  serverExternalPackages: ['@prisma/client', 'prisma'],
   // Temporarily disable ESLint during build to fix deployment
   eslint: {
     ignoreDuringBuilds: true,
   },
   // Production optimizations
-  swcMinify: true,
   compress: true,
   poweredByHeader: false,
   // Security headers for production
