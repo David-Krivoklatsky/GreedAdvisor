@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function POST(_req: NextRequest) {
+export async function POST() {
   try {
     const response = NextResponse.json({ message: 'Logged out successfully' }, { status: 200 });
 
@@ -14,8 +14,8 @@ export async function POST(_req: NextRequest) {
     });
 
     return response;
-  } catch (error) {
-    console.error('Logout error:', error);
+  } catch {
+    // Log error internally but don't expose details
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
