@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { TradingApiKey } from '../../../types/profile';
 import ApiKeyInput from '../../forms/api-key-input';
 import KeyCard from '../../key-card';
