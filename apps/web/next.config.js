@@ -4,8 +4,6 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'prisma'],
   },
-  // Output for Vercel
-  output: 'standalone',
   // Temporarily disable ESLint during build to fix deployment
   eslint: {
     ignoreDuringBuilds: true,
