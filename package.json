@@ -77,6 +77,7 @@
     "cmdk": "0.2.1",
     "glob": "^10.4.5",
     "inflight": "npm:@isaacs/inflight@^1.0.1",
+    "test-exclude": "^7.0.1",
     "babel-plugin-istanbul": {
       "test-exclude": "^7.0.1"
     }
