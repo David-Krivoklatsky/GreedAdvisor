@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import React from 'react';
 import { ErrorBoundary } from '../components/error-boundary';
 import './globals.css';
 
