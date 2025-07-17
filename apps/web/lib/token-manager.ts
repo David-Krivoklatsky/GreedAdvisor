@@ -1,4 +1,5 @@
 // Token management utility
+type RequestInit = globalThis.RequestInit;
 export class TokenManager {
   private static ACCESS_TOKEN_KEY = 'accessToken';
 
