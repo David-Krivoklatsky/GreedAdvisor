@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma';
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { NextRequest } from 'next/server';
 import { POST } from '../../../app/api/auth/register/route';
 
 // Mock the prisma client
@@ -28,14 +27,14 @@ jest.mock('@greed-advisor/rate-limit', () => ({
 // Mock middleware
 jest.mock('@greed-advisor/middleware', () => ({
   withApiMiddleware: jest.fn((handler: any) => handler),
-  withValidation: jest.fn((schema: any) => (handler: any) => async (req: any) => {
+  withValidation: jest.fn((_schema: any) => (handler: any) => async (req: any) => {
     try {
       // Actually parse the request body for validation
       const body = await req.json();
       const { registerSchema } = require('@greed-advisor/validations');
       const validatedData = registerSchema.parse(body);
       return handler(req, validatedData);
-    } catch (error) {
+    } catch {
       // Return validation error
       const { NextResponse } = require('next/server');
       return NextResponse.json(
@@ -69,13 +68,14 @@ describe('/api/auth/register', () => {
       updatedAt: new Date(),
     });
 
-    const request = new NextRequest('http://localhost:3000/api/auth/register', {
+    // NextRequest does not accept a body directly, so we mock .json()
+    const request: any = {
       method: 'POST',
-      body: JSON.stringify({
+      json: jest.fn().mockResolvedValue({
         email: 'test@example.com',
         password: 'password123',
       }),
-    });
+    };
 
     const response = await POST(request);
     const data = await response.json();
@@ -93,13 +93,13 @@ describe('/api/auth/register', () => {
       email: 'test@example.com',
     });
 
-    const request = new NextRequest('http://localhost:3000/api/auth/register', {
+    const request: any = {
       method: 'POST',
-      body: JSON.stringify({
+      json: jest.fn().mockResolvedValue({
         email: 'test@example.com',
         password: 'password123',
       }),
-    });
+    };
 
     const response = await POST(request);
     const data = await response.json();
@@ -110,13 +110,13 @@ describe('/api/auth/register', () => {
   });
 
   it('should return validation error for invalid input', async () => {
-    const request = new NextRequest('http://localhost:3000/api/auth/register', {
+    const request: any = {
       method: 'POST',
-      body: JSON.stringify({
+      json: jest.fn().mockResolvedValue({
         email: 'invalid-email',
         password: '123', // Too short
       }),
-    });
+    };
 
     const response = await POST(request);
     const data = await response.json();
