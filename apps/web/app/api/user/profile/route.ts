@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { extractTokenFromHeader, verifyAccessToken, hashPassword } from '@greed-advisor/auth';
+import { extractTokenFromHeader, hashPassword, verifyAccessToken } from '@greed-advisor/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Force this route to be dynamic since it uses request headers
