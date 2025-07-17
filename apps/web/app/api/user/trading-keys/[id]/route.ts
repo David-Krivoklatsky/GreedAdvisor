@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 // PUT /api/user/trading-keys/[id] - Update Trading key
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = req.headers.get('authorization');
     const token = extractTokenFromHeader(authHeader);
@@ -21,7 +21,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    const keyId = parseInt(params.id);
+    const resolvedParams = await params;
+    const keyId = parseInt(resolvedParams.id);
     if (isNaN(keyId)) {
       return NextResponse.json({ error: 'Invalid key ID' }, { status: 400 });
     }
@@ -88,7 +89,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // DELETE /api/user/trading-keys/[id] - Delete Trading key
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = req.headers.get('authorization');
     const token = extractTokenFromHeader(authHeader);
@@ -102,7 +103,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
 
-    const keyId = parseInt(params.id);
+    const resolvedParams = await params;
+    const keyId = parseInt(resolvedParams.id);
     if (isNaN(keyId)) {
       return NextResponse.json({ error: 'Invalid key ID' }, { status: 400 });
     }

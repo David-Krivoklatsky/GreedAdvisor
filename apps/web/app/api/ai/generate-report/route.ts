@@ -73,8 +73,7 @@ export async function POST(request: NextRequest) {
     };
 
     return NextResponse.json({ report: reportData }, { status: 201 });
-  } catch (error) {
-    console.error('Error generating AI report:', error);
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

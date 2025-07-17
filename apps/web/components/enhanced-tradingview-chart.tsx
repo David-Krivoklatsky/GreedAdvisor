@@ -86,7 +86,7 @@ export default function EnhancedTradingViewChart({
         const data = event.data;
         if (data && data.name === 'tv-widget-ready') {
           // Widget is ready, we can start monitoring prices
-          console.log('TradingView widget ready');
+          // TradingView widget initialized successfully
         }
 
         // Listen for price updates
@@ -102,8 +102,8 @@ export default function EnhancedTradingViewChart({
             }
           }
         }
-      } catch (error) {
-        console.error('Error handling TradingView message:', error);
+      } catch {
+        // Error handling TradingView message silently
       }
     };
 

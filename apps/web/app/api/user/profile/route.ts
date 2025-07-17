@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { extractTokenFromHeader, verifyAccessToken } from '@greed-advisor/auth';
+import { extractTokenFromHeader, hashPassword, verifyAccessToken } from '@greed-advisor/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Force this route to be dynamic since it uses request headers
@@ -91,8 +91,7 @@ export async function PUT(req: NextRequest) {
     }
 
     if (password) {
-      const bcrypt = require('bcryptjs');
-      updateData.password = await bcrypt.hash(password, 12);
+      updateData.password = await hashPassword(password);
     }
 
     if (profilePicture !== undefined) {

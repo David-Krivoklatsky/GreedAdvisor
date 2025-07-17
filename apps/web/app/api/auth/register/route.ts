@@ -11,7 +11,7 @@ async function registerHandler(
   validatedData: RegisterRequest
 ): Promise<NextResponse<RegisterResponse>> {
   // Rate limiting
-  const rateLimitResult = rateLimit(req);
+  const rateLimitResult = rateLimit(req as any);
   if (!rateLimitResult.success) {
     return NextResponse.json(
       {
@@ -85,4 +85,4 @@ async function registerHandler(
   return response;
 }
 
-export const POST = withApiMiddleware(withValidation(registerSchema)(registerHandler));
+export const POST = withApiMiddleware(withValidation(registerSchema)(registerHandler as any));

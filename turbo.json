@@ -4,7 +4,8 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build", "db:generate"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [".next/**", "!.next/cache/**"],
+      "env": ["DATABASE_URL", "JWT_SECRET", "ENCRYPTION_KEY", "RATE_LIMIT_MAX", "RATE_LIMIT_WINDOW", "NODE_ENV"]
     },
     "lint": {},
     "lint:fix": {
@@ -34,7 +35,8 @@
     },
     "db:generate": {
       "cache": true,
-      "inputs": ["prisma/schema.prisma", ".env"]
+      "inputs": ["packages/db/prisma/schema.prisma", ".env"],
+      "env": ["DATABASE_URL", "JWT_SECRET", "ENCRYPTION_KEY", "RATE_LIMIT_MAX", "RATE_LIMIT_WINDOW", "NODE_ENV"]
     },
     "db:migrate": {
       "cache": false,

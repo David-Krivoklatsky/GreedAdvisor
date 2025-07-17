@@ -46,8 +46,8 @@ export default function ProfilePage() {
 
       const data = await response.json();
       setAiKeys(data.aiKeys);
-    } catch (err) {
-      console.error('Failed to load AI keys:', err);
+    } catch {
+      // Failed to load AI keys - handle silently
     }
   };
 
@@ -58,8 +58,8 @@ export default function ProfilePage() {
 
       const data = await response.json();
       setTradingKeys(data.tradingKeys);
-    } catch (err) {
-      console.error('Failed to load trading keys:', err);
+    } catch {
+      // Failed to load trading keys - handle silently
     }
   };
 
@@ -249,8 +249,8 @@ export default function ProfilePage() {
       await TokenManager.makeAuthenticatedRequest('/api/auth/logout', {
         method: 'POST',
       });
-    } catch (err) {
-      console.error('Logout error:', err);
+    } catch {
+      // Logout error - handle silently
     } finally {
       TokenManager.removeAccessToken();
       router.push('/');

@@ -1,4 +1,5 @@
 // Token management utility
+type RequestInit = globalThis.RequestInit;
 export class TokenManager {
   private static ACCESS_TOKEN_KEY = 'accessToken';
 
@@ -28,8 +29,8 @@ export class TokenManager {
       const data = await response.json();
       this.setAccessToken(data.accessToken);
       return data.accessToken;
-    } catch (error) {
-      console.error('Token refresh failed:', error);
+    } catch {
+      // Token refresh failed - return null to trigger logout
       return null;
     }
   }
