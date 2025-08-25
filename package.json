@@ -49,7 +49,7 @@
     "packages/*"
   ],
   "dependencies": {
-    "@prisma/client": "^6.12.0",
+    "@prisma/client": "^6.13.0",
     "@next/eslint-plugin-next": "^15.4.1",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@types/jsonwebtoken": "^9.0.10",
