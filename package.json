@@ -54,7 +54,7 @@
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24",
-    "@types/react": "^18",
+    "@types/react": "^18.3.24",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.21",
     "cmdk": "0.2.1",
