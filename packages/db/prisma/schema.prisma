@@ -17,7 +17,7 @@ model User {
   name      String?  @db.VarChar(255)
   firstName String?  @db.VarChar(100)
   lastName  String?  @db.VarChar(100)
-  profilePicture String? @db.VarChar(500)
+  profilePicture String? @db.Text
   isActive  Boolean  @default(true)
   lastLogin DateTime?
   createdAt DateTime @default(now())
@@ -29,6 +29,7 @@ model User {
   apiKeyLogs ApiKeyLog[]
   aiApiKeys AiApiKey[]
   t212ApiKeys T212ApiKey[]
+  marketDataKeys MarketDataKey[]
 
   @@index([email])
   @@index([isActive])
@@ -97,6 +98,8 @@ model T212ApiKey {
   userId     Int
   title      String   @db.VarChar(255)
   apiKey     String   @db.Text
+  apiSecret  String   @db.Text
+  environment String  @db.VarChar(20) @default("demo") // 'demo' or 'live'
   accessType String   @db.VarChar(50) // 'read-only', 'full-access'
   isActive   Boolean  @default(true)
   lastUsed   DateTime?
@@ -108,7 +111,29 @@ model T212ApiKey {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([environment])
   @@index([accessType])
   @@index([isActive])
   @@map("t212_api_keys")
+}
+
+model MarketDataKey {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  title      String   @db.VarChar(255)
+  provider   String   @db.VarChar(100) // 'twelvedata', etc.
+  apiKey     String   @db.Text
+  isActive   Boolean  @default(true)
+  lastUsed   DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([provider])
+  @@index([isActive])
+  @@map("market_data_api_keys")
 }

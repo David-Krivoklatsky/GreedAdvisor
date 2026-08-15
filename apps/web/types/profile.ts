@@ -22,6 +22,7 @@ export interface TradingApiKey {
   id: number;
   title: string;
   accessType: string;
+  environment: string;
   isActive: boolean;
   lastUsed?: string;
   createdAt: string;

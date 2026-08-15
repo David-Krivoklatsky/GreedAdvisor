@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
         id: true,
         title: true,
         accessType: true,
+        environment: true,
         isActive: true,
         lastUsed: true,
         createdAt: true,
@@ -71,19 +72,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { title, accessType, apiKey } = result.data;
+    const { title, accessType, environment, apiKey, apiSecret } = result.data;
 
     const newTradingKey = await prisma.t212ApiKey.create({
       data: {
         userId: decoded.userId,
         title,
         accessType,
+        environment,
         apiKey,
+        apiSecret,
       },
       select: {
         id: true,
         title: true,
         accessType: true,
+        environment: true,
         isActive: true,
         lastUsed: true,
         createdAt: true,

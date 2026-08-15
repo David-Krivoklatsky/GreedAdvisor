@@ -1,6 +1,13 @@
-import { MOCK_POSITIONS } from '@/constants/dashboard';
 import { TokenManager } from '@/lib/token-manager';
-import { AiKey, NotificationData, Position, TradingKey, User } from '@/types/dashboard';
+import {
+  AiKey,
+  CashAccount,
+  MarketDataKey,
+  NotificationData,
+  Position,
+  TradingKey,
+  User,
+} from '@/types/dashboard';
 import { useEffect, useState } from 'react';
 
 export const useDashboardData = () => {
@@ -9,13 +16,16 @@ export const useDashboardData = () => {
   const [error, setError] = useState('');
   const [tradingKeys, setTradingKeys] = useState<TradingKey[]>([]);
   const [aiKeys, setAiKeys] = useState<AiKey[]>([]);
+  const [marketDataKeys, setMarketDataKeys] = useState<MarketDataKey[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
+  const [cash, setCash] = useState<CashAccount | null>(null);
   const [notification, setNotification] = useState<NotificationData | null>(null);
 
   useEffect(() => {
     fetchUser();
     fetchTradingKeys();
     fetchAiKeys();
+    fetchMarketDataKeys();
     fetchPositions();
   }, []);
 
@@ -67,20 +77,51 @@ export const useDashboardData = () => {
     }
   };
 
+  const fetchMarketDataKeys = async () => {
+    try {
+      const response = await TokenManager.makeAuthenticatedRequest('/api/user/market-data-keys');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch market data keys');
+      }
+
+      const data = await response.json();
+      setMarketDataKeys(data.marketDataKeys.filter((key: MarketDataKey) => key.isActive));
+    } catch (err) {
+      console.error('Failed to load market data keys:', err);
+    }
+  };
+
   const fetchPositions = async () => {
     try {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/positions');
 
+      // No active Trading212 key configured - not an error, just empty state
+      if (response.status === 404) {
+        setPositions([]);
+        setCash(null);
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error('Failed to fetch positions');
+        const body = await response.json().catch(() => null);
+        const message = body?.error || body?.details || 'Failed to fetch positions';
+        throw new Error(message);
       }
 
       const data = await response.json();
       setPositions(data.positions || []);
+      if (data.cash) {
+        setCash(data.cash);
+      }
     } catch (err) {
       console.error('Failed to load positions:', err);
-      // Set mock data for development
-      setPositions(MOCK_POSITIONS);
+      setPositions([]);
+      setCash(null);
+      showNotification({
+        message: err instanceof Error ? err.message : 'Failed to load positions',
+        type: 'warning',
+      });
     }
   };
 
@@ -98,7 +139,9 @@ export const useDashboardData = () => {
     error,
     tradingKeys,
     aiKeys,
+    marketDataKeys,
     positions,
+    cash,
     notification,
     showNotification,
     clearNotification,
@@ -106,6 +149,7 @@ export const useDashboardData = () => {
       fetchUser,
       fetchTradingKeys,
       fetchAiKeys,
+      fetchMarketDataKeys,
       fetchPositions,
     },
   };

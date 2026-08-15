@@ -1,0 +1,30 @@
+# `.ignore` — ripgrep ignore file, respected by opencode's glob/grep/list tools.
+# Keeps large or generated files out of AI model context so tokens aren't wasted.
+# (The `read` tool only hard-blocks `.env` files; for full coverage add permission
+# rules in `opencode.json` if needed.)
+
+# Lockfiles: huge, machine-generated, rarely relevant to agent work
+package-lock.json
+
+# Turborepo daemon logs (tracked despite .gitignore; pure noise)
+.turbo/
+**/.turbo/
+
+# Build/generated artifacts
+.next/
+**/.next/
+out/
+coverage/
+*.tsbuildinfo
+*.log
+
+# Binary assets — no value as text context
+apps/web/public/*.png
+apps/web/public/*.svg
+
+# Secrets & env (defense in depth)
+.env
+.env.*
+!.env.example
+secrets/
+keys/
