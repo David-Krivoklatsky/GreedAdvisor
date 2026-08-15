@@ -60,20 +60,31 @@ npm run db:seed  # Optional: creates test user
    ```
 
 2. **Configure Environment Variables** in Vercel dashboard:
-   - `DATABASE_URL`
-   - `JWT_SECRET`
-   - `NEXT_PUBLIC_APP_URL`
+   - `DATABASE_URL` (Neon, Vercel Postgres, etc.)
+   - `JWT_SECRET` (min 32 chars)
+   - `NEXTAUTH_SECRET` (min 32 chars)
+   - `NEXTAUTH_URL` (your deployment URL)
+   - `ENCRYPTION_KEY` (exactly 32 chars)
+   - `NEXT_PUBLIC_APP_URL` (your deployment URL)
+   - `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW`
 
-3. **Build Settings**:
-   - Framework: Next.js
-   - Build Command: `npm run build`
-   - Output Directory: `apps/web/.next`
+3. **Build Settings** (Turborepo monorepo):
+   - **Root Directory: `apps/web`** — this is the key setting. Set it in the
+     Vercel project Settings → General. Without it Vercel treats the repo root
+     as the app root and the build fails.
+   - Framework: Next.js (auto-detected from `apps/web/vercel.json`)
+   - Build Command: `npx turbo run build --filter=web`
    - Install Command: `npm install`
+   - Output Directory: `.next` (relative to `apps/web`)
+
+   `apps/web/vercel.json` already configures the framework and build commands, so
+   you only need to set the **Root Directory** in the dashboard.
 
 4. **Database Setup**:
    ```bash
    # Run migrations on production database
    DATABASE_URL="your-prod-db-url" npm run db:migrate
+   npm run db:seed  # Optional: creates demo user
    ```
 
 #### Database Providers for Vercel:

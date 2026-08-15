@@ -41,6 +41,9 @@ const nextConfig = {
     '@greed-advisor/types',
     '@greed-advisor/utils',
     '@greed-advisor/validations',
+    '@greed-advisor/trading212',
+    '@greed-advisor/market-data',
+    '@greed-advisor/ai',
   ],
   webpack: (config, { isServer }) => {
     if (isServer) {

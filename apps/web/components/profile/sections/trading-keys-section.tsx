@@ -12,7 +12,13 @@ import { Label } from '../../ui/label';
 
 interface TradingKeysSectionProps {
   tradingKeys: TradingApiKey[];
-  onAdd: (data: { title: string; accessType: string; apiKey: string }) => Promise<void>;
+  onAdd: (data: {
+    title: string;
+    accessType: string;
+    environment: string;
+    apiKey: string;
+    apiSecret: string;
+  }) => Promise<void>;
   onToggle: (id: number, isActive: boolean) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   updating: boolean;
@@ -33,13 +39,21 @@ export default function TradingKeysSection({
   const [newKey, setNewKey] = useState({
     title: '',
     accessType: 'read-only',
+    environment: 'demo',
     apiKey: '',
+    apiSecret: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onAdd(newKey);
-    setNewKey({ title: '', accessType: 'read-only', apiKey: '' });
+    setNewKey({
+      title: '',
+      accessType: 'read-only',
+      environment: 'demo',
+      apiKey: '',
+      apiSecret: '',
+    });
     setShowAddForm(false);
   };
 
@@ -105,12 +119,35 @@ export default function TradingKeysSection({
                   />
                 </div>
 
+                <div>
+                  <Label>Environment</Label>
+                  <Combobox
+                    options={[
+                      { value: 'demo', label: 'Demo (Paper Trading)' },
+                      { value: 'live', label: 'Live' },
+                    ]}
+                    value={newKey.environment}
+                    onValueChange={(value: string) => setNewKey({ ...newKey, environment: value })}
+                    placeholder="Select environment..."
+                    className="w-full mt-1"
+                  />
+                </div>
+
                 <ApiKeyInput
                   id="tradingApiKey"
                   label="API Key"
                   value={newKey.apiKey}
                   onChange={(value: string) => setNewKey({ ...newKey, apiKey: value })}
                   placeholder="Enter your Trading212 API key"
+                  required
+                />
+
+                <ApiKeyInput
+                  id="tradingApiSecret"
+                  label="API Secret"
+                  value={newKey.apiSecret}
+                  onChange={(value: string) => setNewKey({ ...newKey, apiSecret: value })}
+                  placeholder="Enter your Trading212 API secret"
                   required
                 />
 

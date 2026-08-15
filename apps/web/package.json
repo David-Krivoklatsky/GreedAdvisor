@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "test": "jest",
     "test:watch": "jest --watch",
     "postinstall": "prisma generate --schema=../../packages/db/prisma/schema.prisma"
@@ -20,7 +20,11 @@
     "@greed-advisor/types": "*",
     "@greed-advisor/utils": "*",
     "@greed-advisor/validations": "*",
+    "@greed-advisor/ai": "*",
+    "@greed-advisor/market-data": "*",
+    "@greed-advisor/trading212": "*",
     "@prisma/client": "^6.12.0",
+    "@babel/runtime": "^7.28.4",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-navigation-menu": "^1.2.13",
@@ -32,16 +36,13 @@
     "cmdk": "0.2.1",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.525.0",
-    "next": "^14.2.30",
+    "next": "15.4.11",
     "react": "^18",
     "react-dom": "^18",
     "react-resizable-panels": "^3.0.3",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.24.1"
-  },
-  "overrides": {
-    "cmdk": "0.2.1"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
@@ -52,7 +53,7 @@
     "@types/supertest": "^6.0.3",
     "autoprefixer": "^10.4.21",
     "eslint": "^8.57.1",
-    "eslint-config-next": "^14.2.30",
+    "eslint-config-next": "^15.4.1",
     "jest": "^30.0.4",
     "jest-environment-node": "^30.0.4",
     "node-mocks-http": "^1.17.2",

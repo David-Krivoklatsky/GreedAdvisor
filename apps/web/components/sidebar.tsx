@@ -37,6 +37,7 @@ interface SidebarItem {
 const sidebarItems: SidebarItem[] = [
   { id: 'profile', label: 'Public Profile', icon: '👤' },
   { id: 'ai-keys', label: 'AI API Keys', icon: '🤖' },
+  { id: 'market-data-keys', label: 'Market Data Keys', icon: '📊' },
   { id: 'trading-keys', label: 'Trading Keys', icon: '📈' },
 ];
 

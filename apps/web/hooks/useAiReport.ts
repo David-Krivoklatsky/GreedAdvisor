@@ -10,10 +10,11 @@ export const useAiReport = (showNotification: (notification: NotificationData) =
   const generateReport = async (
     selectedTradingKey: string,
     selectedAiKey: string,
+    selectedMarketDataKey: string,
     selectedReportType: string,
     symbol: string
   ) => {
-    if (!selectedTradingKey || !selectedAiKey || !selectedReportType) {
+    if (!selectedTradingKey || !selectedAiKey || !selectedMarketDataKey || !selectedReportType) {
       showNotification({
         message: 'Please select all required options before generating a report.',
         type: 'warning',
@@ -31,6 +32,7 @@ export const useAiReport = (showNotification: (notification: NotificationData) =
         body: JSON.stringify({
           tradingKeyId: selectedTradingKey,
           aiKeyId: selectedAiKey,
+          marketDataKeyId: selectedMarketDataKey,
           reportType: selectedReportType,
           symbol: symbol,
         }),

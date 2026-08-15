@@ -10,6 +10,7 @@ export interface TradingKey {
   id: number;
   title: string;
   accessType: string;
+  environment: string;
   isActive: boolean;
 }
 
@@ -20,16 +21,36 @@ export interface AiKey {
   isActive: boolean;
 }
 
+export interface MarketDataKey {
+  id: number;
+  title: string;
+  provider: string;
+  isActive: boolean;
+}
+
 export interface Position {
   id: number;
-  symbol: string;
-  type: 'BUY' | 'SELL';
-  size: number;
-  openPrice: number;
+  ticker: string;
+  quantity: number;
   currentPrice: number;
-  pnl: number;
-  status: 'OPEN' | 'WAITING' | 'CLOSED';
-  openTime: string;
+  averagePrice: number;
+  ppl: number;
+  pplCurrency: string;
+  initialValue: number;
+  currentValue: number;
+  fxPpl: number;
+}
+
+export interface CashAccount {
+  currencyCode: string;
+  balance: number;
+  cash: number;
+  blocked: number;
+  investableCash: number;
+  ppl: number;
+  reserved: number;
+  result: number;
+  total: number;
 }
 
 export interface MarketData {

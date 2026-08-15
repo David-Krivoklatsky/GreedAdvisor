@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { extractTokenFromHeader, hashPassword, verifyAccessToken } from '@greed-advisor/auth';
+import { profileUpdateSchema } from '@greed-advisor/validations';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Force this route to be dynamic since it uses request headers
@@ -26,6 +27,7 @@ export async function GET(req: NextRequest) {
         email: true,
         firstName: true,
         lastName: true,
+        profilePicture: true,
         createdAt: true,
         aiApiKeys: {
           select: {
@@ -82,9 +84,29 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { email, password, profilePicture } = body;
+    const parsed = profileUpdateSchema.safeParse(body);
 
-    const updateData: any = {};
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
+    const { email, password, profilePicture } = parsed.data;
+
+    // If email is changing, check it isn't taken by another user
+    if (
+      email &&
+      email !== (await prisma.user.findUnique({ where: { id: decoded.userId } }))?.email
+    ) {
+      const existing = await prisma.user.findUnique({ where: { email } });
+      if (existing && existing.id !== decoded.userId) {
+        return NextResponse.json({ error: 'User with this email already exists' }, { status: 409 });
+      }
+    }
+
+    const updateData: { email?: string; password?: string; profilePicture?: string } = {};
 
     if (email) {
       updateData.email = email;
@@ -106,6 +128,7 @@ export async function PUT(req: NextRequest) {
         email: true,
         firstName: true,
         lastName: true,
+        profilePicture: true,
         createdAt: true,
       },
     });

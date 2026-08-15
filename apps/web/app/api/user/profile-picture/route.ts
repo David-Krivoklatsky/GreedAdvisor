@@ -1,10 +1,13 @@
+import { prisma } from '@/lib/prisma';
 import { extractTokenFromHeader, verifyAccessToken } from '@greed-advisor/auth';
-import fs from 'fs';
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
 
 // Force this route to be dynamic since it uses request headers
 export const dynamic = 'force-dynamic';
+
+// Maximum profile picture size (5MB)
+const MAX_SIZE = 5 * 1024 * 1024;
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 // POST /api/user/profile-picture - Upload profile picture
 export async function POST(req: NextRequest) {
@@ -29,8 +32,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
         { error: 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.' },
         { status: 400 }
@@ -38,40 +40,25 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate file size (5MB max)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
+    if (file.size > MAX_SIZE) {
       return NextResponse.json({ error: 'File too large. Maximum size is 5MB.' }, { status: 400 });
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'profile-pictures');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    // Generate unique filename
-    const fileExtension = path.extname(file.name);
-    const fileName = `${decoded.userId}-${Date.now()}${fileExtension}`;
-    const filePath = path.join(uploadsDir, fileName);
-
-    // Save file
+    // Convert to base64 data URL for serverless-safe storage (no filesystem on Vercel)
     const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    fs.writeFileSync(filePath, buffer);
+    const base64 = Buffer.from(bytes).toString('base64');
+    const dataUrl = `data:${file.type};base64,${base64}`;
 
-    // Generate URL
-    const profilePictureUrl = `/uploads/profile-pictures/${fileName}`;
-
-    // Update user in database
-    // await prisma.user.update({
-    //   where: { id: decoded.userId },
-    //   data: { profilePicture: profilePictureUrl },
-    // });
+    // Store in database
+    await prisma.user.update({
+      where: { id: decoded.userId },
+      data: { profilePicture: dataUrl },
+    });
 
     return NextResponse.json(
       {
         message: 'Profile picture uploaded successfully',
-        profilePictureUrl,
+        profilePictureUrl: dataUrl,
       },
       { status: 200 }
     );

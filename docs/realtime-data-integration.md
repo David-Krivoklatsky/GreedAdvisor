@@ -1,5 +1,14 @@
 # Real-time Market Data Integration Guide
 
+> **Status note (2026):** The provider options below (Alpha Vantage, Finnhub, IEX,
+> Polygon) and the WebSocket approach were a plan that was NOT implemented. The
+> actual implementation is: **Twelve Data** quotes + daily candles via the
+> `@greed-advisor/market-data` package, configured per-user as Market Data Keys in
+> the UI (Profile → Market Data Keys), used by `/api/ai/generate-report`. Trading
+> positions/orders come from the Trading212 API via `@greed-advisor/trading212`.
+> See `apps/web/app/api/user/positions/route.ts` and
+> `apps/web/app/api/ai/generate-report/route.ts`.
+
 ## Overview
 
 This document provides detailed information about integrating real-time market data APIs with the GreedAdvisor dashboard. The implementation includes a TradingView chart component and multiple API options for live data feeds.

@@ -7,7 +7,6 @@ import DashboardPanels from '@/components/dashboard/dashboard-panels';
 import TradingChart from '@/components/dashboard/trading-chart';
 import PageLayout from '@/components/layout/page-layout';
 import Notification from '@/components/notification';
-import RealtimeApiOptions from '@/components/realtime-api-options';
 import { useAiReport } from '@/hooks/useAiReport';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useState } from 'react';
@@ -16,8 +15,8 @@ export default function DashboardPage() {
   // UI state
   const [selectedTradingKey, setSelectedTradingKey] = useState<string>('');
   const [selectedAiKey, setSelectedAiKey] = useState<string>('');
+  const [selectedMarketDataKey, setSelectedMarketDataKey] = useState<string>('');
   const [selectedReportType, setSelectedReportType] = useState<string>('');
-  const [showRealtimeOptions, setShowRealtimeOptions] = useState(false);
 
   // Custom hooks for data and AI reports
   const {
@@ -25,7 +24,9 @@ export default function DashboardPage() {
     error,
     tradingKeys,
     aiKeys,
+    marketDataKeys,
     positions,
+    cash,
     notification,
     showNotification,
     clearNotification,
@@ -35,8 +36,14 @@ export default function DashboardPage() {
     useAiReport(showNotification);
 
   // Handle AI report generation
-  const handleGenerateReport = () => {
-    generateReport(selectedTradingKey, selectedAiKey, selectedReportType, 'EUR/USD');
+  const handleGenerateReport = (symbol: string) => {
+    generateReport(
+      selectedTradingKey,
+      selectedAiKey,
+      selectedMarketDataKey,
+      selectedReportType,
+      symbol
+    );
   };
 
   // Loading state
@@ -59,11 +66,15 @@ export default function DashboardPage() {
         <DashboardPanels
           tradingKeys={tradingKeys}
           aiKeys={aiKeys}
+          marketDataKeys={marketDataKeys}
           positions={positions}
+          cash={cash}
           selectedTradingKey={selectedTradingKey}
           setSelectedTradingKey={setSelectedTradingKey}
           selectedAiKey={selectedAiKey}
           setSelectedAiKey={setSelectedAiKey}
+          selectedMarketDataKey={selectedMarketDataKey}
+          setSelectedMarketDataKey={setSelectedMarketDataKey}
           selectedReportType={selectedReportType}
           setSelectedReportType={setSelectedReportType}
           generatingReport={generatingReport}
@@ -73,11 +84,6 @@ export default function DashboardPage() {
       </div>
 
       {/* Modals and Notifications */}
-      <RealtimeApiOptions
-        isVisible={showRealtimeOptions}
-        onClose={() => setShowRealtimeOptions(false)}
-      />
-
       <AiReportModal isVisible={showAiReport} onClose={closeAiReport} report={aiReport} />
 
       {notification && (

@@ -1,79 +1,121 @@
-import { verifyToken } from '@greed-advisor/auth';
+import { prisma } from '@/lib/prisma';
+import { extractTokenFromHeader, verifyAccessToken } from '@greed-advisor/auth';
+import { createAiProvider } from '@greed-advisor/ai';
+import { MarketDataService, TwelveDataProvider } from '@greed-advisor/market-data';
+import { Trading212Client, T212Environment } from '@greed-advisor/trading212';
 import { NextRequest, NextResponse } from 'next/server';
+
+// Force this route to be dynamic since it uses request headers
+export const dynamic = 'force-dynamic';
+
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const token = extractTokenFromHeader(authHeader);
+
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
-    const decoded = verifyToken(token);
-
+    const decoded = verifyAccessToken(token);
     if (!decoded || !decoded.userId) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { tradingKeyId, aiKeyId, reportType, symbol } = body;
+    const { tradingKeyId, aiKeyId, marketDataKeyId, reportType, symbol } = body;
 
-    // Validate input
-    if (!tradingKeyId || !aiKeyId || !reportType) {
+    if (!tradingKeyId || !aiKeyId || !marketDataKeyId || !reportType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Simulate AI report generation
-    // In a real implementation, this would:
-    // 1. Fetch trading data using the trading key
-    // 2. Use the AI provider to analyze the data
-    // 3. Generate a comprehensive report
-
-    const reportData = {
-      id: Date.now(),
-      reportType,
-      symbol: symbol || 'EUR/USD',
-      generatedAt: new Date().toISOString(),
-      analysis: {
-        market_sentiment: 'Bullish',
-        confidence: 0.78,
-        recommendation: 'BUY',
-        target_price: 1.095,
-        stop_loss: 1.075,
-        risk_level: 'Medium',
-      },
-      summary: `Based on the ${reportType} analysis for ${symbol || 'EUR/USD'}, current market conditions show bullish momentum with strong support levels. Technical indicators suggest continued upward movement with a target of 1.095.`,
-      key_points: [
-        'RSI shows oversold conditions presenting buying opportunity',
-        'Moving averages indicate bullish crossover pattern',
-        'Support level at 1.080 provides strong foundation',
-        'Economic indicators favor EUR strength against USD',
-        'Recommended position size: 2% of portfolio',
-      ],
-      technical_analysis: {
-        indicators: {
-          RSI: 68.5,
-          MACD: 'Bullish crossover',
-          SMA_20: 1.0845,
-          SMA_50: 1.082,
-          Volume: 'Above average',
+    // Load keys and verify ownership
+    const [tradingKey, aiKey, marketDataKey] = await Promise.all([
+      prisma.t212ApiKey.findFirst({
+        where: {
+          id: Number(tradingKeyId),
+          userId: decoded.userId,
+          deletedAt: null,
+          isActive: true,
         },
-        patterns: ['Ascending triangle', 'Higher lows'],
-        support_levels: [1.08, 1.075, 1.07],
-        resistance_levels: [1.09, 1.095, 1.1],
-      },
-      risk_assessment: {
-        probability_of_success: 0.72,
-        max_drawdown: 0.025,
-        reward_risk_ratio: 2.5,
-        volatility: 'Low to Medium',
-      },
-      timeframe:
-        reportType === 'daily' ? '24 hours' : reportType === 'weekly' ? '7 days' : '30 days',
-    };
+      }),
+      prisma.aiApiKey.findFirst({
+        where: { id: Number(aiKeyId), userId: decoded.userId, deletedAt: null, isActive: true },
+      }),
+      prisma.marketDataKey.findFirst({
+        where: {
+          id: Number(marketDataKeyId),
+          userId: decoded.userId,
+          deletedAt: null,
+          isActive: true,
+        },
+      }),
+    ]);
 
-    return NextResponse.json({ report: reportData }, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    if (!tradingKey) {
+      return NextResponse.json({ error: 'Trading key not found' }, { status: 404 });
+    }
+    if (!aiKey) {
+      return NextResponse.json({ error: 'AI key not found' }, { status: 404 });
+    }
+    if (!marketDataKey) {
+      return NextResponse.json({ error: 'Market data key not found' }, { status: 404 });
+    }
+
+    // Resolve symbol: from request, or infer from first open position
+    let targetSymbol = symbol;
+
+    if (!targetSymbol) {
+      const t212 = new Trading212Client({
+        apiKey: tradingKey.apiKey,
+        apiSecret: tradingKey.apiSecret,
+        environment: tradingKey.environment as T212Environment,
+      });
+      const positions = await t212.getPositions();
+      const first = positions[0];
+      if (!first) {
+        return NextResponse.json({ error: 'No positions found to analyze' }, { status: 400 });
+      }
+      targetSymbol = first.ticker;
+    }
+
+    // Fetch real market data
+    const marketData = new MarketDataService(new TwelveDataProvider(marketDataKey.apiKey));
+    const quote = await marketData.getQuote(targetSymbol);
+    const candles = await marketData.getCandles(targetSymbol, '1day', 30);
+
+    // Generate AI report
+    const aiProvider = createAiProvider(
+      aiKey.provider as 'openai' | 'anthropic' | 'google' | 'claude',
+      aiKey.apiKey
+    );
+    const report = await aiProvider.generateReport({
+      symbol: targetSymbol,
+      companyName: quote.name,
+      quote,
+      candles,
+      reportType,
+    });
+
+    // Mark keys as used
+    await Promise.all([
+      prisma.t212ApiKey.update({ where: { id: tradingKey.id }, data: { lastUsed: new Date() } }),
+      prisma.aiApiKey.update({ where: { id: aiKey.id }, data: { lastUsed: new Date() } }),
+      prisma.marketDataKey.update({
+        where: { id: marketDataKey.id },
+        data: { lastUsed: new Date() },
+      }),
+    ]);
+
+    return NextResponse.json({ report }, { status: 200 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Generate report error:', error);
+    return NextResponse.json(
+      { error: 'Failed to generate report', details: message },
+      { status: 500 }
+    );
   }
 }

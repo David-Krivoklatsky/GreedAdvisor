@@ -32,6 +32,7 @@ interface TradingKey extends BaseKey {
 
 interface MarketDataKey extends BaseKey {
   provider: string;
+  apiKey: string;
 }
 
 interface KeyCardProps {

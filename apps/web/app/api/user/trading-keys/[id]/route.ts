@@ -60,6 +60,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         id: true,
         title: true,
         accessType: true,
+        environment: true,
         isActive: true,
         lastUsed: true,
         createdAt: true,
