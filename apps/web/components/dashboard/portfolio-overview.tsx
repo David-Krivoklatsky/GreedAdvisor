@@ -1,5 +1,5 @@
 import { AccountSummary, Position } from '@/types/dashboard';
-import { formatCurrency, formatPercent } from '@/lib/format';
+import { formatCurrency, formatPercent, formatQuantity } from '@/lib/format';
 import { useMemo } from 'react';
 
 interface PortfolioOverviewProps {
@@ -54,6 +54,10 @@ export default function PortfolioOverview({
 
   const unrealizedPct = totals.invested !== 0 ? totals.unrealized / totals.invested : 0;
 
+  const cashAvailable = accountSummary?.cash.availableToTrade ?? 0;
+  const investedValue = accountSummary?.investments.currentValue ?? totals.currentValue;
+  const reconciledTotal = cashAvailable + investedValue;
+
   if (loading) {
     return (
       <div className="animate-pulse space-y-4">
@@ -73,12 +77,16 @@ export default function PortfolioOverview({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <SummaryCard
           label="Total Account Value"
-          value={formatCurrency(accountSummary?.totalValue ?? totals.currentValue, accCurrency)}
-          sublabel={accountSummary ? `Account #${accountSummary.id}` : undefined}
+          value={formatCurrency(reconciledTotal, accCurrency)}
+          sublabel={
+            accountSummary
+              ? `= ${formatCurrency(cashAvailable, accCurrency)} cash + ${formatCurrency(investedValue, accCurrency)} invested`
+              : undefined
+          }
         />
         <SummaryCard
           label="Cash Available"
-          value={formatCurrency(accountSummary?.cash.availableToTrade ?? 0, accCurrency)}
+          value={formatCurrency(cashAvailable, accCurrency)}
           sublabel={
             accountSummary?.cash.reservedForOrders
               ? `${formatCurrency(accountSummary.cash.reservedForOrders, accCurrency)} reserved for orders`
@@ -86,11 +94,8 @@ export default function PortfolioOverview({
           }
         />
         <SummaryCard
-          label="Investments"
-          value={formatCurrency(
-            accountSummary?.investments.currentValue ?? totals.currentValue,
-            accCurrency
-          )}
+          label="Investments (Market Value)"
+          value={formatCurrency(investedValue, accCurrency)}
           sublabel={`Cost basis ${formatCurrency(accountSummary?.investments.totalCost ?? totals.invested, accCurrency)}`}
         />
         <SummaryCard
@@ -162,7 +167,25 @@ export default function PortfolioOverview({
                   const pnl = position.walletImpact?.unrealizedProfitLoss ?? 0;
                   const value = position.walletImpact?.currentValue ?? 0;
                   const cost = position.walletImpact?.totalCost ?? 0;
-                  const pnlPct = cost !== 0 ? pnl / cost : 0;
+                  const qty = position.quantity ?? 0;
+                  const avgPrice =
+                    position.averagePricePaid > 0
+                      ? position.averagePricePaid
+                      : qty > 0 && cost > 0
+                        ? cost / qty
+                        : 0;
+                  const currentPrice =
+                    position.currentPrice > 0
+                      ? position.currentPrice
+                      : qty > 0 && value > 0
+                        ? value / qty
+                        : 0;
+                  const pnlPct =
+                    cost !== 0
+                      ? pnl / cost
+                      : avgPrice > 0
+                        ? (currentPrice - avgPrice) / avgPrice
+                        : 0;
                   const allocation = totals.currentValue !== 0 ? value / totals.currentValue : 0;
                   const posCurrency = position.walletImpact?.currency ?? accCurrency;
                   const tickerShort = position.instrument?.ticker
@@ -185,26 +208,33 @@ export default function PortfolioOverview({
                       <td className="px-6 py-4 text-muted-foreground">
                         {position.instrument?.name ?? '—'}
                       </td>
-                      <td className="px-6 py-4 text-right text-foreground">{position.quantity}</td>
-                      <td className="px-6 py-4 text-right text-foreground">
-                        {formatCurrency(
-                          position.averagePricePaid,
-                          position.instrument?.currency ?? posCurrency
-                        )}
+                      <td className="px-6 py-4 text-right text-foreground tabular-nums">
+                        {formatQuantity(qty)}
                       </td>
-                      <td className="px-6 py-4 text-right text-foreground">
-                        {formatCurrency(
-                          position.currentPrice,
-                          position.instrument?.currency ?? posCurrency
-                        )}
+                      <td className="px-6 py-4 text-right text-foreground tabular-nums">
+                        {avgPrice > 0
+                          ? formatCurrency(avgPrice, position.instrument?.currency ?? posCurrency)
+                          : '—'}
                       </td>
-                      <td className="px-6 py-4 text-right font-medium text-foreground">
+                      <td className="px-6 py-4 text-right text-foreground tabular-nums">
+                        {currentPrice > 0
+                          ? formatCurrency(
+                              currentPrice,
+                              position.instrument?.currency ?? posCurrency
+                            )
+                          : '—'}
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium text-foreground tabular-nums">
                         {formatCurrency(value, posCurrency)}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className={pnl >= 0 ? 'text-success' : 'text-destructive'}>
-                          <div className="font-medium">{formatCurrency(pnl, posCurrency)}</div>
-                          <div className="text-xs">{formatPercent(pnlPct)}</div>
+                          <div className="font-medium tabular-nums">
+                            {formatCurrency(pnl, posCurrency)}
+                          </div>
+                          <div className="text-xs tabular-nums">
+                            {cost !== 0 || avgPrice > 0 ? formatPercent(pnlPct) : '—'}
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -226,6 +256,12 @@ export default function PortfolioOverview({
               </tbody>
             </table>
           </div>
+        )}
+        {positions.length > 0 && (
+          <p className="px-6 py-3 text-xs text-muted-foreground border-t border-border">
+            Prices shown in the instrument&apos;s trading currency; Value and PnL converted to{' '}
+            {accCurrency} (FX impact included).
+          </p>
         )}
       </div>
     </div>

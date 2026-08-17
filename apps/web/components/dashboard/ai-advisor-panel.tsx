@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TokenManager } from '@/lib/token-manager';
 import {
@@ -18,6 +17,7 @@ import {
 import { useEffect, useState } from 'react';
 import { Plus, ScanLine, Trash2, Loader2 } from 'lucide-react';
 import TradePlanModal from './trade-plan-modal';
+import { InstrumentCombobox } from './instrument-combobox';
 
 interface AiAdvisorPanelProps {
   tradingKeys: TradingKey[];
@@ -29,6 +29,49 @@ interface AiAdvisorPanelProps {
 
 const PRODUCT_TYPES = ['INVEST', 'CFD', 'CRYPTO'] as const;
 const INSTRUMENT_TYPES = ['STOCK', 'ETF', 'CRYPTO', 'FOREX'] as const;
+
+const FOREX_PATTERN =
+  /^(?:XAU|XAG|XPT|XPD|EUR|USD|GBP|JPY|CHF|AUD|CAD|NZD|CNH|HKD|NOK|SEK|SGD|MXN|TRY|ZAR|PLN|CZK|DKK|HUF|RUB|BRL|INR|KRW|TWD|THB|CLP|COP|ILS|SAR|AED|NGN|GHS|KES|PKR|BDT|VND|MYR|IDR|PHP)\s*(?:USD|EUR|GBP|JPY|CHF|AUD|CAD|NZD|CNH|HKD|NOK|SEK|SGD|MXN|TRY|ZAR|PLN|CZK|DKK|HUF|RUB|BRL|INR|KRW|TWD|THB|CLP|COP|ILS|SAR|AED|NGN|GHS|KES|PKR|BDT|VND|MYR|IDR|PHP)$/;
+const CRYPTO_TICKERS = new Set([
+  'BTC',
+  'ETH',
+  'USDT',
+  'BNB',
+  'XRP',
+  'SOL',
+  'ADA',
+  'DOGE',
+  'AVAX',
+  'LINK',
+  'DOT',
+  'MATIC',
+  'LTC',
+  'BCH',
+  'UNI',
+  'XLM',
+  'ATOM',
+  'ETC',
+  'FIL',
+  'APT',
+  'NEAR',
+  'ARB',
+  'OP',
+  'SUI',
+  'TIA',
+  'SEI',
+  'INJ',
+  'RNDR',
+  'HBAR',
+  'VET',
+  'TRX',
+]);
+
+function inferInstrumentType(ticker: string): string {
+  const t = ticker.toUpperCase();
+  if (FOREX_PATTERN.test(t)) return 'FOREX';
+  if (CRYPTO_TICKERS.has(t)) return 'CRYPTO';
+  return 'STOCK';
+}
 
 function actionBadge(action: string) {
   const colors: Record<string, string> = {
@@ -50,6 +93,7 @@ export default function AiAdvisorPanel({
 }: AiAdvisorPanelProps) {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [newTicker, setNewTicker] = useState('');
+  const [newName, setNewName] = useState('');
   const [newType, setNewType] = useState<string>('STOCK');
   const [selectedAiKey, setSelectedAiKey] = useState<string>('');
   const [selectedMarketDataKey, setSelectedMarketDataKey] = useState<string>('');
@@ -88,10 +132,15 @@ export default function AiAdvisorPanel({
       onNotification({ message: 'Enter a ticker symbol', type: 'warning' });
       return;
     }
+    const instrumentType = newType || inferInstrumentType(ticker);
     try {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/watchlist', {
         method: 'POST',
-        body: JSON.stringify({ ticker, instrumentType: newType }),
+        body: JSON.stringify({
+          ticker,
+          instrumentType,
+          ...(newName.trim() ? { name: newName.trim() } : {}),
+        }),
       });
       if (!response.ok) {
         const body = await response.json().catch(() => null);
@@ -100,6 +149,7 @@ export default function AiAdvisorPanel({
       const data = await response.json();
       setWatchlist(prev => (prev.some(i => i.ticker === ticker) ? prev : [...prev, data.item]));
       setNewTicker('');
+      setNewName('');
       onNotification({ message: `Added ${ticker} to watchlist`, type: 'success' });
     } catch (err) {
       onNotification({
@@ -225,28 +275,28 @@ export default function AiAdvisorPanel({
         <div className="rounded-lg border border-border p-3">
           <Label className="text-xs">Watchlist</Label>
           <div className="mt-1 flex gap-2">
-            <Input
-              placeholder="Ticker e.g. AAPL, BTC"
+            <InstrumentCombobox
               value={newTicker}
-              onChange={e => setNewTicker(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addToWatchlist()}
-              className="flex-1"
+              onSelect={({ ticker, name, type }) => {
+                setNewTicker(ticker);
+                setNewName(name ?? '');
+                setNewType(type);
+              }}
+              className="flex-1 justify-between"
             />
             <Button size="sm" variant="outline" onClick={addToWatchlist}>
               <Plus className="w-4 h-4" />
             </Button>
           </div>
-          <select
-            className="mt-2 block w-full rounded-md border border-border px-2 py-1.5 text-xs"
-            value={newType}
-            onChange={e => setNewType(e.target.value)}
-          >
-            {INSTRUMENT_TYPES.map(t => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
+          <div className="mt-2">
+            <Combobox
+              options={INSTRUMENT_TYPES.map(t => ({ value: t, label: t }))}
+              value={newType}
+              onValueChange={setNewType}
+              placeholder="Type"
+              className="w-full"
+            />
+          </div>
 
           {/* Watchlist chips */}
           {watchlist.length > 0 && (
@@ -254,9 +304,12 @@ export default function AiAdvisorPanel({
               {watchlist.map(item => (
                 <span
                   key={item.id}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-muted text-xs font-medium"
+                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted text-xs font-medium"
                 >
                   {item.ticker}
+                  <span className="px-1.5 py-0.5 rounded-full bg-border/60 text-[10px] font-semibold uppercase tracking-wide">
+                    {item.instrumentType || inferInstrumentType(item.ticker)}
+                  </span>
                   <button
                     onClick={() => removeFromWatchlist(item.id)}
                     className="text-muted-foreground hover:text-destructive"
