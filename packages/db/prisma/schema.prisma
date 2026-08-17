@@ -14,10 +14,12 @@ datasource db {
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique @db.VarChar(255)
-  password  String   @db.VarChar(255)
+  password  String?  @db.VarChar(255)
   name      String?  @db.VarChar(255)
   firstName String?  @db.VarChar(100)
   lastName  String?  @db.VarChar(100)
+  provider  String   @default("email") @db.VarChar(20) // 'email' | 'google' | 'github'
+  providerAccountId String? @db.VarChar(255)
   profilePicture String? @db.Text
   riskProfile String @default("balanced") @db.VarChar(20) // 'conservative' | 'balanced' | 'aggressive'
   isActive  Boolean  @default(true)
@@ -34,6 +36,7 @@ model User {
   marketDataKeys MarketDataKey[]
   watchlistItems WatchlistItem[]
 
+  @@unique([provider, providerAccountId])
   @@index([email])
   @@index([isActive])
   @@index([createdAt])

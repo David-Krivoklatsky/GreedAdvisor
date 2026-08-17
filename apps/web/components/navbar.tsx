@@ -18,6 +18,7 @@ import {
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { TokenManager } from '@/lib/token-manager';
 import { cn } from '@greed-advisor/utils';
+import { useEffect, useState } from 'react';
 
 interface NavbarProps {
   hasNewNotifications?: boolean;
@@ -37,6 +38,32 @@ const NAV_LINKS = [
 export default function Navbar({ hasNewNotifications = false, user, onLogout }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [fetchedUser, setFetchedUser] = useState<
+    { email?: string; name?: string; profilePicture?: string } | null | undefined
+  >(undefined);
+
+  useEffect(() => {
+    if (user !== undefined || !TokenManager.getAccessToken()) return;
+    let cancelled = false;
+    TokenManager.makeAuthenticatedRequest('/api/user/profile')
+      .then(async response => {
+        if (cancelled) return;
+        if (!response.ok) {
+          setFetchedUser(null);
+          return;
+        }
+        const data = await response.json();
+        if (!cancelled) setFetchedUser(data.user);
+      })
+      .catch(() => {
+        if (!cancelled) setFetchedUser(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const effectiveUser = user !== undefined ? user : fetchedUser;
 
   const handleLogout = async () => {
     if (onLogout) {
@@ -53,13 +80,13 @@ export default function Navbar({ hasNewNotifications = false, user, onLogout }: 
   };
 
   const initials =
-    user?.name
+    effectiveUser?.name
       ?.split(' ')
       .map(p => p[0])
       .join('')
       .slice(0, 2)
       .toUpperCase() ||
-    user?.email?.[0]?.toUpperCase() ||
+    effectiveUser?.email?.[0]?.toUpperCase() ||
     'U';
 
   return (
@@ -129,7 +156,10 @@ export default function Navbar({ hasNewNotifications = false, user, onLogout }: 
             <DropdownMenuTrigger asChild>
               <button className="ml-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src={user?.profilePicture || '/profile-picture.svg'} alt="Profile" />
+                  <AvatarImage
+                    src={effectiveUser?.profilePicture || '/profile-picture.svg'}
+                    alt="Profile"
+                  />
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
               </button>
@@ -137,9 +167,12 @@ export default function Navbar({ hasNewNotifications = false, user, onLogout }: 
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="font-normal">
                 <p className="text-sm font-medium">
-                  {user?.name || (user?.email ? user.email.split('@')[0] : 'Guest')}
+                  {effectiveUser?.name ||
+                    (effectiveUser?.email ? effectiveUser.email.split('@')[0] : 'Guest')}
                 </p>
-                <p className="text-xs text-muted-foreground">{user?.email || 'Not signed in'}</p>
+                <p className="text-xs text-muted-foreground">
+                  {effectiveUser?.email || 'Not signed in'}
+                </p>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push('/dashboard')}>

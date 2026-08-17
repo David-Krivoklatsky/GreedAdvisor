@@ -1,5 +1,6 @@
 'use client';
 
+import OAuthButtons from '@/components/forms/oauth-buttons';
 import RegisterForm from '@/components/forms/register-form';
 import AuthLayout from '@/components/layout/auth-layout';
 import { TokenManager } from '@/lib/token-manager';
@@ -57,6 +58,12 @@ export default function RegisterPage() {
 
   return (
     <AuthLayout title="Create your account" subtitle={subtitle}>
+      <OAuthButtons />
+      <div className="my-5 flex items-center gap-3">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">or</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
       <RegisterForm onSubmit={handleRegister} loading={loading} error={error} />
     </AuthLayout>
   );

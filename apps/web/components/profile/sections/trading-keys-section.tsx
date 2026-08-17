@@ -22,8 +22,6 @@ interface TradingKeysSectionProps {
   onToggle: (id: number, isActive: boolean) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   updating: boolean;
-  error: string;
-  success: string;
 }
 
 export default function TradingKeysSection({
@@ -32,8 +30,6 @@ export default function TradingKeysSection({
   onToggle,
   onDelete,
   updating,
-  error,
-  success,
 }: TradingKeysSectionProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newKey, setNewKey] = useState({
@@ -64,22 +60,11 @@ export default function TradingKeysSection({
         <CardDescription>Manage your Trading212 API keys</CardDescription>
       </CardHeader>
       <CardContent>
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded mb-4">
-            {success}
-          </div>
-        )}
-
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Your Trading Keys</h3>
           <Button
             onClick={() => setShowAddForm(!showAddForm)}
-            style={{ backgroundColor: '#1F09FF', color: 'white' }}
+            className="bg-primary text-primary-foreground"
           >
             {showAddForm ? 'Cancel' : 'Add Trading Key'}
           </Button>
@@ -91,7 +76,7 @@ export default function TradingKeysSection({
               <CardTitle>Add New Trading Key</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
                 <div>
                   <Label htmlFor="tradingTitle">Title</Label>
                   <Input
@@ -154,8 +139,7 @@ export default function TradingKeysSection({
                 <Button
                   type="submit"
                   disabled={updating}
-                  className="w-full"
-                  style={{ backgroundColor: '#1F09FF', color: 'white' }}
+                  className="w-full bg-primary text-primary-foreground"
                 >
                   {updating ? 'Adding...' : 'Add Trading Key'}
                 </Button>
@@ -166,7 +150,7 @@ export default function TradingKeysSection({
 
         <div className="space-y-4">
           {tradingKeys.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-muted-foreground text-center py-8">
               No trading keys found. Add your first trading key above.
             </p>
           ) : (

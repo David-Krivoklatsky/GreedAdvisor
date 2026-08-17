@@ -1,13 +1,13 @@
 'use client';
 
-import ErrorSuccessAlert from '@/components/error-success-alert';
+import LoadingState from '@/components/common/loading-state';
 import PageLayout from '@/components/layout/page-layout';
 import AiKeysSection from '@/components/profile/sections/ai-keys-section';
 import MarketDataKeysSection from '@/components/profile/sections/market-data-keys-section';
 import ProfileSection from '@/components/profile/sections/profile-section';
-import RiskProfileSection from '@/components/profile/sections/risk-profile-section';
 import TradingKeysSection from '@/components/profile/sections/trading-keys-section';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/components/ui/toast';
 import { TokenManager } from '@/lib/token-manager';
 import { AiApiKey, MarketDataKey, TradingApiKey, User } from '@/types/profile';
 import { useEffect, useState } from 'react';
@@ -19,8 +19,7 @@ export default function ProfilePage() {
   const [tradingKeys, setTradingKeys] = useState<TradingApiKey[]>([]);
   const [marketDataKeys, setMarketDataKeys] = useState<MarketDataKey[]>([]);
   const [updating, setUpdating] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchUser();
@@ -37,7 +36,7 @@ export default function ProfilePage() {
       const data = await response.json();
       setUser(data.user);
     } catch {
-      setError('Failed to load user data');
+      toast('Failed to load user data', 'error');
     }
   };
 
@@ -100,8 +99,6 @@ export default function ProfilePage() {
     profilePictureFile?: File;
   }) => {
     setUpdating(true);
-    setError('');
-    setSuccess('');
 
     try {
       let profilePictureUrl = user?.profilePicture;
@@ -124,10 +121,10 @@ export default function ProfilePage() {
         throw new Error('Failed to update profile');
       }
 
-      setSuccess('Profile updated successfully');
+      toast('Profile updated successfully', 'success');
       await fetchUser();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update profile');
+      toast(err instanceof Error ? err.message : 'Failed to update profile', 'error');
     } finally {
       setUpdating(false);
     }
@@ -135,8 +132,6 @@ export default function ProfilePage() {
 
   const handleAddAiKey = async (data: { title: string; provider: string; apiKey: string }) => {
     setUpdating(true);
-    setError('');
-    setSuccess('');
 
     try {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/ai-keys', {
@@ -149,10 +144,10 @@ export default function ProfilePage() {
         throw new Error('Failed to add AI key');
       }
 
-      setSuccess('AI key added successfully');
+      toast('AI key added successfully', 'success');
       await fetchAiKeys();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add AI key');
+      toast(err instanceof Error ? err.message : 'Failed to add AI key', 'error');
     } finally {
       setUpdating(false);
     }
@@ -166,8 +161,6 @@ export default function ProfilePage() {
     apiSecret: string;
   }) => {
     setUpdating(true);
-    setError('');
-    setSuccess('');
 
     try {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/trading-keys', {
@@ -180,10 +173,10 @@ export default function ProfilePage() {
         throw new Error('Failed to add trading key');
       }
 
-      setSuccess('Trading key added successfully');
+      toast('Trading key added successfully', 'success');
       await fetchTradingKeys();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add trading key');
+      toast(err instanceof Error ? err.message : 'Failed to add trading key', 'error');
     } finally {
       setUpdating(false);
     }
@@ -199,9 +192,10 @@ export default function ProfilePage() {
       });
 
       if (!response.ok) throw new Error('Failed to toggle AI key');
+      toast(isActive ? 'AI key activated' : 'AI key deactivated', 'success');
       await fetchAiKeys();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to toggle AI key');
+      toast(err instanceof Error ? err.message : 'Failed to toggle AI key', 'error');
     } finally {
       setUpdating(false);
     }
@@ -215,9 +209,10 @@ export default function ProfilePage() {
       });
 
       if (!response.ok) throw new Error('Failed to delete AI key');
+      toast('AI key deleted', 'success');
       await fetchAiKeys();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete AI key');
+      toast(err instanceof Error ? err.message : 'Failed to delete AI key', 'error');
     } finally {
       setUpdating(false);
     }
@@ -233,9 +228,10 @@ export default function ProfilePage() {
       });
 
       if (!response.ok) throw new Error('Failed to toggle trading key');
+      toast(isActive ? 'Trading key activated' : 'Trading key deactivated', 'success');
       await fetchTradingKeys();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to toggle trading key');
+      toast(err instanceof Error ? err.message : 'Failed to toggle trading key', 'error');
     } finally {
       setUpdating(false);
     }
@@ -247,8 +243,6 @@ export default function ProfilePage() {
     apiKey: string;
   }) => {
     setUpdating(true);
-    setError('');
-    setSuccess('');
 
     try {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/market-data-keys', {
@@ -261,10 +255,10 @@ export default function ProfilePage() {
         throw new Error('Failed to add market data key');
       }
 
-      setSuccess('Market data key added successfully');
+      toast('Market data key added successfully', 'success');
       await fetchMarketDataKeys();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add market data key');
+      toast(err instanceof Error ? err.message : 'Failed to add market data key', 'error');
     } finally {
       setUpdating(false);
     }
@@ -283,9 +277,10 @@ export default function ProfilePage() {
       );
 
       if (!response.ok) throw new Error('Failed to toggle market data key');
+      toast(isActive ? 'Market data key activated' : 'Market data key deactivated', 'success');
       await fetchMarketDataKeys();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to toggle market data key');
+      toast(err instanceof Error ? err.message : 'Failed to toggle market data key', 'error');
     } finally {
       setUpdating(false);
     }
@@ -302,9 +297,10 @@ export default function ProfilePage() {
       );
 
       if (!response.ok) throw new Error('Failed to delete market data key');
+      toast('Market data key deleted', 'success');
       await fetchMarketDataKeys();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete market data key');
+      toast(err instanceof Error ? err.message : 'Failed to delete market data key', 'error');
     } finally {
       setUpdating(false);
     }
@@ -312,8 +308,6 @@ export default function ProfilePage() {
 
   const handleTestMarketDataKey = async (keyData: MarketDataKey) => {
     setUpdating(true);
-    setError('');
-    setSuccess('');
     try {
       const response = await TokenManager.makeAuthenticatedRequest(
         '/api/user/market-data-keys/test',
@@ -325,9 +319,9 @@ export default function ProfilePage() {
       );
 
       if (!response.ok) throw new Error('Failed to test market data key');
-      setSuccess('Market data key test successful');
+      toast('Market data key test successful', 'success');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to test market data key');
+      toast(err instanceof Error ? err.message : 'Failed to test market data key', 'error');
     } finally {
       setUpdating(false);
     }
@@ -341,46 +335,17 @@ export default function ProfilePage() {
       });
 
       if (!response.ok) throw new Error('Failed to delete trading key');
+      toast('Trading key deleted', 'success');
       await fetchTradingKeys();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete trading key');
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const handleUpdateRiskProfile = async (data: { riskProfile: string }) => {
-    setUpdating(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      const response = await TokenManager.makeAuthenticatedRequest('/api/user/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) throw new Error('Failed to update risk profile');
-
-      setSuccess('Risk profile updated successfully');
-      await fetchUser();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update risk profile');
+      toast(err instanceof Error ? err.message : 'Failed to delete trading key', 'error');
     } finally {
       setUpdating(false);
     }
   };
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <div className="text-lg">Loading profile...</div>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Loading profile..." />;
   }
 
   return (
@@ -393,35 +358,16 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        <ErrorSuccessAlert error={error} success={success} />
-
         <Tabs value={activeSection} onValueChange={setActiveSection} className="mt-6">
           <TabsList className="mb-6 flex-wrap h-auto">
             <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="risk-profile">Risk Profile</TabsTrigger>
             <TabsTrigger value="ai-keys">AI Keys</TabsTrigger>
             <TabsTrigger value="trading-keys">Trading Keys</TabsTrigger>
             <TabsTrigger value="market-data-keys">Market Data</TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile">
-            <ProfileSection
-              user={user}
-              onUpdate={handleUpdateProfile}
-              updating={updating}
-              error={error}
-              success={success}
-            />
-          </TabsContent>
-
-          <TabsContent value="risk-profile">
-            <RiskProfileSection
-              user={user}
-              onUpdate={handleUpdateRiskProfile}
-              updating={updating}
-              error={error}
-              success={success}
-            />
+            <ProfileSection user={user} onUpdate={handleUpdateProfile} updating={updating} />
           </TabsContent>
 
           <TabsContent value="ai-keys">
@@ -431,8 +377,6 @@ export default function ProfilePage() {
               onToggle={handleToggleAiKey}
               onDelete={handleDeleteAiKey}
               updating={updating}
-              error={error}
-              success={success}
             />
           </TabsContent>
 
@@ -443,8 +387,6 @@ export default function ProfilePage() {
               onToggle={handleToggleTradingKey}
               onDelete={handleDeleteTradingKey}
               updating={updating}
-              error={error}
-              success={success}
             />
           </TabsContent>
 
@@ -456,8 +398,6 @@ export default function ProfilePage() {
               onDelete={handleDeleteMarketDataKey}
               onTest={handleTestMarketDataKey}
               updating={updating}
-              error={error}
-              success={success}
             />
           </TabsContent>
         </Tabs>

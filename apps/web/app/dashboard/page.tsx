@@ -7,8 +7,11 @@ import ChartPanel from '@/components/dashboard/chart-panel';
 import PortfolioOverview from '@/components/dashboard/portfolio-overview';
 import TerminalHeader from '@/components/dashboard/terminal-header';
 import PageLayout from '@/components/layout/page-layout';
-import Notification from '@/components/notification';
+import RiskProfileSection from '@/components/profile/sections/risk-profile-section';
+import { useToast } from '@/components/ui/toast';
+import { TokenManager } from '@/lib/token-manager';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { useEffect, useState } from 'react';
 
 export default function DashboardPage() {
   const {
@@ -23,9 +26,41 @@ export default function DashboardPage() {
     selectedTradingKey,
     setSelectedTradingKey,
     notification,
-    showNotification,
     clearNotification,
+    user,
+    refetch,
   } = useDashboardData();
+  const { toast } = useToast();
+  const [riskUpdating, setRiskUpdating] = useState(false);
+
+  useEffect(() => {
+    if (notification) {
+      toast(notification.message, notification.type);
+      clearNotification();
+    }
+  }, [notification, clearNotification, toast]);
+
+  const handleUpdateRiskProfile = async (data: { riskProfile: string }) => {
+    setRiskUpdating(true);
+    try {
+      const response = await TokenManager.makeAuthenticatedRequest('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error || 'Failed to update risk profile');
+      }
+
+      await refetch.fetchUser();
+    } catch (err) {
+      throw err instanceof Error ? err : new Error('Failed to update risk profile');
+    } finally {
+      setRiskUpdating(false);
+    }
+  };
 
   if (loading) {
     return <LoadingState message="Loading dashboard..." />;
@@ -51,14 +86,21 @@ export default function DashboardPage() {
           <div className="xl:col-span-2">
             <ChartPanel />
           </div>
-          <div className="min-h-[520px]">
+          <div className="min-h-[520px] space-y-4">
             <AiAdvisorPanel
               tradingKeys={tradingKeys}
               aiKeys={aiKeys}
               marketDataKeys={marketDataKeys}
               selectedTradingKey={selectedTradingKey}
-              onNotification={showNotification}
+              onNotification={({ message, type }) => toast(message, type)}
             />
+            {user && (
+              <RiskProfileSection
+                user={user}
+                onUpdate={handleUpdateRiskProfile}
+                updating={riskUpdating}
+              />
+            )}
           </div>
         </div>
 
@@ -69,14 +111,6 @@ export default function DashboardPage() {
           loading={positionsLoading}
         />
       </div>
-
-      {notification && (
-        <Notification
-          message={notification.message}
-          type={notification.type}
-          onClose={clearNotification}
-        />
-      )}
     </PageLayout>
   );
 }

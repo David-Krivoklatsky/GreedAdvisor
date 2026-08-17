@@ -42,6 +42,11 @@ export default function ApiKeyInput({
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           required={required}
+          autoComplete="new-password"
+          autoCorrect="off"
+          spellCheck={false}
+          data-1p-ignore="true"
+          data-lpignore="true"
           className="flex-1"
         />
         <Button

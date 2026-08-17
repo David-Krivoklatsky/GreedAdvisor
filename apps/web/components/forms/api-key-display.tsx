@@ -23,7 +23,7 @@ export default function ApiKeyDisplay({
 
   return (
     <div className={`flex items-center space-x-2 ${className}`}>
-      <div className="font-mono text-sm bg-gray-100 px-2 py-1 rounded border flex-1">
+      <div className="font-mono text-sm bg-muted px-2 py-1 rounded border flex-1">
         {isVisible ? apiKey : placeholder}
       </div>
       <Button

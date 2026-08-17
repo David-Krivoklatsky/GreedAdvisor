@@ -128,13 +128,23 @@ export function LightweightChart({
     const series = candleSeriesRef.current;
     if (!series || !candles.length) return;
 
-    const data: CandlestickData[] = candles.map(c => ({
-      time: toUnix(c.datetime),
-      open: c.open,
-      high: c.high,
-      low: c.low,
-      close: c.close,
-    }));
+    const seen = new Set<number>();
+    const data: CandlestickData[] = candles
+      .map(c => ({
+        time: toUnix(c.datetime),
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      }))
+      .filter(d => {
+        if (seen.has(d.time)) return false;
+        seen.add(d.time);
+        return true;
+      })
+      .sort((a, b) => a.time - b.time);
+
+    if (!data.length) return;
 
     series.setData(data);
     chartRef.current?.timeScale().fitContent();
