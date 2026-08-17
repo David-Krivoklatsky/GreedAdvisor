@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
         firstName: true,
         lastName: true,
         profilePicture: true,
+        riskProfile: true,
         createdAt: true,
         aiApiKeys: {
           select: {
@@ -93,7 +94,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const { email, password, profilePicture } = parsed.data;
+    const { email, password, profilePicture, riskProfile } = parsed.data;
 
     // If email is changing, check it isn't taken by another user
     if (
@@ -106,7 +107,12 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    const updateData: { email?: string; password?: string; profilePicture?: string } = {};
+    const updateData: {
+      email?: string;
+      password?: string;
+      profilePicture?: string;
+      riskProfile?: string;
+    } = {};
 
     if (email) {
       updateData.email = email;
@@ -118,6 +124,10 @@ export async function PUT(req: NextRequest) {
 
     if (profilePicture !== undefined) {
       updateData.profilePicture = profilePicture;
+    }
+
+    if (riskProfile !== undefined) {
+      updateData.riskProfile = riskProfile;
     }
 
     const updatedUser = await prisma.user.update({

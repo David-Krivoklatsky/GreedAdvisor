@@ -1,14 +1,14 @@
 import { TokenManager } from '@/lib/token-manager';
 import {
+  AccountSummary,
   AiKey,
-  CashAccount,
   MarketDataKey,
   NotificationData,
   Position,
   TradingKey,
   User,
 } from '@/types/dashboard';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export const useDashboardData = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -18,16 +18,10 @@ export const useDashboardData = () => {
   const [aiKeys, setAiKeys] = useState<AiKey[]>([]);
   const [marketDataKeys, setMarketDataKeys] = useState<MarketDataKey[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
-  const [cash, setCash] = useState<CashAccount | null>(null);
+  const [accountSummary, setAccountSummary] = useState<AccountSummary | null>(null);
+  const [positionsLoading, setPositionsLoading] = useState(false);
+  const [selectedTradingKey, setSelectedTradingKey] = useState<string>('');
   const [notification, setNotification] = useState<NotificationData | null>(null);
-
-  useEffect(() => {
-    fetchUser();
-    fetchTradingKeys();
-    fetchAiKeys();
-    fetchMarketDataKeys();
-    fetchPositions();
-  }, []);
 
   const fetchUser = async () => {
     try {
@@ -92,14 +86,16 @@ export const useDashboardData = () => {
     }
   };
 
-  const fetchPositions = async () => {
+  const fetchPositions = useCallback(async (keyId?: string) => {
+    setPositionsLoading(true);
     try {
-      const response = await TokenManager.makeAuthenticatedRequest('/api/user/positions');
+      const url = keyId ? `/api/user/positions?keyId=${keyId}` : '/api/user/positions';
+      const response = await TokenManager.makeAuthenticatedRequest(url);
 
       // No active Trading212 key configured - not an error, just empty state
       if (response.status === 404) {
         setPositions([]);
-        setCash(null);
+        setAccountSummary(null);
         return;
       }
 
@@ -111,19 +107,47 @@ export const useDashboardData = () => {
 
       const data = await response.json();
       setPositions(data.positions || []);
-      if (data.cash) {
-        setCash(data.cash);
-      }
+      setAccountSummary(data.accountSummary || null);
     } catch (err) {
       console.error('Failed to load positions:', err);
       setPositions([]);
-      setCash(null);
+      setAccountSummary(null);
       showNotification({
         message: err instanceof Error ? err.message : 'Failed to load positions',
         type: 'warning',
       });
+    } finally {
+      setPositionsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchUser();
+    fetchTradingKeys();
+    fetchAiKeys();
+    fetchMarketDataKeys();
+  }, []);
+
+  // When trading keys load, auto-select the first active one
+  useEffect(() => {
+    if (tradingKeys.length > 0) {
+      setSelectedTradingKey(prev =>
+        prev && tradingKeys.some(k => k.id.toString() === prev)
+          ? prev
+          : tradingKeys[0].id.toString()
+      );
+    } else {
+      setPositions([]);
+      setAccountSummary(null);
+    }
+  }, [tradingKeys]);
+
+  // When selected trading key changes, load the portfolio
+  useEffect(() => {
+    if (selectedTradingKey) {
+      fetchPositions(selectedTradingKey);
+    }
+  }, [selectedTradingKey, fetchPositions]);
 
   const showNotification = (notification: NotificationData) => {
     setNotification(notification);
@@ -141,7 +165,10 @@ export const useDashboardData = () => {
     aiKeys,
     marketDataKeys,
     positions,
-    cash,
+    accountSummary,
+    positionsLoading,
+    selectedTradingKey,
+    setSelectedTradingKey,
     notification,
     showNotification,
     clearNotification,

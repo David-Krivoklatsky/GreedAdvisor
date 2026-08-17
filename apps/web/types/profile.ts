@@ -4,6 +4,7 @@ export interface User {
   firstName?: string;
   lastName?: string;
   profilePicture?: string;
+  riskProfile?: 'conservative' | 'balanced' | 'aggressive';
   createdAt: string;
 }
 

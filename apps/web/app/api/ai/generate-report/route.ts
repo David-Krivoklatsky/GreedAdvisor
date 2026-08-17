@@ -25,7 +25,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { tradingKeyId, aiKeyId, marketDataKeyId, reportType, symbol } = body;
+    const {
+      tradingKeyId,
+      aiKeyId,
+      marketDataKeyId,
+      reportType,
+      symbol,
+      productType,
+      riskProfile,
+      accountValue,
+    } = body;
 
     if (!tradingKeyId || !aiKeyId || !marketDataKeyId || !reportType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -78,7 +87,8 @@ export async function POST(request: NextRequest) {
       if (!first) {
         return NextResponse.json({ error: 'No positions found to analyze' }, { status: 400 });
       }
-      targetSymbol = first.ticker;
+      // T212 tickers look like "AAPL_US_EQ"; strip the exchange suffix for market data
+      targetSymbol = first.instrument.ticker.replace(/_US_EQ$/, '').replace(/_.+/, '');
     }
 
     // Fetch real market data
@@ -97,6 +107,9 @@ export async function POST(request: NextRequest) {
       quote,
       candles,
       reportType,
+      productType: (productType ?? 'INVEST') as 'INVEST' | 'CFD' | 'CRYPTO',
+      riskProfile: (riskProfile ?? 'balanced') as 'conservative' | 'balanced' | 'aggressive',
+      accountValue: accountValue ? Number(accountValue) : undefined,
     });
 
     // Mark keys as used

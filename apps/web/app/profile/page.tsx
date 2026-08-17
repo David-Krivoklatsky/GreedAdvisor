@@ -5,6 +5,7 @@ import PageLayout from '@/components/layout/page-layout';
 import AiKeysSection from '@/components/profile/sections/ai-keys-section';
 import MarketDataKeysSection from '@/components/profile/sections/market-data-keys-section';
 import ProfileSection from '@/components/profile/sections/profile-section';
+import RiskProfileSection from '@/components/profile/sections/risk-profile-section';
 import TradingKeysSection from '@/components/profile/sections/trading-keys-section';
 import Sidebar from '@/components/sidebar';
 import { TokenManager } from '@/lib/token-manager';
@@ -350,6 +351,29 @@ export default function ProfilePage() {
     }
   };
 
+  const handleUpdateRiskProfile = async (data: { riskProfile: string }) => {
+    setUpdating(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await TokenManager.makeAuthenticatedRequest('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to update risk profile');
+
+      setSuccess('Risk profile updated successfully');
+      await fetchUser();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update risk profile');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await TokenManager.makeAuthenticatedRequest('/api/auth/logout', {
@@ -394,6 +418,16 @@ export default function ProfilePage() {
               <ProfileSection
                 user={user}
                 onUpdate={handleUpdateProfile}
+                updating={updating}
+                error={error}
+                success={success}
+              />
+            )}
+
+            {activeSection === 'risk-profile' && (
+              <RiskProfileSection
+                user={user}
+                onUpdate={handleUpdateRiskProfile}
                 updating={updating}
                 error={error}
                 success={success}

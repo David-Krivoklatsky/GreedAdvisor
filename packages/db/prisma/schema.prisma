@@ -18,6 +18,7 @@ model User {
   firstName String?  @db.VarChar(100)
   lastName  String?  @db.VarChar(100)
   profilePicture String? @db.Text
+  riskProfile String @default("balanced") @db.VarChar(20) // 'conservative' | 'balanced' | 'aggressive'
   isActive  Boolean  @default(true)
   lastLogin DateTime?
   createdAt DateTime @default(now())
@@ -30,6 +31,7 @@ model User {
   aiApiKeys AiApiKey[]
   t212ApiKeys T212ApiKey[]
   marketDataKeys MarketDataKey[]
+  watchlistItems WatchlistItem[]
 
   @@index([email])
   @@index([isActive])
@@ -136,4 +138,23 @@ model MarketDataKey {
   @@index([provider])
   @@index([isActive])
   @@map("market_data_api_keys")
+}
+
+model WatchlistItem {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  ticker     String   @db.VarChar(50) // plain symbol, e.g. 'AAPL', 'BTC'
+  name       String?  @db.VarChar(255)
+  instrumentType String @db.VarChar(30) @default("STOCK") // 'STOCK' | 'ETF' | 'CRYPTO' | 'FOREX'
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ticker])
+  @@index([userId])
+  @@index([ticker])
+  @@map("watchlist_items")
 }
