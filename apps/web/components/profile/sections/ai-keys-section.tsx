@@ -7,6 +7,8 @@ import KeyCard from '../../key-card';
 import { Button } from '../../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Combobox } from '../../ui/combobox';
+import { Input } from '../../ui/input';
+import { Label } from '../../ui/label';
 
 interface AiKeysSectionProps {
   aiKeys: AiApiKey[];
@@ -14,8 +16,6 @@ interface AiKeysSectionProps {
   onToggle: (id: number, isActive: boolean) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   updating: boolean;
-  error: string;
-  success: string;
 }
 
 export default function AiKeysSection({
@@ -24,8 +24,6 @@ export default function AiKeysSection({
   onToggle,
   onDelete,
   updating,
-  error,
-  success,
 }: AiKeysSectionProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newKey, setNewKey] = useState({
@@ -48,22 +46,11 @@ export default function AiKeysSection({
         <CardDescription>Manage your AI provider API keys (OpenAI, Claude, etc.)</CardDescription>
       </CardHeader>
       <CardContent>
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded mb-4">
-            {success}
-          </div>
-        )}
-
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Your AI Keys</h3>
           <Button
             onClick={() => setShowAddForm(!showAddForm)}
-            style={{ backgroundColor: '#1F09FF', color: 'white' }}
+            className="bg-primary text-primary-foreground"
           >
             {showAddForm ? 'Cancel' : 'Add AI Key'}
           </Button>
@@ -75,21 +62,22 @@ export default function AiKeysSection({
               <CardTitle>Add New AI Key</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                  <input
+                  <Label htmlFor="aiTitle">Title</Label>
+                  <Input
+                    id="aiTitle"
                     type="text"
                     value={newKey.title}
                     onChange={e => setNewKey({ ...newKey, title: e.target.value })}
-                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md"
+                    className="mt-1"
                     placeholder="e.g., My OpenAI Key"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Provider</label>
+                  <Label>Provider</Label>
                   <Combobox
                     options={[
                       { value: 'openai', label: 'OpenAI' },
@@ -116,8 +104,7 @@ export default function AiKeysSection({
                 <Button
                   type="submit"
                   disabled={updating}
-                  className="w-full"
-                  style={{ backgroundColor: '#1F09FF', color: 'white' }}
+                  className="w-full bg-primary text-primary-foreground"
                 >
                   {updating ? 'Adding...' : 'Add AI Key'}
                 </Button>
@@ -128,7 +115,7 @@ export default function AiKeysSection({
 
         <div className="space-y-4">
           {aiKeys.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-muted-foreground text-center py-8">
               No AI keys found. Add your first AI key above.
             </p>
           ) : (

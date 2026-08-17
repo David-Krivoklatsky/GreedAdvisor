@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import React from 'react';
 import { ErrorBoundary } from '../components/error-boundary';
+import { ToastProvider } from '../components/ui/toast';
 import ThemeProvider from '../components/theme/theme-provider';
 import './globals.css';
 
@@ -22,9 +23,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider>
-          <ErrorBoundary>
-            <div className="min-h-screen bg-background">{children}</div>
-          </ErrorBoundary>
+          <ToastProvider>
+            <ErrorBoundary>
+              <div className="min-h-screen bg-background">{children}</div>
+            </ErrorBoundary>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>
