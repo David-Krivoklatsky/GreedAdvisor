@@ -42,7 +42,7 @@
     "turbo": "latest"
   },
   "engines": {
-    "node": ">=18"
+    "node": "22.x"
   },
   "packageManager": "npm@11.4.2",
   "workspaces": [
