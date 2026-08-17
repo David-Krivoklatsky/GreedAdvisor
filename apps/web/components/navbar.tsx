@@ -1,294 +1,164 @@
 'use client';
 
-import { Bell, Home } from 'lucide-react';
+import { Bell, Home, LogOut, Settings, User as UserIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import * as React from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from '@/components/ui/navigation-menu';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
+import { TokenManager } from '@/lib/token-manager';
+import { cn } from '@greed-advisor/utils';
 
 interface NavbarProps {
-  profileRedirectTo?: string;
   hasNewNotifications?: boolean;
-  logoPosition?: 'default' | 'sidebar';
+  user?: {
+    email?: string;
+    name?: string;
+    profilePicture?: string;
+  } | null;
+  onLogout?: () => void;
 }
 
-export default function Navbar({
-  profileRedirectTo = '/profile',
-  hasNewNotifications = false,
-  logoPosition = 'default',
-}: NavbarProps) {
+const NAV_LINKS = [
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/profile', label: 'Profile' },
+];
+
+export default function Navbar({ hasNewNotifications = false, user, onLogout }: NavbarProps) {
   const router = useRouter();
+  const pathname = usePathname();
+
+  const handleLogout = async () => {
+    if (onLogout) {
+      onLogout();
+      return;
+    }
+    try {
+      await TokenManager.makeAuthenticatedRequest('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // ignore
+    }
+    TokenManager.removeAccessToken();
+    router.push('/');
+  };
+
+  const initials =
+    user?.name
+      ?.split(' ')
+      .map(p => p[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() ||
+    user?.email?.[0]?.toUpperCase() ||
+    'U';
 
   return (
-    <nav className="bg-white shadow relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative flex h-20 items-center">
-          {/* Default layout - evenly spaced */}
-          {logoPosition === 'default' && (
-            <>
-              {/* Left side - Logo */}
-              <div className="flex items-center w-60">
-                <Image src="/greedadvisor.png" alt="GreedAdvisor Logo" width={220} height={220} />
-              </div>
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-4 px-4 sm:px-6 lg:px-8">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2 shrink-0">
+          <Image
+            src="/GA.png"
+            alt="GreedAdvisor Logo"
+            width={36}
+            height={36}
+            className="rounded-lg"
+          />
+          <span className="hidden text-lg font-bold tracking-tight sm:block">GreedAdvisor</span>
+        </Link>
 
-              {/* Centered Navigation Links */}
-              <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center space-x-6">
-                <NavigationMenu className="relative">
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger>
-                        <Home className="w-4 h-4 mr-2" />
-                        Home
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent className="left-0 w-[400px] data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-start]:slide-out-to-left-52">
-                        <ul className="grid gap-3 p-6 w-[400px] grid-cols-[.75fr_1fr]">
-                          <li className="row-span-3">
-                            <NavigationMenuLink asChild>
-                              <Link
-                                className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
-                                href="/dashboard"
-                              >
-                                <div className="mb-2 mt-4 text-lg font-medium">GreedAdvisor</div>
-                                <p className="text-sm leading-tight text-muted-foreground">
-                                  Manage your AI and Trading API keys securely.
-                                </p>
-                              </Link>
-                            </NavigationMenuLink>
-                          </li>
-                          <ListItem href="/dashboard" title="Dashboard">
-                            View your portfolio and market data
-                          </ListItem>
-                          <ListItem href="/profile" title="Profile">
-                            Manage your API keys and account settings
-                          </ListItem>
-                          <ListItem href="/" title="About">
-                            Learn more about GreedAdvisor
-                          </ListItem>
-                        </ul>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
+        {/* Nav links */}
+        <nav className="ml-4 hidden items-center gap-1 md:flex">
+          {NAV_LINKS.map(link => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                pathname?.startsWith(link.href)
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )}
+            >
+              {link.label}
+            </Link>
+          ))}
+          <Link
+            href="/"
+            className={cn(
+              'flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+              pathname === '/'
+                ? 'bg-accent text-accent-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+            )}
+          >
+            <Home className="h-4 w-4" />
+            Home
+          </Link>
+        </nav>
 
-                <NavigationMenu className="relative">
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger>GitHub</NavigationMenuTrigger>
-                      <NavigationMenuContent className="left-0 w-[300px] data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-start]:slide-out-to-left-52">
-                        <ul className="grid gap-3 p-4 w-[300px]">
-                          <ListItem
-                            href="https://github.com/David-Krivoklatsky/GreedAdvisor"
-                            title="GreedAdvisor Repository"
-                          >
-                            View the source code and contribute
-                          </ListItem>
-                        </ul>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
+        <div className="ml-auto flex items-center gap-1">
+          <ThemeToggle />
 
-                <NavigationMenu className="relative">
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger>T212</NavigationMenuTrigger>
-                      <NavigationMenuContent className="left-0 w-[300px] data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-start]:slide-out-to-left-52">
-                        <ul className="grid gap-3 p-4 w-[300px]">
-                          <ListItem href="https://trading212.com" title="Trading212 Platform">
-                            Access your Trading212 account
-                          </ListItem>
-                          <ListItem
-                            href="https://t212public-api-docs.redoc.ly/"
-                            title="API Documentation"
-                          >
-                            View Trading212 API documentation
-                          </ListItem>
-                        </ul>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-              </div>
+          {/* Notifications */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative h-9 w-9"
+            onClick={() => router.push('/notifications')}
+            aria-label="Notifications"
+          >
+            <Bell className="h-[1.2rem] w-[1.2rem]" />
+            {hasNewNotifications && (
+              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
+            )}
+          </Button>
 
-              {/* Right side - Notifications and Profile */}
-              <div className="ml-auto flex items-center space-x-4">
-                <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => router.push('/notifications')}
-                    className="relative"
-                  >
-                    <Bell className="w-5 h-5" />
-                    {hasNewNotifications && (
-                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 rounded-full"></span>
-                    )}
-                  </Button>
-                </div>
-                <Image
-                  src="/profile-picture.svg"
-                  alt="Profile Picture"
-                  width={40}
-                  height={40}
-                  className="rounded-full cursor-pointer"
-                  onClick={() => router.push(profileRedirectTo)}
-                />
-              </div>
-            </>
-          )}
-
-          {/* Sidebar layout - logo above sidebar center */}
-          {logoPosition === 'sidebar' && (
-            <>
-              {/* Navigation Links - centered */}
-              <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center space-x-6">
-                <NavigationMenu className="relative">
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger>
-                        <Home className="w-4 h-4 mr-2" />
-                        Home
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent className="left-0 w-[400px] data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-start]:slide-out-to-left-52">
-                        <ul className="grid gap-3 p-6 w-[400px] grid-cols-[.75fr_1fr]">
-                          <li className="row-span-3">
-                            <NavigationMenuLink asChild>
-                              <Link
-                                className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
-                                href="/dashboard"
-                              >
-                                <div className="mb-2 mt-4 text-lg font-medium">GreedAdvisor</div>
-                                <p className="text-sm leading-tight text-muted-foreground">
-                                  Manage your AI and Trading API keys securely.
-                                </p>
-                              </Link>
-                            </NavigationMenuLink>
-                          </li>
-                          <ListItem href="/dashboard" title="Dashboard">
-                            View your portfolio and market data
-                          </ListItem>
-                          <ListItem href="/profile" title="Profile">
-                            Manage your API keys and account settings
-                          </ListItem>
-                          <ListItem href="/" title="About">
-                            Learn more about GreedAdvisor
-                          </ListItem>
-                        </ul>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-
-                <NavigationMenu className="relative">
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger>GitHub</NavigationMenuTrigger>
-                      <NavigationMenuContent className="left-0 w-[300px] data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-start]:slide-out-to-left-52">
-                        <ul className="grid gap-3 p-4 w-[300px]">
-                          <ListItem
-                            href="https://github.com/David-Krivoklatsky/GreedAdvisor"
-                            title="GreedAdvisor Repository"
-                          >
-                            View the source code and contribute
-                          </ListItem>
-                        </ul>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-
-                <NavigationMenu className="relative">
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger>T212</NavigationMenuTrigger>
-                      <NavigationMenuContent className="left-0 w-[300px] data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-start]:slide-out-to-left-52">
-                        <ul className="grid gap-3 p-4 w-[300px]">
-                          <ListItem href="https://trading212.com" title="Trading212 Platform">
-                            Access your Trading212 account
-                          </ListItem>
-                          <ListItem
-                            href="https://t212public-api-docs.redoc.ly/"
-                            title="API Documentation"
-                          >
-                            View Trading212 API documentation
-                          </ListItem>
-                        </ul>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-              </div>
-
-              {/* Right side - Notifications and Profile */}
-              <div className="ml-auto flex items-center space-x-4">
-                <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => router.push('/notifications')}
-                    className="relative"
-                  >
-                    <Bell className="w-5 h-5" />
-                    {hasNewNotifications && (
-                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 rounded-full"></span>
-                    )}
-                  </Button>
-                </div>
-                <Image
-                  src="/profile-picture.svg"
-                  alt="Profile Picture"
-                  width={40}
-                  height={40}
-                  className="rounded-full cursor-pointer"
-                  onClick={() => router.push(profileRedirectTo)}
-                />
-              </div>
-            </>
-          )}
+          {/* User menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="ml-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background">
+                <Avatar className="h-9 w-9">
+                  <AvatarImage src={user?.profilePicture || '/profile-picture.svg'} alt="Profile" />
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="font-normal">
+                <p className="text-sm font-medium">
+                  {user?.name || (user?.email ? user.email.split('@')[0] : 'Guest')}
+                </p>
+                <p className="text-xs text-muted-foreground">{user?.email || 'Not signed in'}</p>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => router.push('/dashboard')}>
+                <UserIcon className="mr-2 h-4 w-4" /> Dashboard
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/profile')}>
+                <Settings className="mr-2 h-4 w-4" /> Profile &amp; Keys
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="text-destructive focus:text-destructive"
+              >
+                <LogOut className="mr-2 h-4 w-4" /> Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
-
-      {/* Logo positioned above sidebar center - only in sidebar mode */}
-      {logoPosition === 'sidebar' && (
-        <div className="absolute top-4 left-48 transform -translate-x-1/2 z-10">
-          <Image src="/greedadvisor.png" alt="GreedAdvisor Logo" width={220} height={220} />
-        </div>
-      )}
-    </nav>
-  );
-}
-
-function ListItem({
-  title,
-  children,
-  href,
-  ...props
-}: React.ComponentPropsWithoutRef<'li'> & { href: string }) {
-  const isExternal = href.startsWith('http');
-
-  return (
-    <li {...props}>
-      <NavigationMenuLink asChild>
-        <Link
-          href={href}
-          target={isExternal ? '_blank' : undefined}
-          rel={isExternal ? 'noopener noreferrer' : undefined}
-          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-        >
-          <div className="text-sm leading-none font-medium">{title}</div>
-          <p className="text-muted-foreground line-clamp-2 text-sm leading-snug">{children}</p>
-        </Link>
-      </NavigationMenuLink>
-    </li>
+    </header>
   );
 }

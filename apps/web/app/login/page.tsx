@@ -40,7 +40,14 @@ export default function LoginPage() {
     }
   };
 
-  const subtitle = `Or <a href="/register" class="font-medium" style="color: #1F09FF">create a new account</a>`;
+  const subtitle = (
+    <>
+      Or{' '}
+      <a href="/register" className="font-medium text-primary hover:underline">
+        create a new account
+      </a>
+    </>
+  );
 
   return (
     <AuthLayout title="Sign in to your account" subtitle={subtitle}>
