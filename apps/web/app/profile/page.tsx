@@ -7,10 +7,9 @@ import MarketDataKeysSection from '@/components/profile/sections/market-data-key
 import ProfileSection from '@/components/profile/sections/profile-section';
 import RiskProfileSection from '@/components/profile/sections/risk-profile-section';
 import TradingKeysSection from '@/components/profile/sections/trading-keys-section';
-import Sidebar from '@/components/sidebar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TokenManager } from '@/lib/token-manager';
 import { AiApiKey, MarketDataKey, TradingApiKey, User } from '@/types/profile';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function ProfilePage() {
@@ -22,7 +21,6 @@ export default function ProfilePage() {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const router = useRouter();
 
   useEffect(() => {
     fetchUser();
@@ -374,24 +372,11 @@ export default function ProfilePage() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await TokenManager.makeAuthenticatedRequest('/api/auth/logout', {
-        method: 'POST',
-      });
-    } catch {
-      // Logout error - handle silently
-    } finally {
-      TokenManager.removeAccessToken();
-      router.push('/');
-    }
-  };
-
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <div className="text-lg">Loading profile...</div>
         </div>
       </div>
@@ -399,79 +384,83 @@ export default function ProfilePage() {
   }
 
   return (
-    <PageLayout logoPosition="sidebar">
-      <div className="min-h-screen bg-gray-50 flex">
-        <div className="w-96 bg-white shadow-lg">
-          <Sidebar
-            user={user}
-            activeSection={activeSection}
-            onSectionChange={setActiveSection}
-            onLogout={handleLogout}
-          />
+    <PageLayout>
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold">Settings</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage your account, keys, and risk preferences
+          </p>
         </div>
 
-        <div className="flex-1 p-8">
-          <div className="max-w-4xl">
-            <ErrorSuccessAlert error={error} success={success} />
+        <ErrorSuccessAlert error={error} success={success} />
 
-            {activeSection === 'profile' && (
-              <ProfileSection
-                user={user}
-                onUpdate={handleUpdateProfile}
-                updating={updating}
-                error={error}
-                success={success}
-              />
-            )}
+        <Tabs value={activeSection} onValueChange={setActiveSection} className="mt-6">
+          <TabsList className="mb-6 flex-wrap h-auto">
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="risk-profile">Risk Profile</TabsTrigger>
+            <TabsTrigger value="ai-keys">AI Keys</TabsTrigger>
+            <TabsTrigger value="trading-keys">Trading Keys</TabsTrigger>
+            <TabsTrigger value="market-data-keys">Market Data</TabsTrigger>
+          </TabsList>
 
-            {activeSection === 'risk-profile' && (
-              <RiskProfileSection
-                user={user}
-                onUpdate={handleUpdateRiskProfile}
-                updating={updating}
-                error={error}
-                success={success}
-              />
-            )}
+          <TabsContent value="profile">
+            <ProfileSection
+              user={user}
+              onUpdate={handleUpdateProfile}
+              updating={updating}
+              error={error}
+              success={success}
+            />
+          </TabsContent>
 
-            {activeSection === 'ai-keys' && (
-              <AiKeysSection
-                aiKeys={aiKeys}
-                onAdd={handleAddAiKey}
-                onToggle={handleToggleAiKey}
-                onDelete={handleDeleteAiKey}
-                updating={updating}
-                error={error}
-                success={success}
-              />
-            )}
+          <TabsContent value="risk-profile">
+            <RiskProfileSection
+              user={user}
+              onUpdate={handleUpdateRiskProfile}
+              updating={updating}
+              error={error}
+              success={success}
+            />
+          </TabsContent>
 
-            {activeSection === 'trading-keys' && (
-              <TradingKeysSection
-                tradingKeys={tradingKeys}
-                onAdd={handleAddTradingKey}
-                onToggle={handleToggleTradingKey}
-                onDelete={handleDeleteTradingKey}
-                updating={updating}
-                error={error}
-                success={success}
-              />
-            )}
+          <TabsContent value="ai-keys">
+            <AiKeysSection
+              aiKeys={aiKeys}
+              onAdd={handleAddAiKey}
+              onToggle={handleToggleAiKey}
+              onDelete={handleDeleteAiKey}
+              updating={updating}
+              error={error}
+              success={success}
+            />
+          </TabsContent>
 
-            {activeSection === 'market-data-keys' && (
-              <MarketDataKeysSection
-                marketDataKeys={marketDataKeys}
-                onAdd={handleAddMarketDataKey}
-                onToggle={handleToggleMarketDataKey}
-                onDelete={handleDeleteMarketDataKey}
-                onTest={handleTestMarketDataKey}
-                updating={updating}
-                error={error}
-                success={success}
-              />
-            )}
-          </div>
-        </div>
+          <TabsContent value="trading-keys">
+            <TradingKeysSection
+              tradingKeys={tradingKeys}
+              onAdd={handleAddTradingKey}
+              onToggle={handleToggleTradingKey}
+              onDelete={handleDeleteTradingKey}
+              updating={updating}
+              error={error}
+              success={success}
+            />
+          </TabsContent>
+
+          <TabsContent value="market-data-keys">
+            <MarketDataKeysSection
+              marketDataKeys={marketDataKeys}
+              onAdd={handleAddMarketDataKey}
+              onToggle={handleToggleMarketDataKey}
+              onDelete={handleDeleteMarketDataKey}
+              onTest={handleTestMarketDataKey}
+              updating={updating}
+              error={error}
+              success={success}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </PageLayout>
   );

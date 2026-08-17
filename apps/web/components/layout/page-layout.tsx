@@ -5,18 +5,16 @@ interface PageLayoutProps {
   children: ReactNode;
   hasNewNotifications?: boolean;
   className?: string;
-  logoPosition?: 'default' | 'sidebar';
 }
 
 export default function PageLayout({
   children,
   hasNewNotifications = false,
-  className = 'min-h-screen bg-gray-50',
-  logoPosition = 'default',
+  className = 'min-h-screen bg-background',
 }: PageLayoutProps) {
   return (
     <div className={className}>
-      <Navbar hasNewNotifications={hasNewNotifications} logoPosition={logoPosition} />
+      <Navbar hasNewNotifications={hasNewNotifications} />
       {children}
     </div>
   );

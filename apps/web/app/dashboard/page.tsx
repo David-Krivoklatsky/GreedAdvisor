@@ -2,14 +2,15 @@
 
 import ErrorState from '@/components/common/error-state';
 import LoadingState from '@/components/common/loading-state';
-import DashboardPanels from '@/components/dashboard/dashboard-panels';
-import TradingChart from '@/components/dashboard/trading-chart';
+import AiAdvisorPanel from '@/components/dashboard/ai-advisor-panel';
+import ChartPanel from '@/components/dashboard/chart-panel';
+import PortfolioOverview from '@/components/dashboard/portfolio-overview';
+import TerminalHeader from '@/components/dashboard/terminal-header';
 import PageLayout from '@/components/layout/page-layout';
 import Notification from '@/components/notification';
 import { useDashboardData } from '@/hooks/useDashboardData';
 
 export default function DashboardPage() {
-  // Custom hooks for data
   const {
     loading,
     error,
@@ -26,37 +27,49 @@ export default function DashboardPage() {
     clearNotification,
   } = useDashboardData();
 
-  // Loading state
   if (loading) {
     return <LoadingState message="Loading dashboard..." />;
   }
 
-  // Error state
   if (error) {
     return <ErrorState error={error} onRetry={() => window.location.reload()} />;
   }
 
   return (
     <PageLayout hasNewNotifications={true}>
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-6">
-        {/* Trading Chart Section */}
-        <TradingChart />
-
-        {/* Dashboard Panels - AI Advisor & Portfolio */}
-        <DashboardPanels
+      <div className="mx-auto max-w-[1600px] space-y-4 px-4 py-6 sm:px-6 lg:px-8">
+        {/* Account / PnL strip */}
+        <TerminalHeader
           tradingKeys={tradingKeys}
-          aiKeys={aiKeys}
-          marketDataKeys={marketDataKeys}
-          positions={positions}
-          accountSummary={accountSummary}
-          positionsLoading={positionsLoading}
           selectedTradingKey={selectedTradingKey}
           setSelectedTradingKey={setSelectedTradingKey}
-          onShowNotification={showNotification}
+          accountSummary={accountSummary}
+        />
+
+        {/* Main grid: chart + advisor side by side */}
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          <div className="xl:col-span-2">
+            <ChartPanel />
+          </div>
+          <div className="min-h-[520px]">
+            <AiAdvisorPanel
+              tradingKeys={tradingKeys}
+              aiKeys={aiKeys}
+              marketDataKeys={marketDataKeys}
+              selectedTradingKey={selectedTradingKey}
+              onNotification={showNotification}
+            />
+          </div>
+        </div>
+
+        {/* Portfolio below */}
+        <PortfolioOverview
+          positions={positions}
+          accountSummary={accountSummary}
+          loading={positionsLoading}
         />
       </div>
 
-      {/* Notifications */}
       {notification && (
         <Notification
           message={notification.message}
