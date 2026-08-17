@@ -11,6 +11,7 @@ interface RiskProfileSectionProps {
   user: User;
   onUpdate: (data: { riskProfile: string }) => Promise<void>;
   updating: boolean;
+  stacked?: boolean;
 }
 
 const PROFILES = [
@@ -35,7 +36,12 @@ const PROFILES = [
   },
 ] as const;
 
-export default function RiskProfileSection({ user, onUpdate, updating }: RiskProfileSectionProps) {
+export default function RiskProfileSection({
+  user,
+  onUpdate,
+  updating,
+  stacked = false,
+}: RiskProfileSectionProps) {
   const [riskProfile, setRiskProfile] = useState(user.riskProfile ?? 'balanced');
   const { toast } = useToast();
 
@@ -60,7 +66,7 @@ export default function RiskProfileSection({ user, onUpdate, updating }: RiskPro
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className={cn('grid gap-3', stacked ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3')}>
             {PROFILES.map(profile => (
               <button
                 key={profile.value}
@@ -73,11 +79,15 @@ export default function RiskProfileSection({ user, onUpdate, updating }: RiskPro
                     : 'border-border bg-card text-muted-foreground hover:border-primary/50'
                 )}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                   <span className="font-semibold text-foreground">{profile.label}</span>
-                  <span className="text-sm font-bold opacity-70">up to {profile.pct}/trade</span>
+                  <span className="text-sm font-bold opacity-70 whitespace-nowrap">
+                    up to {profile.pct}/trade
+                  </span>
                 </div>
-                <p className="text-xs mt-1 opacity-80">{profile.description}</p>
+                <p className="text-xs mt-1.5 opacity-80 leading-relaxed break-words">
+                  {profile.description}
+                </p>
               </button>
             ))}
           </div>

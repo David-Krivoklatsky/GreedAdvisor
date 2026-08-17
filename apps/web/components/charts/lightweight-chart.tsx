@@ -51,6 +51,24 @@ function themeColors(isDark: boolean) {
   };
 }
 
+function buildCandleData(candles: CandleData[]): CandlestickData[] {
+  const seen = new Set<number>();
+  return candles
+    .map(c => ({
+      time: toUnix(c.datetime),
+      open: c.open,
+      high: c.high,
+      low: c.low,
+      close: c.close,
+    }))
+    .filter(d => {
+      if (seen.has(d.time)) return false;
+      seen.add(d.time);
+      return true;
+    })
+    .sort((a, b) => a.time - b.time);
+}
+
 export function LightweightChart({
   candles,
   symbol,
@@ -75,6 +93,11 @@ export function LightweightChart({
   const [symbolInput, setSymbolInput] = useState(symbol);
 
   const isDark = resolvedTheme === 'dark';
+
+  // Latest candles so the chart can re-apply data after it is recreated
+  // (theme or interval change) without waiting for a data refetch.
+  const candlesRef = useRef(candles);
+  candlesRef.current = candles;
 
   // Create/destroy chart
   useEffect(() => {
@@ -116,6 +139,13 @@ export function LightweightChart({
     chartRef.current = chart;
     candleSeriesRef.current = candleSeries;
 
+    // Re-apply the current candles so the recreated chart isn't blank.
+    const data = buildCandleData(candlesRef.current);
+    if (data.length) {
+      candleSeries.setData(data);
+      chart.timeScale().fitContent();
+    }
+
     return () => {
       chart.remove();
       chartRef.current = null;
@@ -128,22 +158,7 @@ export function LightweightChart({
     const series = candleSeriesRef.current;
     if (!series || !candles.length) return;
 
-    const seen = new Set<number>();
-    const data: CandlestickData[] = candles
-      .map(c => ({
-        time: toUnix(c.datetime),
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-      }))
-      .filter(d => {
-        if (seen.has(d.time)) return false;
-        seen.add(d.time);
-        return true;
-      })
-      .sort((a, b) => a.time - b.time);
-
+    const data = buildCandleData(candles);
     if (!data.length) return;
 
     series.setData(data);

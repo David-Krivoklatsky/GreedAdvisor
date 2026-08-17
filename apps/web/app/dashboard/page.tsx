@@ -99,6 +99,7 @@ export default function DashboardPage() {
                 user={user}
                 onUpdate={handleUpdateRiskProfile}
                 updating={riskUpdating}
+                stacked
               />
             )}
           </div>

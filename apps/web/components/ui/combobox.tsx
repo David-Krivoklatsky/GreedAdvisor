@@ -30,6 +30,11 @@ interface ComboboxProps {
   searchPlaceholder?: string;
   emptyMessage?: string;
   className?: string;
+  onSearchChange?: (query: string) => void;
+  loading?: boolean;
+  displayValue?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function Combobox({
@@ -40,8 +45,18 @@ export function Combobox({
   searchPlaceholder = 'Search...',
   emptyMessage = 'No option found.',
   className,
+  onSearchChange,
+  loading = false,
+  displayValue,
+  open: openProp,
+  onOpenChange,
 }: ComboboxProps) {
-  const [open, setOpen] = React.useState(false);
+  const [openState, setOpenState] = React.useState(false);
+  const open = openProp ?? openState;
+  const setOpen = (next: boolean) => {
+    setOpenState(next);
+    onOpenChange?.(next);
+  };
   const triggerRef = React.useRef<HTMLButtonElement>(null);
 
   // Forzar re-render cuando cambia el valor
@@ -50,6 +65,9 @@ export function Combobox({
       triggerRef.current.blur();
     }
   }, [open, value]);
+
+  const searchValue =
+    displayValue ?? (value ? options.find(option => option.value === value)?.label : undefined);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -61,18 +79,24 @@ export function Combobox({
           aria-expanded={open}
           className={cn('w-[200px] justify-between', className)}
         >
-          {value ? options.find(option => option.value === value)?.label : placeholder}
+          {searchValue ?? placeholder}
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0" align="start">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} className="h-9" />
+        <Command shouldFilter={onSearchChange ? false : undefined}>
+          <CommandInput
+            placeholder={searchPlaceholder}
+            className="h-9"
+            onValueChange={onSearchChange}
+          />
           <CommandList>
-            <CommandEmpty>{emptyMessage}</CommandEmpty>
+            <CommandEmpty>{loading ? 'Searching…' : emptyMessage}</CommandEmpty>
             <CommandGroup>
               {options.length === 0 ? (
-                <div className="p-4 text-center text-sm text-muted-foreground">{emptyMessage}</div>
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  {loading ? 'Searching…' : emptyMessage}
+                </div>
               ) : (
                 options.map(option => (
                   <CommandItem
