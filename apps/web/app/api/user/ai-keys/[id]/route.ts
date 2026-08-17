@@ -32,7 +32,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (!result.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: result.error.errors },
+        { error: 'Invalid input', details: result.error.issues },
         { status: 400 }
       );
     }

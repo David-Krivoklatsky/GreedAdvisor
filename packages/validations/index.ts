@@ -12,25 +12,41 @@ export const loginSchema = z.object({
 
 export const aiApiKeySchema = z.object({
   title: z.string().min(1, 'Title is required'),
-  provider: z.enum(['openai', 'anthropic', 'google', 'claude', 'other'], {
-    required_error: 'Provider is required',
-  }),
+  provider: z.enum(
+    {
+      openai: 'openai',
+      anthropic: 'anthropic',
+      google: 'google',
+      claude: 'claude',
+      other: 'other',
+    },
+    { error: 'Provider is required' }
+  ),
   apiKey: z.string().min(1, 'API key is required'),
 });
 
 export const t212ApiKeySchema = z.object({
   title: z.string().min(1, 'Title is required'),
-  accessType: z.enum(['read-only', 'full-access'], {
-    required_error: 'Access type is required',
-  }),
-  environment: z.enum(['demo', 'live']).default('demo'),
+  accessType: z.enum(
+    { 'read-only': 'read-only', 'full-access': 'full-access' },
+    { error: 'Access type is required' }
+  ),
+  environment: z.enum({ demo: 'demo', live: 'live' }).default('demo'),
   apiKey: z.string().min(1, 'API key is required'),
   apiSecret: z.string().min(1, 'API secret is required'),
 });
 
 export const updateAiApiKeySchema = z.object({
   title: z.string().min(1, 'Title is required').optional(),
-  provider: z.enum(['openai', 'anthropic', 'google', 'claude', 'other']).optional(),
+  provider: z
+    .enum({
+      openai: 'openai',
+      anthropic: 'anthropic',
+      google: 'google',
+      claude: 'claude',
+      other: 'other',
+    })
+    .optional(),
   apiKey: z.string().min(1, 'API key is required').optional(),
   isActive: z.boolean().optional(),
 });
@@ -39,13 +55,15 @@ export const profileUpdateSchema = z.object({
   email: z.string().email('Invalid email address').optional(),
   password: z.string().min(6, 'Password must be at least 6 characters').optional(),
   profilePicture: z.string().optional(),
-  riskProfile: z.enum(['conservative', 'balanced', 'aggressive']).optional(),
+  riskProfile: z
+    .enum({ conservative: 'conservative', balanced: 'balanced', aggressive: 'aggressive' })
+    .optional(),
 });
 
 export const updateT212ApiKeySchema = z.object({
   title: z.string().min(1, 'Title is required').optional(),
-  accessType: z.enum(['read-only', 'full-access']).optional(),
-  environment: z.enum(['demo', 'live']).optional(),
+  accessType: z.enum({ 'read-only': 'read-only', 'full-access': 'full-access' }).optional(),
+  environment: z.enum({ demo: 'demo', live: 'live' }).optional(),
   apiKey: z.string().min(1, 'API key is required').optional(),
   apiSecret: z.string().min(1, 'API secret is required').optional(),
   isActive: z.boolean().optional(),
@@ -53,15 +71,13 @@ export const updateT212ApiKeySchema = z.object({
 
 export const marketDataKeySchema = z.object({
   title: z.string().min(1, 'Title is required'),
-  provider: z.enum(['twelvedata'], {
-    required_error: 'Provider is required',
-  }),
+  provider: z.enum({ twelvedata: 'twelvedata' }, { error: 'Provider is required' }),
   apiKey: z.string().min(1, 'API key is required'),
 });
 
 export const updateMarketDataKeySchema = z.object({
   title: z.string().min(1, 'Title is required').optional(),
-  provider: z.enum(['twelvedata']).optional(),
+  provider: z.enum({ twelvedata: 'twelvedata' }).optional(),
   apiKey: z.string().min(1, 'API key is required').optional(),
   isActive: z.boolean().optional(),
 });

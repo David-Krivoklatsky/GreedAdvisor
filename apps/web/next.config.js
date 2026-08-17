@@ -1,11 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Move serverComponentsExternalPackages to the top level
-  serverExternalPackages: ['@prisma/client', 'prisma'],
-  // Temporarily disable ESLint during build to fix deployment
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  serverExternalPackages: ['@prisma/client', 'prisma', '@prisma/adapter-pg', 'pg'],
   // Production optimizations
   compress: true,
   poweredByHeader: false,
@@ -45,23 +40,6 @@ const nextConfig = {
     '@greed-advisor/market-data',
     '@greed-advisor/ai',
   ],
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals.push({
-        '@prisma/client': '@prisma/client',
-      });
-    }
-
-    // Optimize crypto libraries for production
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      crypto: false,
-      buffer: false,
-      stream: false,
-    };
-
-    return config;
-  },
 };
 
 module.exports = nextConfig;
