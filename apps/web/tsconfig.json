@@ -6,7 +6,6 @@
         "name": "next"
       }
     ],
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
       "@greed-advisor/db": ["../../packages/db"],
