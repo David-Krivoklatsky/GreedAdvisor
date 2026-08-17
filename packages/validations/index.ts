@@ -39,6 +39,7 @@ export const profileUpdateSchema = z.object({
   email: z.string().email('Invalid email address').optional(),
   password: z.string().min(6, 'Password must be at least 6 characters').optional(),
   profilePicture: z.string().optional(),
+  riskProfile: z.enum(['conservative', 'balanced', 'aggressive']).optional(),
 });
 
 export const updateT212ApiKeySchema = z.object({

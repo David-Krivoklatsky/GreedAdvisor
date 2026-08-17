@@ -32,7 +32,7 @@ async function getT212Client(userId: number, keyId?: string) {
   return { key, client };
 }
 
-// GET /api/user/positions - Fetch real positions from Trading212
+// GET /api/user/positions?keyId=<id> - Fetch real positions + account summary from Trading212
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -55,15 +55,21 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      const positions = await client.getPositions();
-      const cash = await client.getCashAccount();
+      const [positions, accountSummary] = await Promise.all([
+        client.getPositions(),
+        client.getAccountSummary(),
+      ]);
 
       await prisma.t212ApiKey.update({
         where: { id: key.id },
         data: { lastUsed: new Date() },
       });
 
-      return NextResponse.json({ positions, cash });
+      return NextResponse.json({
+        positions,
+        accountSummary,
+        environment: key.environment,
+      });
     } catch (t212Error) {
       // Trading212 rejected the request (bad credentials, key removed, etc.)
       const message = t212Error instanceof Error ? t212Error.message : 'Trading212 request failed';
@@ -99,7 +105,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { tradingKeyId, symbol, quantity, orderType } = body;
+    const { tradingKeyId, symbol, quantity, orderType, limitPrice, stopPrice } = body;
 
     if (!tradingKeyId || !symbol || !quantity) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -124,6 +130,8 @@ export async function POST(request: NextRequest) {
       quantity: orderQty,
       orderType: 'MARKET',
       timeValidity: 'DAY',
+      limitPrice,
+      stopPrice,
     });
 
     await prisma.t212ApiKey.update({ where: { id: key.id }, data: { lastUsed: new Date() } });

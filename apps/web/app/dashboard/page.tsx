@@ -1,24 +1,15 @@
 'use client';
 
-import AiReportModal from '@/components/ai-report-modal';
 import ErrorState from '@/components/common/error-state';
 import LoadingState from '@/components/common/loading-state';
 import DashboardPanels from '@/components/dashboard/dashboard-panels';
 import TradingChart from '@/components/dashboard/trading-chart';
 import PageLayout from '@/components/layout/page-layout';
 import Notification from '@/components/notification';
-import { useAiReport } from '@/hooks/useAiReport';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { useState } from 'react';
 
 export default function DashboardPage() {
-  // UI state
-  const [selectedTradingKey, setSelectedTradingKey] = useState<string>('');
-  const [selectedAiKey, setSelectedAiKey] = useState<string>('');
-  const [selectedMarketDataKey, setSelectedMarketDataKey] = useState<string>('');
-  const [selectedReportType, setSelectedReportType] = useState<string>('');
-
-  // Custom hooks for data and AI reports
+  // Custom hooks for data
   const {
     loading,
     error,
@@ -26,25 +17,14 @@ export default function DashboardPage() {
     aiKeys,
     marketDataKeys,
     positions,
-    cash,
+    accountSummary,
+    positionsLoading,
+    selectedTradingKey,
+    setSelectedTradingKey,
     notification,
     showNotification,
     clearNotification,
   } = useDashboardData();
-
-  const { generatingReport, aiReport, showAiReport, generateReport, closeAiReport } =
-    useAiReport(showNotification);
-
-  // Handle AI report generation
-  const handleGenerateReport = (symbol: string) => {
-    generateReport(
-      selectedTradingKey,
-      selectedAiKey,
-      selectedMarketDataKey,
-      selectedReportType,
-      symbol
-    );
-  };
 
   // Loading state
   if (loading) {
@@ -62,30 +42,21 @@ export default function DashboardPage() {
         {/* Trading Chart Section */}
         <TradingChart />
 
-        {/* Dashboard Panels - AI Report & Positions */}
+        {/* Dashboard Panels - AI Advisor & Portfolio */}
         <DashboardPanels
           tradingKeys={tradingKeys}
           aiKeys={aiKeys}
           marketDataKeys={marketDataKeys}
           positions={positions}
-          cash={cash}
+          accountSummary={accountSummary}
+          positionsLoading={positionsLoading}
           selectedTradingKey={selectedTradingKey}
           setSelectedTradingKey={setSelectedTradingKey}
-          selectedAiKey={selectedAiKey}
-          setSelectedAiKey={setSelectedAiKey}
-          selectedMarketDataKey={selectedMarketDataKey}
-          setSelectedMarketDataKey={setSelectedMarketDataKey}
-          selectedReportType={selectedReportType}
-          setSelectedReportType={setSelectedReportType}
-          generatingReport={generatingReport}
-          onGenerateReport={handleGenerateReport}
           onShowNotification={showNotification}
         />
       </div>
 
-      {/* Modals and Notifications */}
-      <AiReportModal isVisible={showAiReport} onClose={closeAiReport} report={aiReport} />
-
+      {/* Notifications */}
       {notification && (
         <Notification
           message={notification.message}

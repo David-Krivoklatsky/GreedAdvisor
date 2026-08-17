@@ -3,6 +3,8 @@ export interface User {
   email: string;
   firstName?: string;
   lastName?: string;
+  profilePicture?: string;
+  riskProfile?: 'conservative' | 'balanced' | 'aggressive';
   createdAt: string;
 }
 
@@ -28,34 +30,117 @@ export interface MarketDataKey {
   isActive: boolean;
 }
 
-export interface Position {
+export type AiAction = 'BUY' | 'SELL' | 'HOLD' | 'ADD' | 'TRIM';
+export type AiProductType = 'INVEST' | 'CFD' | 'CRYPTO';
+export type AiRiskProfile = 'conservative' | 'balanced' | 'aggressive';
+
+export interface AiTradePlan {
+  action: AiAction;
+  productType: AiProductType;
+  recommendation: 'BUY' | 'SELL' | 'HOLD';
+  confidence: number;
+  summary: string;
+  analysis: {
+    fundamentals?: string;
+    technicals: string;
+    sentiment?: string;
+    risks?: string;
+  };
+  entryPrice: number;
+  stopLoss?: number;
+  takeProfit?: number;
+  positionSize?: number;
+  riskAmount?: number;
+  riskPerUnit?: number;
+  priceTargets: {
+    current: number;
+    stopLoss?: number;
+    takeProfit?: number;
+  };
+  generatedAt: string;
+  provider: string;
+}
+
+export interface WatchlistItem {
   id: number;
   ticker: string;
+  name?: string;
+  instrumentType: string;
+  createdAt: string;
+}
+
+export interface WatchlistOpportunity {
+  item: WatchlistItem;
+  report: AiTradePlan;
+  error?: string;
+}
+
+export interface WatchlistScanResult {
+  opportunities: WatchlistOpportunity[];
+  holds: Array<{ item: WatchlistItem; report: AiTradePlan; error?: string }>;
+  failed: Array<{ item: WatchlistItem; report: null; error?: string }>;
+  scanned: number;
+  riskProfile: string;
+  accountValue: number;
+}
+
+export interface OrderPreview {
+  tradingKeyId: number;
+  ticker: string;
+  side: 'BUY' | 'SELL';
   quantity: number;
+  stopLoss?: number;
+  takeProfit?: number;
+}
+
+// Trading212 official API response shapes
+export interface T212Instrument {
+  ticker: string;
+  isin: string;
+  name: string;
+  currency: string;
+}
+
+export interface Position {
+  averagePricePaid: number;
+  createdAt: string;
   currentPrice: number;
-  averagePrice: number;
-  ppl: number;
-  pplCurrency: string;
-  initialValue: number;
-  currentValue: number;
-  fxPpl: number;
+  instrument: T212Instrument;
+  quantity: number;
+  quantityAvailableForTrading: number;
+  quantityInPies: number;
+  walletImpact: {
+    currency: string;
+    currentValue: number;
+    fxImpact: number;
+    totalCost: number;
+    unrealizedProfitLoss: number;
+  };
 }
 
-export interface CashAccount {
-  currencyCode: string;
-  balance: number;
-  cash: number;
-  blocked: number;
-  investableCash: number;
-  ppl: number;
-  reserved: number;
-  result: number;
-  total: number;
+export interface AccountSummary {
+  id: number;
+  currency: string;
+  totalValue: number;
+  cash: {
+    availableToTrade: number;
+    inPies: number;
+    reservedForOrders: number;
+  };
+  investments: {
+    currentValue: number;
+    realizedProfitLoss: number;
+    totalCost: number;
+    unrealizedProfitLoss: number;
+  };
 }
 
-export interface MarketData {
-  price: string;
-  symbol: string;
+export interface PortfolioData {
+  positions: Position[];
+  accountSummary: AccountSummary | null;
+  environment: string;
+  loading: boolean;
+  error: string;
 }
 
 export interface NotificationData {

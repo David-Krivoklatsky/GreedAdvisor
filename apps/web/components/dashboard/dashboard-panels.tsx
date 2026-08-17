@@ -1,13 +1,13 @@
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import {
+  AccountSummary,
   AiKey,
-  CashAccount,
   MarketDataKey,
   NotificationData,
   Position,
   TradingKey,
 } from '@/types/dashboard';
-import AiReportGenerator from './ai-report-generator';
+import AiAdvisorPanel from './ai-advisor-panel';
 import PositionsPanel from './positions-panel';
 
 interface DashboardPanelsProps {
@@ -15,17 +15,10 @@ interface DashboardPanelsProps {
   aiKeys: AiKey[];
   marketDataKeys: MarketDataKey[];
   positions: Position[];
-  cash: CashAccount | null;
+  accountSummary: AccountSummary | null;
+  positionsLoading: boolean;
   selectedTradingKey: string;
   setSelectedTradingKey: (key: string) => void;
-  selectedAiKey: string;
-  setSelectedAiKey: (key: string) => void;
-  selectedMarketDataKey: string;
-  setSelectedMarketDataKey: (key: string) => void;
-  selectedReportType: string;
-  setSelectedReportType: (type: string) => void;
-  generatingReport: boolean;
-  onGenerateReport: (symbol: string) => void;
   onShowNotification: (notification: NotificationData) => void;
 }
 
@@ -34,45 +27,37 @@ export default function DashboardPanels({
   aiKeys,
   marketDataKeys,
   positions,
-  cash,
+  accountSummary,
+  positionsLoading,
   selectedTradingKey,
   setSelectedTradingKey,
-  selectedAiKey,
-  setSelectedAiKey,
-  selectedMarketDataKey,
-  setSelectedMarketDataKey,
-  selectedReportType,
-  setSelectedReportType,
-  generatingReport,
-  onGenerateReport,
   onShowNotification,
 }: DashboardPanelsProps) {
   return (
     <ResizablePanelGroup direction="horizontal" className="rounded-lg border min-h-[600px]">
-      {/* Left Panel - AI Report Generation */}
-      <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
-        <AiReportGenerator
+      {/* Left Panel - AI Advisor */}
+      <ResizablePanel defaultSize={40} minSize={30} maxSize={60}>
+        <AiAdvisorPanel
           tradingKeys={tradingKeys}
           aiKeys={aiKeys}
           marketDataKeys={marketDataKeys}
           selectedTradingKey={selectedTradingKey}
-          setSelectedTradingKey={setSelectedTradingKey}
-          selectedAiKey={selectedAiKey}
-          setSelectedAiKey={setSelectedAiKey}
-          selectedMarketDataKey={selectedMarketDataKey}
-          setSelectedMarketDataKey={setSelectedMarketDataKey}
-          selectedReportType={selectedReportType}
-          setSelectedReportType={setSelectedReportType}
-          generatingReport={generatingReport}
-          onGenerateReport={onGenerateReport}
+          onNotification={onShowNotification}
         />
       </ResizablePanel>
 
       <ResizableHandle withHandle />
 
-      {/* Right Panel - Positions */}
-      <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
-        <PositionsPanel positions={positions} cash={cash} onShowNotification={onShowNotification} />
+      {/* Right Panel - Portfolio */}
+      <ResizablePanel defaultSize={60} minSize={40} maxSize={70}>
+        <PositionsPanel
+          positions={positions}
+          accountSummary={accountSummary}
+          positionsLoading={positionsLoading}
+          tradingKeys={tradingKeys}
+          selectedTradingKey={selectedTradingKey}
+          setSelectedTradingKey={setSelectedTradingKey}
+        />
       </ResizablePanel>
     </ResizablePanelGroup>
   );
