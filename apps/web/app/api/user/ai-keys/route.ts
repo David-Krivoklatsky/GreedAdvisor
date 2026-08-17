@@ -1,116 +1,77 @@
 import { prisma } from '@/lib/prisma';
-import { extractTokenFromHeader, verifyAccessToken } from '@greed-advisor/auth';
+import { logKeyAudit } from '@/lib/audit';
+import { withApiMiddleware, withAuth, withValidation } from '@greed-advisor/middleware';
 import { aiApiKeySchema } from '@greed-advisor/validations';
-import { NextRequest, NextResponse } from 'next/server';
+import type { AiApiKeyInput } from '@greed-advisor/validations';
+import { NextResponse } from 'next/server';
 
-// Force this route to be dynamic since it uses request headers
-export const dynamic = 'force-dynamic';
-
-// GET /api/user/ai-keys - Get all AI keys for user
-export async function GET(req: NextRequest) {
-  try {
-    const authHeader = req.headers.get('authorization');
-    const token = extractTokenFromHeader(authHeader);
-
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
-    }
-
-    const decoded = verifyAccessToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
-    }
-
-    const aiKeys = await prisma.aiApiKey.findMany({
-      where: {
-        userId: decoded.userId,
-        deletedAt: null,
-      },
+export const GET = withApiMiddleware(
+  withAuth(async (_req, ctx) => {
+    const apiKeys = await prisma.aiApiKey.findMany({
+      where: { userId: ctx.userId, deletedAt: null },
       select: {
         id: true,
         title: true,
         provider: true,
         isActive: true,
-        lastUsed: true,
         createdAt: true,
-        updatedAt: true,
-        apiKey: true, // Include API key for display
+        lastUsed: true,
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ aiKeys });
-  } catch (error) {
-    console.error('Get AI keys error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    return NextResponse.json({ success: true, aiKeys: apiKeys });
+  })
+);
 
-// POST /api/user/ai-keys - Create new AI key
-export async function POST(req: NextRequest) {
-  try {
-    const authHeader = req.headers.get('authorization');
-    const token = extractTokenFromHeader(authHeader);
+export const POST = withApiMiddleware(
+  withValidation(aiApiKeySchema)(
+    withAuth(async (req, ctx) => {
+      const { title, provider, apiKey } = ctx.data as AiApiKeyInput;
 
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
-    }
+      const count = await prisma.aiApiKey.count({
+        where: { userId: ctx.userId, deletedAt: null },
+      });
+      const maxAiKeys = Number(process.env.MAX_AI_KEYS ?? 3);
 
-    const decoded = verifyAccessToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
-    }
+      if (count >= maxAiKeys) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Maximum of ${maxAiKeys} AI API keys allowed`,
+            error: 'API key limit reached',
+          },
+          { status: 400 }
+        );
+      }
 
-    const body = await req.json();
-    const result = aiApiKeySchema.safeParse(body);
+      const newKey = await prisma.aiApiKey.create({
+        data: {
+          userId: ctx.userId,
+          title,
+          provider,
+          apiKey,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          title: true,
+          provider: true,
+          isActive: true,
+          createdAt: true,
+        },
+      });
 
-    if (!result.success) {
+      await logKeyAudit(ctx.userId, 'ai', 'created', req);
+
       return NextResponse.json(
-        { error: 'Invalid input', details: result.error.issues },
-        { status: 400 }
+        {
+          success: true,
+          message: 'API key created successfully',
+          apiKey: newKey,
+        },
+        { status: 201 }
       );
-    }
-
-    const { title, provider, apiKey } = result.data;
-
-    const newAiKey = await prisma.aiApiKey.create({
-      data: {
-        userId: decoded.userId,
-        title,
-        provider,
-        apiKey,
-      },
-      select: {
-        id: true,
-        title: true,
-        provider: true,
-        isActive: true,
-        lastUsed: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    // Log the creation
-    await prisma.apiKeyLog.create({
-      data: {
-        userId: decoded.userId,
-        keyType: 'ai',
-        action: 'created',
-        ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '',
-        userAgent: req.headers.get('user-agent') || '',
-      },
-    });
-
-    return NextResponse.json(
-      {
-        message: 'AI key created successfully',
-        aiKey: newAiKey,
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error('Create AI key error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    })
+  )
+);

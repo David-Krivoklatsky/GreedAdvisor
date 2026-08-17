@@ -78,7 +78,7 @@ describe('/api/auth/register', () => {
       },
     });
 
-    const response = await POST(request, requestBody as any);
+    const response = await POST(request, { data: requestBody } as any);
     const data = await response.json();
 
     expect(response.status).toBe(201);
@@ -109,7 +109,7 @@ describe('/api/auth/register', () => {
       },
     });
 
-    const response = await POST(request, requestBody as any);
+    const response = await POST(request, { data: requestBody } as any);
     const data = await response.json();
 
     expect(response.status).toBe(409);
@@ -134,7 +134,7 @@ describe('/api/auth/register', () => {
       },
     });
 
-    const response = await POST(request, requestBody as any);
+    const response = await POST(request, { data: requestBody } as any);
     const data = await response.json();
 
     expect(response.status).toBe(429);

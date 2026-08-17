@@ -33,8 +33,7 @@ export const useDashboardData = () => {
 
       const data = await response.json();
       setUser(data.user);
-    } catch (err) {
-      console.error('Error fetching user:', err);
+    } catch {
       setError('Failed to load user data. Please refresh the page.');
     } finally {
       setLoading(false);
@@ -51,8 +50,8 @@ export const useDashboardData = () => {
 
       const data = await response.json();
       setTradingKeys(data.tradingKeys.filter((key: TradingKey) => key.isActive));
-    } catch (err) {
-      console.error('Failed to load trading keys:', err);
+    } catch {
+      setError('Failed to load trading keys');
     }
   };
 
@@ -66,8 +65,8 @@ export const useDashboardData = () => {
 
       const data = await response.json();
       setAiKeys(data.aiKeys.filter((key: AiKey) => key.isActive));
-    } catch (err) {
-      console.error('Failed to load AI keys:', err);
+    } catch {
+      setError('Failed to load AI keys');
     }
   };
 
@@ -81,8 +80,8 @@ export const useDashboardData = () => {
 
       const data = await response.json();
       setMarketDataKeys(data.marketDataKeys.filter((key: MarketDataKey) => key.isActive));
-    } catch (err) {
-      console.error('Failed to load market data keys:', err);
+    } catch {
+      setError('Failed to load market data keys');
     }
   };
 
@@ -109,7 +108,6 @@ export const useDashboardData = () => {
       setPositions(data.positions || []);
       setAccountSummary(data.accountSummary || null);
     } catch (err) {
-      console.error('Failed to load positions:', err);
       setPositions([]);
       setAccountSummary(null);
       showNotification({

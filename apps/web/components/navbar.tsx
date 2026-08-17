@@ -21,10 +21,10 @@ import { cn } from '@greed-advisor/utils';
 import { useEffect, useState } from 'react';
 
 interface NavbarProps {
-  hasNewNotifications?: boolean;
   user?: {
     email?: string;
-    name?: string;
+    firstName?: string;
+    lastName?: string;
     profilePicture?: string;
   } | null;
   onLogout?: () => void;
@@ -35,11 +35,13 @@ const NAV_LINKS = [
   { href: '/profile', label: 'Profile' },
 ];
 
-export default function Navbar({ hasNewNotifications = false, user, onLogout }: NavbarProps) {
+export default function Navbar({ user, onLogout }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [fetchedUser, setFetchedUser] = useState<
-    { email?: string; name?: string; profilePicture?: string } | null | undefined
+    | { email?: string; firstName?: string; lastName?: string; profilePicture?: string }
+    | null
+    | undefined
   >(undefined);
 
   useEffect(() => {
@@ -64,6 +66,19 @@ export default function Navbar({ hasNewNotifications = false, user, onLogout }: 
   }, [user]);
 
   const effectiveUser = user !== undefined ? user : fetchedUser;
+  const displayName =
+    [effectiveUser?.firstName, effectiveUser?.lastName].filter(Boolean).join(' ') ||
+    (effectiveUser?.email ? effectiveUser.email.split('@')[0] : 'Guest');
+
+  const initials =
+    [effectiveUser?.firstName, effectiveUser?.lastName]
+      .filter(Boolean)
+      .map(p => (p as string)[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() ||
+    effectiveUser?.email?.[0]?.toUpperCase() ||
+    'U';
 
   const handleLogout = async () => {
     if (onLogout) {
@@ -78,16 +93,6 @@ export default function Navbar({ hasNewNotifications = false, user, onLogout }: 
     TokenManager.removeAccessToken();
     router.push('/');
   };
-
-  const initials =
-    effectiveUser?.name
-      ?.split(' ')
-      .map(p => p[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() ||
-    effectiveUser?.email?.[0]?.toUpperCase() ||
-    'U';
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -146,9 +151,6 @@ export default function Navbar({ hasNewNotifications = false, user, onLogout }: 
             aria-label="Notifications"
           >
             <Bell className="h-[1.2rem] w-[1.2rem]" />
-            {hasNewNotifications && (
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
-            )}
           </Button>
 
           {/* User menu */}
@@ -166,10 +168,7 @@ export default function Navbar({ hasNewNotifications = false, user, onLogout }: 
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="font-normal">
-                <p className="text-sm font-medium">
-                  {effectiveUser?.name ||
-                    (effectiveUser?.email ? effectiveUser.email.split('@')[0] : 'Guest')}
-                </p>
+                <p className="text-sm font-medium">{displayName}</p>
                 <p className="text-xs text-muted-foreground">
                   {effectiveUser?.email || 'Not signed in'}
                 </p>

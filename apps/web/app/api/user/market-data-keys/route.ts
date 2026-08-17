@@ -1,104 +1,77 @@
 import { prisma } from '@/lib/prisma';
-import { extractTokenFromHeader, verifyAccessToken } from '@greed-advisor/auth';
+import { logKeyAudit } from '@/lib/audit';
+import { withApiMiddleware, withAuth, withValidation } from '@greed-advisor/middleware';
 import { marketDataKeySchema } from '@greed-advisor/validations';
-import { NextRequest, NextResponse } from 'next/server';
+import type { MarketDataKeyInput } from '@greed-advisor/validations';
+import { NextResponse } from 'next/server';
 
-// Force this route to be dynamic since it uses request headers
-export const dynamic = 'force-dynamic';
-
-// GET /api/user/market-data-keys - Get all market data keys for user
-export async function GET(req: NextRequest) {
-  try {
-    const authHeader = req.headers.get('authorization');
-    const token = extractTokenFromHeader(authHeader);
-
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
-    }
-
-    const decoded = verifyAccessToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
-    }
-
-    const marketDataKeys = await prisma.marketDataKey.findMany({
-      where: {
-        userId: decoded.userId,
-        deletedAt: null,
-      },
+export const GET = withApiMiddleware(
+  withAuth(async (_req, ctx) => {
+    const apiKeys = await prisma.marketDataKey.findMany({
+      where: { userId: ctx.userId, deletedAt: null },
       select: {
         id: true,
         title: true,
         provider: true,
         isActive: true,
-        lastUsed: true,
         createdAt: true,
-        updatedAt: true,
+        lastUsed: true,
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ marketDataKeys });
-  } catch (error) {
-    console.error('Get market data keys error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    return NextResponse.json({ success: true, marketDataKeys: apiKeys });
+  })
+);
 
-// POST /api/user/market-data-keys - Create new market data key
-export async function POST(req: NextRequest) {
-  try {
-    const authHeader = req.headers.get('authorization');
-    const token = extractTokenFromHeader(authHeader);
+export const POST = withApiMiddleware(
+  withValidation(marketDataKeySchema)(
+    withAuth(async (req, ctx) => {
+      const { title, provider, apiKey } = ctx.data as MarketDataKeyInput;
 
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
-    }
+      const count = await prisma.marketDataKey.count({
+        where: { userId: ctx.userId, deletedAt: null },
+      });
+      const maxKeys = Number(process.env.MAX_MARKET_DATA_KEYS ?? 3);
 
-    const decoded = verifyAccessToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
-    }
+      if (count >= maxKeys) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Maximum of ${maxKeys} Market Data API keys allowed`,
+            error: 'API key limit reached',
+          },
+          { status: 400 }
+        );
+      }
 
-    const body = await req.json();
-    const result = marketDataKeySchema.safeParse(body);
+      const newKey = await prisma.marketDataKey.create({
+        data: {
+          userId: ctx.userId,
+          title,
+          provider,
+          apiKey,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          title: true,
+          provider: true,
+          isActive: true,
+          createdAt: true,
+        },
+      });
 
-    if (!result.success) {
+      await logKeyAudit(ctx.userId, 'market-data', 'created', req);
+
       return NextResponse.json(
-        { error: 'Invalid input', details: result.error.issues },
-        { status: 400 }
+        {
+          success: true,
+          message: 'Market data API key created successfully',
+          apiKey: newKey,
+        },
+        { status: 201 }
       );
-    }
-
-    const { title, provider, apiKey } = result.data;
-
-    const newKey = await prisma.marketDataKey.create({
-      data: {
-        userId: decoded.userId,
-        title,
-        provider,
-        apiKey,
-      },
-      select: {
-        id: true,
-        title: true,
-        provider: true,
-        isActive: true,
-        lastUsed: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    return NextResponse.json(
-      {
-        message: 'Market data key created successfully',
-        marketDataKey: newKey,
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error('Create market data key error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    })
+  )
+);

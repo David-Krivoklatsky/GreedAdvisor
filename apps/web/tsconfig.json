@@ -13,9 +13,7 @@
       "@greed-advisor/utils": ["../../packages/utils"],
       "@greed-advisor/validations": ["../../packages/validations"],
       "@greed-advisor/rate-limit": ["../../packages/rate-limit"],
-      "@greed-advisor/config": ["../../packages/config"],
       "@greed-advisor/middleware": ["../../packages/middleware"],
-      "@greed-advisor/types": ["../../packages/types"],
       "@greed-advisor/trading212": ["../../packages/trading212"],
       "@greed-advisor/market-data": ["../../packages/market-data"],
       "@greed-advisor/ai": ["../../packages/ai"]

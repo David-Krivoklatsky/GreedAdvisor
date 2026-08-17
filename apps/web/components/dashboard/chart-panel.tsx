@@ -7,8 +7,7 @@ import { useEffect, useState } from 'react';
 import { CandlestickChart } from 'lucide-react';
 
 export default function ChartPanel() {
-  const { candles, loading, error, symbol, setSymbol, interval, setInterval, refetch } =
-    useMarketCandles();
+  const { candles, loading, error, symbol, setSymbol, interval, setInterval } = useMarketCandles();
   const [displaySymbol, setDisplaySymbol] = useState(symbol);
 
   useEffect(() => {
@@ -34,12 +33,10 @@ export default function ChartPanel() {
             symbol={displaySymbol}
             onSymbolChange={sym => {
               setSymbol(sym);
-              refetch(sym, interval);
             }}
             interval={interval}
             onIntervalChange={iv => {
               setInterval(iv);
-              refetch(symbol, iv);
             }}
             loading={loading}
             height={440}

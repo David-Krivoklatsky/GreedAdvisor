@@ -1,9 +1,10 @@
 import { buildProviderAuthUrl, createOAuthState, isOAuthProvider } from '@/lib/oauth';
-import { NextRequest, NextResponse } from 'next/server';
+import { withApiMiddleware } from '@greed-advisor/middleware';
+import { NextResponse } from 'next/server';
 
-// GET /api/auth/oauth/[provider] - starts the OAuth flow
-export async function GET(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
-  const { provider } = await params;
+export const GET = withApiMiddleware(async (req, ctx) => {
+  const params = (await ctx.params) ?? {};
+  const provider = params.provider;
 
   if (!isOAuthProvider(provider)) {
     return NextResponse.redirect(new URL('/login?error=unsupported_provider', req.url));
@@ -27,4 +28,4 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   } catch {
     return NextResponse.redirect(new URL('/login?error=oauth_not_configured', req.url));
   }
-}
+});

@@ -32,13 +32,13 @@ const INSTRUMENT_TYPES = ['STOCK', 'ETF', 'CRYPTO', 'FOREX'] as const;
 
 function actionBadge(action: string) {
   const colors: Record<string, string> = {
-    BUY: 'bg-green-100 text-green-800',
-    ADD: 'bg-green-50 text-green-700',
-    SELL: 'bg-red-100 text-red-800',
+    BUY: 'bg-success/15 text-success',
+    ADD: 'bg-success/10 text-success',
+    SELL: 'bg-destructive/10 text-destructive',
     TRIM: 'bg-orange-100 text-orange-800',
     HOLD: 'bg-yellow-100 text-yellow-800',
   };
-  return colors[action] ?? 'bg-gray-100 text-gray-700';
+  return colors[action] ?? 'bg-muted text-foreground';
 }
 
 export default function AiAdvisorPanel({
@@ -71,8 +71,8 @@ export default function AiAdvisorPanel({
         const data = await response.json();
         setWatchlist(data.items || []);
       }
-    } catch (err) {
-      console.error('Failed to load watchlist:', err);
+    } catch {
+      // Failed to load watchlist - handle silently
     } finally {
       setWatchlistLoading(false);
     }
@@ -167,7 +167,7 @@ export default function AiAdvisorPanel({
 
   return (
     <Card className="h-full border-0 rounded-none overflow-y-auto">
-      <CardHeader className="border-b border-gray-100">
+      <CardHeader className="border-b border-border">
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">AI Advisor</CardTitle>
@@ -212,7 +212,7 @@ export default function AiAdvisorPanel({
                 className={`py-2 rounded-md text-xs font-semibold border transition-colors ${
                   productType === type
                     ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'border-gray-300 text-gray-600 hover:bg-indigo-50'
+                    : 'border-border text-muted-foreground hover:bg-indigo-50'
                 }`}
               >
                 {type}
@@ -222,7 +222,7 @@ export default function AiAdvisorPanel({
         </div>
 
         {/* Watchlist add */}
-        <div className="rounded-lg border border-gray-200 p-3">
+        <div className="rounded-lg border border-border p-3">
           <Label className="text-xs">Watchlist</Label>
           <div className="mt-1 flex gap-2">
             <Input
@@ -237,7 +237,7 @@ export default function AiAdvisorPanel({
             </Button>
           </div>
           <select
-            className="mt-2 block w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
+            className="mt-2 block w-full rounded-md border border-border px-2 py-1.5 text-xs"
             value={newType}
             onChange={e => setNewType(e.target.value)}
           >
@@ -254,12 +254,12 @@ export default function AiAdvisorPanel({
               {watchlist.map(item => (
                 <span
                   key={item.id}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 text-xs font-medium"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-muted text-xs font-medium"
                 >
                   {item.ticker}
                   <button
                     onClick={() => removeFromWatchlist(item.id)}
-                    className="text-gray-400 hover:text-red-600"
+                    className="text-muted-foreground hover:text-destructive"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -268,9 +268,11 @@ export default function AiAdvisorPanel({
             </div>
           )}
           {watchlist.length === 0 && !watchlistLoading && (
-            <p className="text-xs text-gray-400 mt-2">No instruments yet — add some to scan.</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              No instruments yet — add some to scan.
+            </p>
           )}
-          {watchlistLoading && <p className="text-xs text-gray-400 mt-2">Loading…</p>}
+          {watchlistLoading && <p className="text-xs text-muted-foreground mt-2">Loading…</p>}
         </div>
 
         {/* Scan button */}
@@ -288,7 +290,7 @@ export default function AiAdvisorPanel({
           <div className="space-y-4">
             {result.opportunities.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                <h4 className="text-sm font-semibold text-foreground mb-2">
                   Opportunities ({result.opportunities.length})
                 </h4>
                 <div className="space-y-2">
@@ -303,7 +305,7 @@ export default function AiAdvisorPanel({
                           companyName: item.name ?? undefined,
                         })
                       }
-                      className="w-full text-left rounded-lg border border-gray-200 p-3 hover:border-indigo-300 hover:shadow-sm transition-all"
+                      className="w-full text-left rounded-lg border border-border p-3 hover:border-ring hover:shadow-sm transition-all"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -313,15 +315,17 @@ export default function AiAdvisorPanel({
                           >
                             {report.action}
                           </span>
-                          <span className="px-2 py-0.5 rounded-full bg-gray-100 text-xs">
+                          <span className="px-2 py-0.5 rounded-full bg-muted text-xs">
                             {report.productType}
                           </span>
                         </div>
-                        <span className="text-sm font-medium text-gray-600">
+                        <span className="text-sm font-medium text-muted-foreground">
                           {report.confidence}%
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{report.summary}</p>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {report.summary}
+                      </p>
                     </button>
                   ))}
                 </div>
@@ -330,15 +334,17 @@ export default function AiAdvisorPanel({
 
             {result.holds.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Holds / watch</h4>
+                <h4 className="text-sm font-semibold text-foreground mb-2">Holds / watch</h4>
                 <div className="space-y-2">
                   {result.holds.map(({ item, report }) => (
-                    <div key={item.id} className="rounded-lg border border-gray-100 p-3">
+                    <div key={item.id} className="rounded-lg border border-border p-3">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{item.ticker}</span>
-                        <span className="text-xs text-gray-500">{report.confidence}%</span>
+                        <span className="text-xs text-muted-foreground">{report.confidence}%</span>
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{report.summary}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                        {report.summary}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -346,12 +352,12 @@ export default function AiAdvisorPanel({
             )}
 
             {result.failed.length > 0 && (
-              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
-                <p className="text-xs font-semibold text-amber-800">
+              <div className="rounded-lg bg-warning/10 border border-warning/20 p-3">
+                <p className="text-xs font-semibold text-warning">
                   Could not analyze {result.failed.length} item(s)
                 </p>
                 {result.failed.map(({ item, error }) => (
-                  <p key={item.id} className="text-xs text-amber-700 mt-1">
+                  <p key={item.id} className="text-xs text-warning mt-1">
                     {item.ticker}: {error}
                   </p>
                 ))}

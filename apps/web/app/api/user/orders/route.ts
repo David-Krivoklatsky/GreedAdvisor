@@ -1,102 +1,95 @@
 import { prisma } from '@/lib/prisma';
-import { extractTokenFromHeader, verifyAccessToken } from '@greed-advisor/auth';
-import { Trading212Client, T212Environment } from '@greed-advisor/trading212';
-import { NextRequest, NextResponse } from 'next/server';
+import { withApiMiddleware, withAuth, withValidation } from '@greed-advisor/middleware';
+import { orderSchema } from '@greed-advisor/validations';
+import type { OrderInput } from '@greed-advisor/validations';
+import { T212Environment, Trading212Client } from '@greed-advisor/trading212';
+import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
 
 // POST /api/user/orders - Place a market order with optional stop-loss / take-profit
 // The user reviews and confirms every field in the UI; this route never runs unattended.
-export async function POST(request: NextRequest) {
-  try {
-    const authHeader = request.headers.get('authorization');
-    const token = extractTokenFromHeader(authHeader);
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const decoded = verifyAccessToken(token);
-    if (!decoded || !decoded.userId) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
+export const POST = withApiMiddleware(
+  withValidation(orderSchema)(
+    withAuth(async (_req, ctx) => {
+      const { tradingKeyId, ticker, quantity, side, stopLoss, takeProfit, extendedHours } =
+        ctx.data as OrderInput;
 
-    const body = await request.json();
-    const { tradingKeyId, ticker, quantity, side, stopLoss, takeProfit, extendedHours } = body;
+      const key = await prisma.t212ApiKey.findFirst({
+        where: {
+          id: tradingKeyId,
+          userId: ctx.userId,
+          deletedAt: null,
+          isActive: true,
+        },
+      });
 
-    if (!tradingKeyId || !ticker || !quantity || !side) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
+      if (!key) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'No active Trading212 key found',
+            error: 'No active Trading212 key found',
+          },
+          { status: 404 }
+        );
+      }
 
-    const qty = Number(quantity);
-    if (isNaN(qty) || qty <= 0) {
-      return NextResponse.json({ error: 'Invalid quantity' }, { status: 400 });
-    }
+      const client = new Trading212Client({
+        apiKey: key.apiKey,
+        apiSecret: key.apiSecret,
+        environment: key.environment as T212Environment,
+      });
 
-    if (!['BUY', 'SELL'].includes(side)) {
-      return NextResponse.json({ error: 'Side must be BUY or SELL' }, { status: 400 });
-    }
+      // T212 convention: sell orders use a negative quantity
+      const signedQty = side === 'SELL' ? -Math.abs(quantity) : Math.abs(quantity);
 
-    const key = await prisma.t212ApiKey.findFirst({
-      where: { id: Number(tradingKeyId), userId: decoded.userId, deletedAt: null, isActive: true },
-    });
+      // 1) Entry order (market)
+      const entry = await client.placeOrder({
+        ticker,
+        quantity: signedQty,
+        orderType: 'MARKET',
+        extendedHours: extendedHours ?? false,
+      });
 
-    if (!key) {
-      return NextResponse.json({ error: 'No active Trading212 key found' }, { status: 404 });
-    }
+      // 2) Optional protections (separate stop + limit orders, opposite side of entry)
+      const protections = {
+        stop:
+          stopLoss != null && stopLoss > 0
+            ? await client.placeOrder({
+                ticker,
+                quantity: -signedQty,
+                orderType: 'STOP',
+                stopPrice: stopLoss,
+                timeValidity: 'GOOD_TILL_CANCEL',
+              })
+            : null,
+        takeProfit:
+          takeProfit != null && takeProfit > 0
+            ? await client.placeOrder({
+                ticker,
+                quantity: -signedQty,
+                orderType: 'LIMIT',
+                limitPrice: takeProfit,
+                timeValidity: 'GOOD_TILL_CANCEL',
+              })
+            : null,
+      };
 
-    const client = new Trading212Client({
-      apiKey: key.apiKey,
-      apiSecret: key.apiSecret,
-      environment: key.environment as T212Environment,
-    });
+      await prisma.t212ApiKey.update({
+        where: { id: key.id },
+        data: { lastUsed: new Date() },
+      });
 
-    // T212 convention: sell orders use a negative quantity
-    const signedQty = side === 'SELL' ? -Math.abs(qty) : Math.abs(qty);
-
-    // 1) Entry order (market)
-    const entry = await client.placeOrder({
-      ticker,
-      quantity: signedQty,
-      orderType: 'MARKET',
-      extendedHours: extendedHours ?? false,
-    });
-
-    // 2) Optional protections (separate stop + limit orders, opposite side of entry)
-    const protections: { stop: unknown; takeProfit: unknown } | null =
-      side === 'BUY' || side === 'SELL'
-        ? {
-            stop:
-              stopLoss != null && Number(stopLoss) > 0
-                ? await client.placeOrder({
-                    ticker,
-                    quantity: -signedQty,
-                    orderType: 'STOP',
-                    stopPrice: Number(stopLoss),
-                    timeValidity: 'GOOD_TILL_CANCEL',
-                  })
-                : null,
-            takeProfit:
-              takeProfit != null && Number(takeProfit) > 0
-                ? await client.placeOrder({
-                    ticker,
-                    quantity: -signedQty,
-                    orderType: 'LIMIT',
-                    limitPrice: Number(takeProfit),
-                    timeValidity: 'GOOD_TILL_CANCEL',
-                  })
-                : null,
-          }
-        : null;
-
-    await prisma.t212ApiKey.update({ where: { id: key.id }, data: { lastUsed: new Date() } });
-
-    return NextResponse.json(
-      { entry, stop: protections?.stop ?? null, takeProfit: protections?.takeProfit ?? null },
-      { status: 201 }
-    );
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Place order error:', error);
-    return NextResponse.json({ error: 'Failed to place order', details: message }, { status: 500 });
-  }
-}
+      return NextResponse.json(
+        {
+          success: true,
+          entry,
+          stop: protections.stop,
+          takeProfit: protections.takeProfit,
+        },
+        { status: 201 }
+      );
+    })
+  )
+);

@@ -46,4 +46,11 @@ export default defineConfig([
       'no-undef': 'off',
     },
   },
+  {
+    // Jest test files use require() to reach mocked modules after jest.mock()
+    files: ['**/*.test.ts', '**/*.test.tsx', '**/__tests__/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
 ]);

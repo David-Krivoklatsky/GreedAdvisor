@@ -1,72 +1,46 @@
 import { prisma } from '@/lib/prisma';
-import { extractTokenFromHeader, verifyAccessToken } from '@greed-advisor/auth';
-import { TwelveDataProvider } from '@greed-advisor/market-data';
-import { NextRequest, NextResponse } from 'next/server';
+import { getMarketDataService } from '@/lib/providers';
+import { withApiMiddleware, withAuth, withValidation } from '@greed-advisor/middleware';
+import { marketDataKeyTestSchema } from '@greed-advisor/validations';
+import type { MarketDataKeyTestInput } from '@greed-advisor/validations';
+import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
+export const POST = withApiMiddleware(
+  withValidation(marketDataKeyTestSchema)(
+    withAuth(async (_req, ctx) => {
+      const { keyId } = ctx.data as MarketDataKeyTestInput;
 
-// POST /api/user/market-data-keys/test - Test a market data key by fetching a quote
-export async function POST(req: NextRequest) {
-  try {
-    const authHeader = req.headers.get('authorization');
-    const token = extractTokenFromHeader(authHeader);
+      const key = await prisma.marketDataKey.findFirst({
+        where: { id: keyId, userId: ctx.userId, deletedAt: null },
+      });
 
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
-    }
+      if (!key) {
+        return NextResponse.json(
+          { success: false, message: 'API key not found', error: 'API key not found' },
+          { status: 404 }
+        );
+      }
 
-    const decoded = verifyAccessToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
-    }
+      const provider = await getMarketDataService(ctx.userId, keyId);
+      if (!provider) {
+        return NextResponse.json(
+          { success: false, message: 'No active market data key found', error: 'No active key' },
+          { status: 400 }
+        );
+      }
 
-    const body = await req.json();
-    const keyId = Number(body?.keyId);
+      const quote = await provider.service.getQuote('AAPL');
 
-    if (!keyId) {
-      return NextResponse.json({ error: 'keyId is required' }, { status: 400 });
-    }
+      await prisma.marketDataKey.update({
+        where: { id: keyId },
+        data: { lastUsed: new Date() },
+      });
 
-    const marketDataKey = await prisma.marketDataKey.findFirst({
-      where: {
-        id: keyId,
-        userId: decoded.userId,
-        deletedAt: null,
-      },
-      select: {
-        id: true,
-        apiKey: true,
-        isActive: true,
-      },
-    });
-
-    if (!marketDataKey) {
-      return NextResponse.json({ error: 'Market data key not found' }, { status: 404 });
-    }
-
-    if (!marketDataKey.isActive) {
-      return NextResponse.json({ error: 'Market data key is inactive' }, { status: 400 });
-    }
-
-    const provider = new TwelveDataProvider(marketDataKey.apiKey);
-    const quote = await provider.getQuote('AAPL');
-
-    await prisma.marketDataKey.update({
-      where: { id: marketDataKey.id },
-      data: { lastUsed: new Date() },
-    });
-
-    return NextResponse.json({
-      message: 'Market data key test successful',
-      quote: {
-        symbol: quote.symbol,
-        name: quote.name,
-        price: quote.price,
-      },
-    });
-  } catch (error) {
-    console.error('Test market data key error:', error);
-    const message = error instanceof Error ? error.message : 'Failed to test market data key';
-    return NextResponse.json({ error: message }, { status: 400 });
-  }
-}
+      return NextResponse.json({
+        success: true,
+        message: 'Market data API key is valid',
+        quote,
+      });
+    })
+  )
+);

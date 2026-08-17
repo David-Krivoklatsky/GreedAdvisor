@@ -5,8 +5,7 @@
   "main": "index.ts",
   "types": "index.ts",
   "dependencies": {
-    "@greed-advisor/types": "*",
-    "@greed-advisor/config": "*",
+    "@greed-advisor/auth": "*",
     "next": "16.3.1",
     "zod": "^4.4.3"
   },

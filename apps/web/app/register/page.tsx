@@ -12,15 +12,9 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const router = useRouter();
 
-  const handleRegister = async (email: string, password: string, confirmPassword: string) => {
+  const handleRegister = async (email: string, password: string, _confirmPassword: string) => {
     setLoading(true);
     setError('');
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
 
     try {
       const response = await fetch('/api/auth/register', {

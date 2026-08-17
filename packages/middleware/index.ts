@@ -1,205 +1,155 @@
-import { extractTokenFromHeader, verifyToken } from '@greed-advisor/auth';
-import type { ApiError, ApiResponse } from '@greed-advisor/types';
+import { extractTokenFromHeader, verifyAccessToken } from '@greed-advisor/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodError, ZodSchema } from 'zod';
 
-// Error handling middleware
-export function withErrorHandler<T>(
-  handler: (req: NextRequest) => Promise<NextResponse<ApiResponse<T>>>
-) {
-  return async (req: NextRequest): Promise<NextResponse<ApiResponse<T> | ApiError>> => {
+/**
+ * Shared context passed through middleware wrappers to route handlers.
+ * - `userId` is populated by `withAuth`
+ * - `data` is populated by `withValidation`
+ * - `params` is passed through from Next.js route handlers
+ */
+export interface RequestContext {
+  userId?: number;
+  data?: unknown;
+  params?: Record<string, string> | Promise<Record<string, string>>;
+}
+
+export type RouteHandler = (req: NextRequest, ctx: RequestContext) => Promise<NextResponse>;
+
+export interface ApiErrorResponse {
+  success: false;
+  message: string;
+  error: string;
+  statusCode: number;
+}
+
+const unauthorizedResponse = (): NextResponse =>
+  NextResponse.json(
+    {
+      success: false,
+      message: 'Unauthorized',
+      error: 'Missing or invalid authorization header',
+      statusCode: 401,
+    } satisfies ApiErrorResponse,
+    { status: 401 }
+  );
+
+const invalidTokenResponse = (): NextResponse =>
+  NextResponse.json(
+    {
+      success: false,
+      message: 'Unauthorized',
+      error: 'Invalid or expired token',
+      statusCode: 401,
+    } satisfies ApiErrorResponse,
+    { status: 401 }
+  );
+
+const validationErrorResponse = (error: ZodError): NextResponse =>
+  NextResponse.json(
+    {
+      success: false,
+      message: 'Validation failed',
+      error: error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', '),
+      statusCode: 400,
+    } satisfies ApiErrorResponse,
+    { status: 400 }
+  );
+
+const internalErrorResponse = (): NextResponse =>
+  NextResponse.json(
+    {
+      success: false,
+      message: 'Internal server error',
+      error: 'An unexpected error occurred',
+      statusCode: 500,
+    } satisfies ApiErrorResponse,
+    { status: 500 }
+  );
+
+function addSecurityHeaders(response: NextResponse): void {
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+}
+
+/** Catches any thrown error and returns a consistent error envelope. */
+export function withErrorHandler(handler: RouteHandler): RouteHandler {
+  return async (req, ctx) => {
     try {
-      return await handler(req);
+      return await handler(req, ctx);
     } catch (error) {
-      console.error('API Error:', error);
-
       if (error instanceof ZodError) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'Validation failed',
-            error: error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', '),
-            statusCode: 400,
-          } as ApiError,
-          { status: 400 }
-        );
+        return validationErrorResponse(error);
       }
-
-      if (error instanceof Error) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'Internal server error',
-            error: error.message,
-            statusCode: 500,
-          } as ApiError,
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Unknown error occurred',
-          error: 'An unexpected error occurred',
-          statusCode: 500,
-        } as ApiError,
-        { status: 500 }
-      );
+      return internalErrorResponse();
     }
   };
 }
 
-// Request validation middleware
+/** Applies security headers to every response (including error responses). */
+export function withSecurityHeaders(handler: RouteHandler): RouteHandler {
+  return async (req, ctx) => {
+    const response = await handler(req, ctx);
+    addSecurityHeaders(response);
+    return response;
+  };
+}
+
+/** Parses and validates the request body (non-GET) or search params (GET). */
 export function withValidation<T>(schema: ZodSchema<T>) {
-  return function (handler: (req: NextRequest, validatedData: T) => Promise<NextResponse>) {
-    return async (req: NextRequest): Promise<NextResponse> => {
+  return (
+    handler: (req: NextRequest, ctx: RequestContext & { data?: T }) => Promise<NextResponse>
+  ): RouteHandler => {
+    return async (req, ctx = {}) => {
       try {
-        let data: any;
-
-        if (req.method === 'GET') {
-          // For GET requests, validate search params
-          const searchParams = Object.fromEntries(req.nextUrl.searchParams);
-          data = schema.parse(searchParams);
-        } else {
-          // For other methods, validate JSON body
-          const body = await req.json();
-          data = schema.parse(body);
-        }
-
-        return await handler(req, data);
+        const source =
+          req.method === 'GET' ? Object.fromEntries(req.nextUrl.searchParams) : await req.json();
+        const data = schema.parse(source);
+        return await handler(req, { ...ctx, data });
       } catch (error) {
         if (error instanceof ZodError) {
-          return NextResponse.json(
-            {
-              success: false,
-              message: 'Validation failed',
-              error: error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', '),
-              statusCode: 400,
-            } as ApiError,
-            { status: 400 }
-          );
+          return validationErrorResponse(error);
         }
-
-        throw error; // Re-throw non-validation errors
+        throw error;
       }
     };
   };
 }
 
-// CORS middleware
-export function withCors(handler: (req: NextRequest) => Promise<NextResponse>) {
-  return async (req: NextRequest): Promise<NextResponse> => {
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-      return new NextResponse(null, {
-        status: 200,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          'Access-Control-Max-Age': '86400',
-        },
-      });
-    }
-
-    const response = await handler(req);
-
-    // Add CORS headers to the response
-    response.headers.set('Access-Control-Allow-Origin', '*');
-    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-    return response;
-  };
-}
-
-// Security headers middleware
-export function withSecurityHeaders(handler: (req: NextRequest) => Promise<NextResponse>) {
-  return async (req: NextRequest): Promise<NextResponse> => {
-    const response = await handler(req);
-
-    // Add security headers
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('X-Frame-Options', 'DENY');
-    response.headers.set('X-XSS-Protection', '1; mode=block');
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    response.headers.set(
-      'Content-Security-Policy',
-      "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
-    );
-
-    return response;
-  };
-}
-
-// Rate limiting check (to be used with rate-limit package)
-export function withRateLimit(handler: (req: NextRequest) => Promise<NextResponse>) {
-  return async (req: NextRequest): Promise<NextResponse> => {
-    // This would integrate with your rate-limit package
-    // For now, just pass through
-    return await handler(req);
-  };
-}
-
-// Authentication middleware
-export function withAuth(handler: (req: NextRequest, userId: number) => Promise<NextResponse>) {
-  return async (req: NextRequest): Promise<NextResponse> => {
+/** Requires a valid Bearer access token and provides `ctx.userId`. */
+export function withAuth(
+  handler: (req: NextRequest, ctx: RequestContext & { userId: number }) => Promise<NextResponse>
+): RouteHandler {
+  return async (req, ctx = {}) => {
     const token = extractTokenFromHeader(req.headers.get('authorization'));
-
     if (!token) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Unauthorized',
-          error: 'Missing or invalid authorization header',
-          statusCode: 401,
-        } as ApiError,
-        { status: 401 }
-      );
+      return unauthorizedResponse();
     }
 
+    const decoded = verifyAccessToken(token);
+    if (!decoded?.userId) {
+      return invalidTokenResponse();
+    }
+
+    return handler(req, { ...ctx, userId: decoded.userId });
+  };
+}
+
+/**
+ * Standard wrapper for API routes:
+ * error handling + security headers on every response.
+ */
+export const withApiMiddleware = (handler: RouteHandler): RouteHandler => {
+  return async (req, ctx) => {
+    let response: NextResponse;
     try {
-      const decoded = verifyToken(token);
-
-      if (!decoded || !decoded.userId) {
-        throw new Error('Invalid token');
-      }
-
-      return await handler(req, decoded.userId);
+      response = await handler(req, ctx);
     } catch (error) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Unauthorized',
-          error: 'Invalid token',
-          statusCode: 401,
-        } as ApiError,
-        { status: 401 }
-      );
+      response =
+        error instanceof ZodError ? validationErrorResponse(error) : internalErrorResponse();
     }
+    addSecurityHeaders(response);
+    return response;
   };
-}
-
-// Compose multiple middleware
-export function compose<T extends any[]>(...middlewares: Array<(handler: any) => any>) {
-  return (handler: (...args: T) => Promise<NextResponse>) => {
-    return middlewares.reduce((acc, middleware) => middleware(acc), handler);
-  };
-}
-
-// Common middleware composition for API routes
-export const withApiMiddleware = compose(
-  withErrorHandler,
-  withSecurityHeaders,
-  withCors,
-  withRateLimit
-);
-
-export const withAuthenticatedApi = compose(
-  withErrorHandler,
-  withSecurityHeaders,
-  withCors,
-  withRateLimit,
-  withAuth
-);
+};

@@ -10,18 +10,11 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+const AI_PROVIDERS = ['openai', 'anthropic', 'google', 'claude'] as const;
+
 export const aiApiKeySchema = z.object({
   title: z.string().min(1, 'Title is required'),
-  provider: z.enum(
-    {
-      openai: 'openai',
-      anthropic: 'anthropic',
-      google: 'google',
-      claude: 'claude',
-      other: 'other',
-    },
-    { error: 'Provider is required' }
-  ),
+  provider: z.enum(AI_PROVIDERS, { error: 'Provider is required' }),
   apiKey: z.string().min(1, 'API key is required'),
 });
 
@@ -38,15 +31,7 @@ export const t212ApiKeySchema = z.object({
 
 export const updateAiApiKeySchema = z.object({
   title: z.string().min(1, 'Title is required').optional(),
-  provider: z
-    .enum({
-      openai: 'openai',
-      anthropic: 'anthropic',
-      google: 'google',
-      claude: 'claude',
-      other: 'other',
-    })
-    .optional(),
+  provider: z.enum(AI_PROVIDERS).optional(),
   apiKey: z.string().min(1, 'API key is required').optional(),
   isActive: z.boolean().optional(),
 });
@@ -82,6 +67,47 @@ export const updateMarketDataKeySchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+export const watchlistItemSchema = z.object({
+  ticker: z.string().min(1, 'Ticker is required'),
+  name: z.string().optional().nullable(),
+  instrumentType: z
+    .enum({ STOCK: 'STOCK', ETF: 'ETF', CRYPTO: 'CRYPTO', FOREX: 'FOREX' })
+    .optional(),
+});
+
+export const marketDataKeyTestSchema = z.object({
+  keyId: z.coerce.number().int().positive('keyId is required'),
+});
+
+export const orderSchema = z.object({
+  tradingKeyId: z.coerce.number().int().positive('Trading account is required'),
+  ticker: z.string().min(1, 'Ticker is required'),
+  quantity: z.coerce.number().positive('Quantity must be greater than 0'),
+  side: z.enum({ BUY: 'BUY', SELL: 'SELL' }, { error: 'Side must be BUY or SELL' }),
+  stopLoss: z.coerce.number().optional(),
+  takeProfit: z.coerce.number().optional(),
+  extendedHours: z.boolean().optional(),
+});
+
+export const watchlistScanSchema = z.object({
+  aiKeyId: z.coerce.number().int().positive('AI key is required'),
+  marketDataKeyId: z.coerce.number().int().positive('Market data key is required'),
+  productType: z.enum({ INVEST: 'INVEST', CFD: 'CFD', CRYPTO: 'CRYPTO' }).default('INVEST'),
+});
+
+export const reportSchema = z.object({
+  tradingKeyId: z.coerce.number().int().positive('Trading key is required'),
+  aiKeyId: z.coerce.number().int().positive('AI key is required'),
+  marketDataKeyId: z.coerce.number().int().positive('Market data key is required'),
+  reportType: z.string().min(1, 'Report type is required'),
+  symbol: z.string().min(1).optional(),
+  productType: z.enum({ INVEST: 'INVEST', CFD: 'CFD', CRYPTO: 'CRYPTO' }).default('INVEST'),
+  riskProfile: z
+    .enum({ conservative: 'conservative', balanced: 'balanced', aggressive: 'aggressive' })
+    .default('balanced'),
+  accountValue: z.coerce.number().positive().optional(),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type AiApiKeyInput = z.infer<typeof aiApiKeySchema>;
@@ -91,6 +117,8 @@ export type UpdateT212ApiKeyInput = z.infer<typeof updateT212ApiKeySchema>;
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
 export type MarketDataKeyInput = z.infer<typeof marketDataKeySchema>;
 export type UpdateMarketDataKeyInput = z.infer<typeof updateMarketDataKeySchema>;
-
-// Re-export zod for convenience
-export { z };
+export type WatchlistItemInput = z.infer<typeof watchlistItemSchema>;
+export type MarketDataKeyTestInput = z.infer<typeof marketDataKeyTestSchema>;
+export type OrderInput = z.infer<typeof orderSchema>;
+export type WatchlistScanInput = z.infer<typeof watchlistScanSchema>;
+export type ReportInput = z.infer<typeof reportSchema>;

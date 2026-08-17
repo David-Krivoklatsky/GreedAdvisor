@@ -1,4 +1,5 @@
 import { AccountSummary, Position } from '@/types/dashboard';
+import { formatCurrency, formatPercent } from '@/lib/format';
 import { useMemo } from 'react';
 
 interface PortfolioOverviewProps {
@@ -6,17 +7,6 @@ interface PortfolioOverviewProps {
   accountSummary: AccountSummary | null;
   loading: boolean;
   currency?: string;
-}
-
-function formatCurrency(value: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency || 'USD',
-  }).format(value);
-}
-
-function formatPercent(value: number): string {
-  return `${value >= 0 ? '+' : ''}${(value * 100).toFixed(2)}%`;
 }
 
 interface SummaryCardProps {
@@ -28,13 +18,17 @@ interface SummaryCardProps {
 
 function SummaryCard({ label, value, sublabel, tone = 'default' }: SummaryCardProps) {
   const valueColor =
-    tone === 'positive' ? 'text-green-600' : tone === 'negative' ? 'text-red-600' : 'text-gray-900';
+    tone === 'positive'
+      ? 'text-success'
+      : tone === 'negative'
+        ? 'text-destructive'
+        : 'text-foreground';
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-      <p className="text-sm text-gray-500 font-medium">{label}</p>
+    <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+      <p className="text-sm text-muted-foreground font-medium">{label}</p>
       <p className={`text-2xl font-bold mt-1 ${valueColor}`}>{value}</p>
-      {sublabel && <p className="text-xs text-gray-400 mt-1">{sublabel}</p>}
+      {sublabel && <p className="text-xs text-muted-foreground mt-1">{sublabel}</p>}
     </div>
   );
 }
@@ -65,10 +59,10 @@ export default function PortfolioOverview({
       <div className="animate-pulse space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[0, 1, 2, 3].map(i => (
-            <div key={i} className="h-24 bg-gray-200 rounded-xl" />
+            <div key={i} className="h-24 bg-muted rounded-xl" />
           ))}
         </div>
-        <div className="h-64 bg-gray-200 rounded-xl" />
+        <div className="h-64 bg-muted rounded-xl" />
       </div>
     );
   }
@@ -115,23 +109,23 @@ export default function PortfolioOverview({
       </div>
 
       {/* Portfolio Breakdown */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Portfolio Breakdown</h3>
-            <p className="text-sm text-gray-500">
+            <h3 className="text-lg font-semibold text-foreground">Portfolio Breakdown</h3>
+            <p className="text-sm text-muted-foreground">
               {positions.length} open position{positions.length === 1 ? '' : 's'} across your
               account
             </p>
           </div>
           {accountSummary?.investments.realizedProfitLoss != null && (
             <div className="text-right">
-              <p className="text-xs text-gray-500">Realized PnL (all-time)</p>
+              <p className="text-xs text-muted-foreground">Realized PnL (all-time)</p>
               <p
                 className={`font-semibold ${
                   accountSummary.investments.realizedProfitLoss >= 0
-                    ? 'text-green-600'
-                    : 'text-red-600'
+                    ? 'text-success'
+                    : 'text-destructive'
                 }`}
               >
                 {formatCurrency(accountSummary.investments.realizedProfitLoss, accCurrency)}
@@ -143,8 +137,8 @@ export default function PortfolioOverview({
         {positions.length === 0 ? (
           <div className="py-16 text-center">
             <div className="text-4xl mb-2">📈</div>
-            <p className="text-gray-500">No open positions found.</p>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-muted-foreground">No open positions found.</p>
+            <p className="text-sm text-muted-foreground mt-1">
               Connect a Trading212 key with a portfolio to see your holdings here.
             </p>
           </div>
@@ -152,7 +146,7 @@ export default function PortfolioOverview({
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="text-xs text-gray-500 uppercase tracking-wide border-b border-gray-100">
+                <tr className="text-xs text-muted-foreground uppercase tracking-wide border-b border-border">
                   <th className="text-left px-6 py-3 font-medium">Symbol</th>
                   <th className="text-left px-6 py-3 font-medium">Company</th>
                   <th className="text-right px-6 py-3 font-medium">Qty</th>
@@ -178,47 +172,47 @@ export default function PortfolioOverview({
                   return (
                     <tr
                       key={position.instrument?.ticker}
-                      className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+                      className="border-b border-border hover:bg-muted/50 transition-colors"
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
                             {tickerShort?.slice(0, 3) ?? '??'}
                           </div>
-                          <span className="font-semibold text-gray-900">{tickerShort}</span>
+                          <span className="font-semibold text-foreground">{tickerShort}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-600">
+                      <td className="px-6 py-4 text-muted-foreground">
                         {position.instrument?.name ?? '—'}
                       </td>
-                      <td className="px-6 py-4 text-right text-gray-700">{position.quantity}</td>
-                      <td className="px-6 py-4 text-right text-gray-700">
+                      <td className="px-6 py-4 text-right text-foreground">{position.quantity}</td>
+                      <td className="px-6 py-4 text-right text-foreground">
                         {formatCurrency(
                           position.averagePricePaid,
                           position.instrument?.currency ?? posCurrency
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right text-gray-700">
+                      <td className="px-6 py-4 text-right text-foreground">
                         {formatCurrency(
                           position.currentPrice,
                           position.instrument?.currency ?? posCurrency
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right font-medium text-gray-900">
+                      <td className="px-6 py-4 text-right font-medium text-foreground">
                         {formatCurrency(value, posCurrency)}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className={pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        <div className={pnl >= 0 ? 'text-success' : 'text-destructive'}>
                           <div className="font-medium">{formatCurrency(pnl, posCurrency)}</div>
                           <div className="text-xs">{formatPercent(pnlPct)}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <span className="text-sm text-gray-600">
+                          <span className="text-sm text-muted-foreground">
                             {(allocation * 100).toFixed(1)}%
                           </span>
-                          <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
                             <div
                               className="h-full bg-indigo-500 rounded-full"
                               style={{ width: `${Math.min(100, allocation * 100)}%` }}

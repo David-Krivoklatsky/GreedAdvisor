@@ -1,5 +1,3 @@
-import { NextRequest } from 'next/server';
-
 interface RateLimitEntry {
   count: number;
   resetTime: number;
@@ -10,11 +8,7 @@ const rateLimitMap = new Map<string, RateLimitEntry>();
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 const RATE_LIMIT_MAX_REQUESTS = 100;
 
-export function rateLimit(req: NextRequest): {
-  success: boolean;
-  remaining?: number;
-} {
-  const ip = req.ip || req.headers.get('x-forwarded-for') || 'unknown';
+export function rateLimit(ip: string): { success: boolean; remaining?: number } {
   const now = Date.now();
 
   const entry = rateLimitMap.get(ip);
@@ -40,14 +34,11 @@ export function rateLimit(req: NextRequest): {
 setInterval(
   () => {
     const now = Date.now();
-    const entries = Array.from(rateLimitMap.entries());
-    for (const [ip, entry] of entries) {
+    for (const [ip, entry] of rateLimitMap) {
       if (now > entry.resetTime) {
         rateLimitMap.delete(ip);
       }
     }
   },
   5 * 60 * 1000
-); // Clean up every 5 minutes
-
-export default rateLimit;
+).unref(); // Clean up every 5 minutes (unref so it never keeps the process alive)

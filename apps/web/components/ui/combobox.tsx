@@ -72,7 +72,7 @@ export function Combobox({
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
               {options.length === 0 ? (
-                <div className="p-4 text-center text-sm text-gray-500">{emptyMessage}</div>
+                <div className="p-4 text-center text-sm text-muted-foreground">{emptyMessage}</div>
               ) : (
                 options.map(option => (
                   <CommandItem

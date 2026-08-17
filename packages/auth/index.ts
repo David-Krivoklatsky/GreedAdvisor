@@ -22,28 +22,25 @@ export function signRefreshToken(payload: object): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
 }
 
-export function verifyAccessToken(token: string): { userId: any; email: string } | null {
+export interface TokenPayload {
+  userId: number;
+  email: string;
+}
+
+export function verifyAccessToken(token: string): TokenPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: any; email: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
     if (!decoded || typeof decoded.userId === 'undefined') {
       throw new Error('Invalid token payload');
     }
     return { userId: decoded.userId, email: decoded.email };
-  } catch (error) {
+  } catch {
     return null;
   }
 }
 
-export function verifyRefreshToken(token: string): { userId: any; email: string } | null {
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: any; email: string };
-    if (!decoded || typeof decoded.userId === 'undefined') {
-      throw new Error('Invalid token payload');
-    }
-    return { userId: decoded.userId, email: decoded.email };
-  } catch (error) {
-    return null;
-  }
+export function verifyRefreshToken(token: string): TokenPayload | null {
+  return verifyAccessToken(token);
 }
 
 export function extractTokenFromHeader(authHeader: string | null): string | null {
@@ -51,14 +48,4 @@ export function extractTokenFromHeader(authHeader: string | null): string | null
     return null;
   }
   return authHeader.substring(7);
-}
-
-// Legacy function for backward compatibility
-export function signToken(payload: object): string {
-  return signAccessToken(payload);
-}
-
-export function verifyToken(token: string): { userId: any } | null {
-  const result = verifyAccessToken(token);
-  return result ? { userId: result.userId } : null;
 }

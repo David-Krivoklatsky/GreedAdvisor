@@ -1,120 +1,81 @@
 import { prisma } from '@/lib/prisma';
-import { extractTokenFromHeader, verifyAccessToken } from '@greed-advisor/auth';
+import { logKeyAudit } from '@/lib/audit';
+import { withApiMiddleware, withAuth, withValidation } from '@greed-advisor/middleware';
 import { t212ApiKeySchema } from '@greed-advisor/validations';
-import { NextRequest, NextResponse } from 'next/server';
+import type { T212ApiKeyInput } from '@greed-advisor/validations';
+import { NextResponse } from 'next/server';
 
-// Force this route to be dynamic since it uses request headers
-export const dynamic = 'force-dynamic';
-
-// GET /api/user/trading-keys - Get all Trading keys for user
-export async function GET(req: NextRequest) {
-  try {
-    const authHeader = req.headers.get('authorization');
-    const token = extractTokenFromHeader(authHeader);
-
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
-    }
-
-    const decoded = verifyAccessToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
-    }
-
-    const tradingKeys = await prisma.t212ApiKey.findMany({
-      where: {
-        userId: decoded.userId,
-        deletedAt: null,
-      },
+export const GET = withApiMiddleware(
+  withAuth(async (_req, ctx) => {
+    const apiKeys = await prisma.t212ApiKey.findMany({
+      where: { userId: ctx.userId, deletedAt: null },
       select: {
         id: true,
         title: true,
         accessType: true,
         environment: true,
         isActive: true,
-        lastUsed: true,
         createdAt: true,
-        updatedAt: true,
-        apiKey: true, // Include API key for display
+        lastUsed: true,
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ tradingKeys });
-  } catch (error) {
-    console.error('Get Trading keys error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    return NextResponse.json({ success: true, tradingKeys: apiKeys });
+  })
+);
 
-// POST /api/user/trading-keys - Create new Trading key
-export async function POST(req: NextRequest) {
-  try {
-    const authHeader = req.headers.get('authorization');
-    const token = extractTokenFromHeader(authHeader);
+export const POST = withApiMiddleware(
+  withValidation(t212ApiKeySchema)(
+    withAuth(async (req, ctx) => {
+      const { title, accessType, environment, apiKey, apiSecret } = ctx.data as T212ApiKeyInput;
 
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
-    }
+      const count = await prisma.t212ApiKey.count({
+        where: { userId: ctx.userId, deletedAt: null },
+      });
+      const maxKeys = Number(process.env.MAX_T212_KEYS ?? 3);
 
-    const decoded = verifyAccessToken(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
-    }
+      if (count >= maxKeys) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Maximum of ${maxKeys} Trading212 API keys allowed`,
+            error: 'API key limit reached',
+          },
+          { status: 400 }
+        );
+      }
 
-    const body = await req.json();
-    const result = t212ApiKeySchema.safeParse(body);
+      const newKey = await prisma.t212ApiKey.create({
+        data: {
+          userId: ctx.userId,
+          title,
+          accessType,
+          environment,
+          apiKey,
+          apiSecret,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          title: true,
+          accessType: true,
+          environment: true,
+          isActive: true,
+          createdAt: true,
+        },
+      });
 
-    if (!result.success) {
+      await logKeyAudit(ctx.userId, 'trading', 'created', req);
+
       return NextResponse.json(
-        { error: 'Invalid input', details: result.error.issues },
-        { status: 400 }
+        {
+          success: true,
+          message: 'Trading API key created successfully',
+          apiKey: newKey,
+        },
+        { status: 201 }
       );
-    }
-
-    const { title, accessType, environment, apiKey, apiSecret } = result.data;
-
-    const newTradingKey = await prisma.t212ApiKey.create({
-      data: {
-        userId: decoded.userId,
-        title,
-        accessType,
-        environment,
-        apiKey,
-        apiSecret,
-      },
-      select: {
-        id: true,
-        title: true,
-        accessType: true,
-        environment: true,
-        isActive: true,
-        lastUsed: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    // Log the creation
-    await prisma.apiKeyLog.create({
-      data: {
-        userId: decoded.userId,
-        keyType: 'trading',
-        action: 'created',
-        ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '',
-        userAgent: req.headers.get('user-agent') || '',
-      },
-    });
-
-    return NextResponse.json(
-      {
-        message: 'Trading key created successfully',
-        tradingKey: newTradingKey,
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error('Create Trading key error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+    })
+  )
+);

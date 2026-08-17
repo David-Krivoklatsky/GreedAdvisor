@@ -1,11 +1,12 @@
 import { prisma } from '@/lib/prisma';
-import { isOAuthProvider, exchangeCodeForProfile } from '@/lib/oauth';
+import { exchangeCodeForProfile, isOAuthProvider } from '@/lib/oauth';
 import { signAccessToken, signRefreshToken } from '@greed-advisor/auth';
-import { NextRequest, NextResponse } from 'next/server';
+import { withApiMiddleware } from '@greed-advisor/middleware';
+import { NextResponse } from 'next/server';
 
-// GET /api/auth/oauth/[provider]/callback - completes the OAuth flow
-export async function GET(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
-  const { provider } = await params;
+export const GET = withApiMiddleware(async (req, ctx) => {
+  const params = (await ctx.params) ?? {};
+  const provider = params.provider;
   const { searchParams } = req.nextUrl;
   const code = searchParams.get('code');
   const state = searchParams.get('state');
@@ -95,8 +96,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
     response.cookies.set('oauth_state', '', { maxAge: 0, path: '/' });
 
     return response;
-  } catch (error) {
-    console.error('OAuth callback error:', error);
+  } catch {
     return failRedirect('oauth_failed');
   }
-}
+});

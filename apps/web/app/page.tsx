@@ -5,7 +5,7 @@ import Navbar from '@/components/navbar';
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
-      <Navbar hasNewNotifications={false} />
+      <Navbar />
 
       <div className="container mx-auto px-4 py-16">
         <HeroSection />

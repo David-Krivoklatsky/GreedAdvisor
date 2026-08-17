@@ -14,27 +14,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { formatCurrency, formatPercent } from '@/lib/format';
 
 interface TerminalHeaderProps {
   tradingKeys: TradingKey[];
   selectedTradingKey: string;
   setSelectedTradingKey: (key: string) => void;
   accountSummary: AccountSummary | null;
-}
-
-function formatCurrency(value: number | undefined, currency: string): string {
-  const fmt = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency || 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  return fmt.format(value ?? 0);
-}
-
-function formatPercent(value: number | undefined): string {
-  if (value == null) return '—';
-  return `${value >= 0 ? '+' : ''}${(value * 100).toFixed(2)}%`;
 }
 
 export default function TerminalHeader({

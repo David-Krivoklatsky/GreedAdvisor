@@ -1,69 +1,62 @@
 import { prisma } from '@/lib/prisma';
+import { getClientIp } from '@/lib/api';
 import { comparePassword, signAccessToken, signRefreshToken } from '@greed-advisor/auth';
+import { withApiMiddleware, withValidation } from '@greed-advisor/middleware';
 import { rateLimit } from '@greed-advisor/rate-limit';
 import { loginSchema } from '@greed-advisor/validations';
-import { NextRequest, NextResponse } from 'next/server';
+import type { LoginInput } from '@greed-advisor/validations';
+import { NextResponse } from 'next/server';
 
-export async function POST(req: NextRequest) {
-  try {
-    // Rate limiting
-    const rateLimitResult = rateLimit(req as any);
+export const POST = withApiMiddleware(
+  withValidation(loginSchema)(async (req, ctx) => {
+    const { email, password } = ctx.data as LoginInput;
+
+    const rateLimitResult = rateLimit(getClientIp(req));
     if (!rateLimitResult.success) {
       return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
+        {
+          success: false,
+          message: 'Too many requests. Please try again later.',
+          error: 'Rate limit exceeded',
+        },
         { status: 429 }
       );
     }
 
-    const body = await req.json();
-    const result = loginSchema.safeParse(body);
+    const user = await prisma.user.findUnique({ where: { email } });
 
-    if (!result.success) {
+    if (!user || !user.password) {
       return NextResponse.json(
-        { error: 'Invalid input', details: result.error.issues },
-        { status: 400 }
+        { success: false, message: 'Invalid email or password', error: 'Invalid credentials' },
+        { status: 401 }
       );
     }
 
-    const { email, password } = result.data;
-
-    // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user || !user.password) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
-    }
-
-    // Verify password
     const isValidPassword = await comparePassword(password, user.password);
     if (!isValidPassword) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      return NextResponse.json(
+        { success: false, message: 'Invalid email or password', error: 'Invalid credentials' },
+        { status: 401 }
+      );
     }
 
-    // Generate tokens
     const payload = { userId: user.id, email: user.email };
     const accessToken = signAccessToken(payload);
     const refreshToken = signRefreshToken(payload);
 
-    // Create response
-    const response = NextResponse.json(
-      {
-        message: 'Login successful',
-        accessToken,
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          createdAt: user.createdAt,
-        },
+    const response = NextResponse.json({
+      success: true,
+      message: 'Login successful',
+      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        createdAt: user.createdAt,
       },
-      { status: 200 }
-    );
+    });
 
-    // Set refresh token as HTTP-only cookie
     response.cookies.set('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -73,7 +66,5 @@ export async function POST(req: NextRequest) {
     });
 
     return response;
-  } catch {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+  })
+);
