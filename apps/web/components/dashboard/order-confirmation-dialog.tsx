@@ -116,12 +116,12 @@ export default function OrderConfirmationDialog({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <div>
               <h2 className="text-xl font-bold">Confirm Order</h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 {symbol}
                 {companyName ? ` · ${companyName}` : ''} — you review and confirm, the AI never
                 trades by itself
@@ -137,7 +137,7 @@ export default function OrderConfirmationDialog({
             <div>
               <Label>Trading account</Label>
               <select
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 value={tradingKeyId}
                 onChange={e => setTradingKeyId(e.target.value)}
               >
@@ -150,7 +150,7 @@ export default function OrderConfirmationDialog({
               </select>
               {selectedEnv && (
                 <p
-                  className={`text-xs mt-1 ${selectedEnv === 'demo' ? 'text-amber-600' : 'text-red-600'}`}
+                  className={`text-xs mt-1 ${selectedEnv === 'demo' ? 'text-warning' : 'text-destructive'}`}
                 >
                   {selectedEnv === 'demo'
                     ? 'Demo account — no real money'
@@ -168,8 +168,8 @@ export default function OrderConfirmationDialog({
                   onClick={() => setSide('BUY')}
                   className={`py-2 rounded-md text-sm font-semibold border ${
                     side === 'BUY'
-                      ? 'bg-green-600 text-white border-green-600'
-                      : 'border-gray-300 text-gray-600 hover:bg-green-50'
+                      ? 'bg-success text-white border-success'
+                      : 'border-border text-muted-foreground hover:bg-success/10'
                   }`}
                 >
                   BUY
@@ -179,8 +179,8 @@ export default function OrderConfirmationDialog({
                   onClick={() => setSide('SELL')}
                   className={`py-2 rounded-md text-sm font-semibold border ${
                     side === 'SELL'
-                      ? 'bg-red-600 text-white border-red-600'
-                      : 'border-gray-300 text-gray-600 hover:bg-red-50'
+                      ? 'bg-destructive text-white border-destructive'
+                      : 'border-border text-muted-foreground hover:bg-destructive/10'
                   }`}
                 >
                   SELL
@@ -234,19 +234,19 @@ export default function OrderConfirmationDialog({
             </div>
 
             {plan.riskAmount != null && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Suggested risk: up to {formatNumber(plan.riskAmount)} per this trade (AI sizing —
                 adjust freely)
               </p>
             )}
 
             {plan.productType === 'CFD' && (
-              <p className="text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
+              <p className="text-xs font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-2">
                 ⚠️ CFD order — leverage amplifies both gains and losses.
               </p>
             )}
             {plan.productType === 'CRYPTO' && (
-              <p className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-2">
+              <p className="text-xs font-medium text-warning bg-warning/10 border border-warning/20 rounded-md p-2">
                 ⚠️ Cryptocurrency — highly volatile, 24/7 market.
               </p>
             )}
@@ -260,7 +260,7 @@ export default function OrderConfirmationDialog({
               Copy to clipboard
             </Button>
           </div>
-          <p className="text-center text-xs text-gray-400 mt-3">
+          <p className="text-center text-xs text-muted-foreground mt-3">
             By confirming you take full responsibility. Do your own research first.
           </p>
         </div>

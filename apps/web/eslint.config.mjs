@@ -17,12 +17,27 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/immutability': 'off',
       'react-hooks/refs': 'off',
+      'react-hooks/preserve-manual-memoization': 'off',
     },
   },
   {
     files: ['**/*.test.ts', '**/*.test.tsx', '**/__tests__/**'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  {
+    // Full-page navigations that must not be client-side (oauth redirects, post-logout)
+    files: ['lib/token-manager.ts', 'components/forms/oauth-buttons.tsx'],
+    rules: {
+      '@next/next/no-location-assign-relative-destination': 'off',
+    },
+  },
+  {
+    // Avatar renders base64 data URLs which next/image cannot optimize
+    files: ['components/profile/sections/profile-section.tsx'],
+    rules: {
+      '@next/next/no-img-element': 'off',
     },
   },
 ]);

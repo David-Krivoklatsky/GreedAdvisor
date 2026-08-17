@@ -28,7 +28,7 @@ export default function LoginPage() {
       toast(messages[oauthError] ?? 'Sign-in failed. Please try again.', 'error');
       router.replace('/login');
     }
-  }, []);
+  }, [router, toast]);
 
   const handleLogin = async (email: string, password: string) => {
     setLoading(true);

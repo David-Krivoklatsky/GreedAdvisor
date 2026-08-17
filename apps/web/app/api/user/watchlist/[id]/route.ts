@@ -1,52 +1,36 @@
 import { prisma } from '@/lib/prisma';
-import { extractTokenFromHeader, verifyAccessToken } from '@greed-advisor/auth';
-import { NextRequest, NextResponse } from 'next/server';
+import { withApiMiddleware, withAuth } from '@greed-advisor/middleware';
+import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+export const DELETE = withApiMiddleware(
+  withAuth(async (_req, ctx) => {
+    const params = (await ctx.params) ?? {};
+    const itemId = Number(params.id);
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const authHeader = request.headers.get('authorization');
-    const token = extractTokenFromHeader(authHeader);
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const decoded = verifyAccessToken(token);
-    if (!decoded || !decoded.userId) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    if (!Number.isInteger(itemId)) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid watchlist item id', error: 'Invalid id' },
+        { status: 400 }
+      );
     }
 
-    const resolvedParams = await params;
-    const id = Number(resolvedParams.id);
-    if (!id) {
-      return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
-    }
-
-    const existing = await prisma.watchlistItem.findFirst({
-      where: { id, userId: decoded.userId },
+    const item = await prisma.watchlistItem.findFirst({
+      where: { id: itemId, userId: ctx.userId },
     });
 
-    if (!existing) {
-      return NextResponse.json({ error: 'Watchlist item not found' }, { status: 404 });
+    if (!item) {
+      return NextResponse.json(
+        { success: false, message: 'Watchlist item not found', error: 'Watchlist item not found' },
+        { status: 404 }
+      );
     }
 
-    // Soft delete (set inactive) so re-adding keeps history
+    // Soft delete so re-adding preserves the original creation date
     await prisma.watchlistItem.update({
-      where: { id },
+      where: { id: itemId },
       data: { isActive: false },
     });
 
-    return NextResponse.json({ message: 'Watchlist item removed' }, { status: 200 });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Delete watchlist error:', error);
-    return NextResponse.json(
-      { error: 'Failed to remove watchlist item', details: message },
-      { status: 500 }
-    );
-  }
-}
+    return NextResponse.json({ success: true, message: 'Item removed from watchlist' });
+  })
+);

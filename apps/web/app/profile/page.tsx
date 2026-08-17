@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/toast';
 import { TokenManager } from '@/lib/token-manager';
 import { AiApiKey, MarketDataKey, TradingApiKey, User } from '@/types/profile';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -21,14 +21,7 @@ export default function ProfilePage() {
   const [updating, setUpdating] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchUser();
-    fetchAiKeys();
-    fetchTradingKeys();
-    fetchMarketDataKeys();
-  }, []);
-
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/profile');
       if (!response.ok) throw new Error('Failed to fetch user data');
@@ -38,9 +31,9 @@ export default function ProfilePage() {
     } catch {
       toast('Failed to load user data', 'error');
     }
-  };
+  }, [toast]);
 
-  const fetchAiKeys = async () => {
+  const fetchAiKeys = useCallback(async () => {
     try {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/ai-keys');
       if (!response.ok) throw new Error('Failed to fetch AI keys');
@@ -50,9 +43,9 @@ export default function ProfilePage() {
     } catch {
       // Failed to load AI keys - handle silently
     }
-  };
+  }, []);
 
-  const fetchTradingKeys = async () => {
+  const fetchTradingKeys = useCallback(async () => {
     try {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/trading-keys');
       if (!response.ok) throw new Error('Failed to fetch trading keys');
@@ -62,9 +55,9 @@ export default function ProfilePage() {
     } catch {
       // Failed to load trading keys - handle silently
     }
-  };
+  }, []);
 
-  const fetchMarketDataKeys = async () => {
+  const fetchMarketDataKeys = useCallback(async () => {
     try {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/market-data-keys');
       if (!response.ok) throw new Error('Failed to fetch market data keys');
@@ -74,7 +67,14 @@ export default function ProfilePage() {
     } catch {
       // Failed to load market data keys - handle silently
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchUser();
+    fetchAiKeys();
+    fetchTradingKeys();
+    fetchMarketDataKeys();
+  }, [fetchUser, fetchAiKeys, fetchTradingKeys, fetchMarketDataKeys]);
 
   const uploadProfilePicture = async (file: File): Promise<string> => {
     const formData = new FormData();

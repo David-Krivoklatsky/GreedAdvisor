@@ -9,9 +9,9 @@ export default function ErrorState({ error, onRetry }: ErrorStateProps) {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <div className="text-red-600 text-lg mb-4">{error}</div>
+        <div className="text-destructive text-lg mb-4">{error}</div>
         {onRetry && (
-          <Button onClick={onRetry} className="bg-blue-600 text-white hover:bg-blue-700">
+          <Button onClick={onRetry} className="bg-primary text-white hover:bg-primary/90">
             Retry
           </Button>
         )}

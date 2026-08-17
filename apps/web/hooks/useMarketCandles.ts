@@ -1,5 +1,5 @@
 import { TokenManager } from '@/lib/token-manager';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface CandleData {
   datetime: string;
@@ -25,36 +25,37 @@ export const useMarketCandles = () => {
   const [symbol, setSymbol] = useState('AAPL');
   const [interval, setInterval] = useState('1day');
 
-  const fetchCandles = async (sym?: string, iv?: string) => {
-    setLoading(true);
-    setError('');
-    try {
-      const targetSymbol = sym ?? symbol;
-      const targetInterval = iv ?? interval;
-      const mapped = INTERVAL_MAP[targetInterval] ?? '1day';
-      const response = await TokenManager.makeAuthenticatedRequest(
-        `/api/market-data/candles?symbol=${encodeURIComponent(targetSymbol)}&interval=${mapped}`
-      );
+  const fetchCandles = useCallback(
+    async (sym?: string, iv?: string) => {
+      setLoading(true);
+      setError('');
+      try {
+        const targetSymbol = sym ?? symbol;
+        const targetInterval = iv ?? interval;
+        const mapped = INTERVAL_MAP[targetInterval] ?? '1day';
+        const response = await TokenManager.makeAuthenticatedRequest(
+          `/api/market-data/candles?symbol=${encodeURIComponent(targetSymbol)}&interval=${mapped}`
+        );
 
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        throw new Error(body?.error || body?.details || 'Failed to load chart data');
+        if (!response.ok) {
+          const body = await response.json().catch(() => null);
+          throw new Error(body?.error || body?.details || 'Failed to load chart data');
+        }
+
+        const data = await response.json();
+        setCandles(data.candles || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load chart data');
+      } finally {
+        setLoading(false);
       }
-
-      const data = await response.json();
-      setCandles(data.candles || []);
-    } catch (err) {
-      console.error('Failed to load chart candles:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load chart data');
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [symbol, interval]
+  );
 
   useEffect(() => {
-    fetchCandles(symbol, interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [symbol, interval]);
+    fetchCandles();
+  }, [fetchCandles]);
 
   return {
     candles,

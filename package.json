@@ -18,9 +18,8 @@
     "db:migrate": "turbo db:migrate",
     "db:push": "turbo db:push",
     "db:seed": "turbo db:seed",
-    "db:reset": "turbo db:reset",
-    "clean": "turbo clean",
-    "clean:all": "turbo clean && rm -rf node_modules && npm install",
+    "clean": "npx rimraf .turbo apps/web/.next",
+    "clean:all": "npx rimraf node_modules apps/*/node_modules packages/*/node_modules package-lock.json && npm install",
     "check-updates": "npx npm-check-updates",
     "security-audit": "npm audit --audit-level=moderate",
     "prepare": "node scripts/setup-husky.js"
