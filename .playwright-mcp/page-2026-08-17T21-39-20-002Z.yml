@@ -1,0 +1,68 @@
+- generic [ref=f5e1]:
+  - generic [ref=f5e28]:
+    - banner [ref=f5e29]:
+      - generic [ref=f5e30]:
+        - link "GreedAdvisor Logo GreedAdvisor" [ref=f5e31] [cursor=pointer]:
+          - /url: /
+          - img "GreedAdvisor Logo" [ref=f5e32]
+          - generic [ref=f5e33]: GreedAdvisor
+        - navigation [ref=f5e34]:
+          - link "Dashboard" [ref=f5e35] [cursor=pointer]:
+            - /url: /dashboard
+          - link "Profile" [ref=f5e36] [cursor=pointer]:
+            - /url: /profile
+          - link "Home" [ref=f5e37] [cursor=pointer]:
+            - /url: /
+        - generic [ref=f5e41]:
+          - button "Toggle theme" [ref=f5e42]
+          - button "Notifications" [ref=f5e46]
+          - button [ref=f5e50]:
+            - img "Profile" [ref=f5e52]
+    - generic [ref=f5e53]:
+      - generic [ref=f5e54]:
+        - heading "Settings" [level=1] [ref=f5e55]
+        - paragraph [ref=f5e56]: Manage your account, keys, and risk preferences
+      - generic [ref=f5e57]:
+        - tablist [ref=f5e58]:
+          - tab "Profile" [ref=f5e59]
+          - tab "AI Keys" [selected] [ref=f5e60]
+          - tab "Trading Keys" [ref=f5e61]
+          - tab "Market Data" [ref=f5e62]
+        - tabpanel "AI Keys" [ref=f5e81]:
+          - generic [ref=f5e82]:
+            - generic [ref=f5e83]:
+              - heading "AI API Keys" [level=3] [ref=f5e84]
+              - paragraph [ref=f5e85]: Manage your AI provider API keys (OpenAI, Claude, etc.)
+            - generic [ref=f5e86]:
+              - generic [ref=f5e87]:
+                - heading "Your AI Keys" [level=3] [ref=f5e88]
+                - button "Cancel" [ref=f5e92]
+              - generic [ref=f5e93]:
+                - heading "Add New AI Key" [level=3] [ref=f5e95]
+                - generic [ref=f5e97]:
+                  - generic [ref=f5e98]:
+                    - text: Title
+                    - textbox "Title" [ref=f5e99]:
+                      - /placeholder: e.g., My OpenAI Key
+                  - generic [ref=f5e100]:
+                    - text: Provider
+                    - combobox [expanded] [ref=f5e101]: OpenAI
+                  - generic [ref=f5e105]:
+                    - text: API Key
+                    - generic [ref=f5e106]:
+                      - textbox "API Key" [ref=f5e107]:
+                        - /placeholder: Enter your API key
+                      - button "Show API key" [ref=f5e108]
+                  - button "Add AI Key" [ref=f5e112]
+              - paragraph [ref=f5e91]: No AI keys found. Add your first AI key above.
+  - button "Open Next.js Dev Tools" [ref=f5e24] [cursor=pointer]
+  - alert [ref=f5e80]
+  - dialog [ref=f5e114]:
+    - generic [ref=f5e115]:
+      - combobox [expanded] [active] [ref=f5e121]
+      - listbox "Suggestions" [ref=f5e122]:
+        - group [ref=f5e124]:
+          - option "OpenAI" [selected] [ref=f5e125]
+          - option "Anthropic (Claude)" [ref=f5e128]
+          - option "Google (Gemini)" [ref=f5e131]
+          - option "Other" [ref=f5e134]

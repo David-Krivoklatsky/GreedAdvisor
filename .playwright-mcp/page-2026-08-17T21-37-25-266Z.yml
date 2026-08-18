@@ -1,0 +1,51 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e29]:
+    - banner [ref=f2e30]:
+      - generic [ref=f2e31]:
+        - link "GreedAdvisor Logo GreedAdvisor" [ref=f2e32] [cursor=pointer]:
+          - /url: /
+          - img "GreedAdvisor Logo" [ref=f2e33]
+          - generic [ref=f2e34]: GreedAdvisor
+        - navigation [ref=f2e35]:
+          - link "Dashboard" [ref=f2e36] [cursor=pointer]:
+            - /url: /dashboard
+          - link "Profile" [ref=f2e37] [cursor=pointer]:
+            - /url: /profile
+          - link "Home" [ref=f2e38] [cursor=pointer]:
+            - /url: /
+        - generic [ref=f2e42]:
+          - button "Toggle theme" [ref=f2e43]
+          - button "Notifications" [ref=f2e47]
+          - button [ref=f2e51]:
+            - img "Profile" [ref=f2e53]
+    - generic [ref=f2e54]:
+      - generic [ref=f2e55]:
+        - heading "Settings" [level=1] [ref=f2e56]
+        - paragraph [ref=f2e57]: Manage your account, keys, and risk preferences
+      - generic [ref=f2e58]:
+        - tablist [ref=f2e59]:
+          - tab "Profile" [selected] [ref=f2e60]
+          - tab "AI Keys" [ref=f2e61]
+          - tab "Trading Keys" [ref=f2e62]
+          - tab "Market Data" [ref=f2e63]
+        - tabpanel "Profile" [ref=f2e64]:
+          - generic [ref=f2e65]:
+            - generic [ref=f2e66]:
+              - heading "Profile Information" [level=3] [ref=f2e67]
+              - paragraph [ref=f2e68]: Update your account information
+            - generic [ref=f2e70]:
+              - generic [ref=f2e71]:
+                - img "Profile" [ref=f2e73]
+                - generic [ref=f2e74]:
+                  - text: Profile Picture
+                  - button "Profile Picture" [ref=f2e75]
+              - generic [ref=f2e76]:
+                - text: Email address
+                - textbox "Email address" [ref=f2e77]: test@example.com
+              - generic [ref=f2e78]:
+                - text: New Password (leave blank to keep current)
+                - textbox "New Password (leave blank to keep current)" [ref=f2e79]:
+                  - /placeholder: Enter new password
+              - button "Update Profile" [ref=f2e80]
+  - button "Open Next.js Dev Tools" [ref=f2e24] [cursor=pointer]
+  - alert [ref=f2e28]
