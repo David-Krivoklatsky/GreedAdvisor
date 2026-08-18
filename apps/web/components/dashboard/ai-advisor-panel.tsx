@@ -78,8 +78,8 @@ function actionBadge(action: string) {
     BUY: 'bg-success/15 text-success',
     ADD: 'bg-success/10 text-success',
     SELL: 'bg-destructive/10 text-destructive',
-    TRIM: 'bg-orange-100 text-orange-800',
-    HOLD: 'bg-yellow-100 text-yellow-800',
+    TRIM: 'bg-warning/15 text-warning',
+    HOLD: 'bg-muted text-muted-foreground',
   };
   return colors[action] ?? 'bg-muted text-foreground';
 }
@@ -216,7 +216,7 @@ export default function AiAdvisorPanel({
   };
 
   return (
-    <Card className="h-full border-0 rounded-none overflow-y-auto">
+    <Card className="h-full overflow-y-auto">
       <CardHeader className="border-b border-border">
         <div className="flex items-center justify-between">
           <div>
@@ -261,8 +261,8 @@ export default function AiAdvisorPanel({
                 onClick={() => setProductType(type)}
                 className={`py-2 rounded-md text-xs font-semibold border transition-colors ${
                   productType === type
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'border-border text-muted-foreground hover:bg-indigo-50'
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'border-border text-muted-foreground hover:bg-accent'
                 }`}
               >
                 {type}

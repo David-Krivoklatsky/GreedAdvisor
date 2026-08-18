@@ -22,8 +22,8 @@ const ACTION_COLORS: Record<string, string> = {
   BUY: 'bg-success text-white',
   ADD: 'bg-success text-white',
   SELL: 'bg-destructive text-white',
-  TRIM: 'bg-orange-500 text-white',
-  HOLD: 'bg-yellow-500 text-white',
+  TRIM: 'bg-warning text-white',
+  HOLD: 'bg-muted text-muted-foreground',
 };
 
 export default function TradePlanModal({
@@ -110,21 +110,21 @@ export default function TradePlanModal({
           {(plan.positionSize != null || plan.riskAmount != null) && (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
               {plan.positionSize != null && (
-                <div className="bg-indigo-50 rounded-lg p-3 text-center">
-                  <div className="text-xl font-bold text-indigo-900">{plan.positionSize}</div>
-                  <div className="text-xs text-indigo-600">Suggested size</div>
+                <div className="bg-primary/10 rounded-lg p-3 text-center">
+                  <div className="text-xl font-bold text-primary">{plan.positionSize}</div>
+                  <div className="text-xs text-primary">Suggested size</div>
                 </div>
               )}
               {plan.riskAmount != null && (
-                <div className="bg-indigo-50 rounded-lg p-3 text-center">
-                  <div className="text-xl font-bold text-indigo-900">{plan.riskAmount}</div>
-                  <div className="text-xs text-indigo-600">Max risk per trade</div>
+                <div className="bg-primary/10 rounded-lg p-3 text-center">
+                  <div className="text-xl font-bold text-primary">{plan.riskAmount}</div>
+                  <div className="text-xs text-primary">Max risk per trade</div>
                 </div>
               )}
               {plan.riskPerUnit != null && (
-                <div className="bg-indigo-50 rounded-lg p-3 text-center">
-                  <div className="text-xl font-bold text-indigo-900">{plan.riskPerUnit}</div>
-                  <div className="text-xs text-indigo-600">Risk per unit</div>
+                <div className="bg-primary/10 rounded-lg p-3 text-center">
+                  <div className="text-xl font-bold text-primary">{plan.riskPerUnit}</div>
+                  <div className="text-xs text-primary">Risk per unit</div>
                 </div>
               )}
             </div>

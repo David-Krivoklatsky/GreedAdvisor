@@ -1,0 +1,42 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e29]:
+    - banner [ref=f2e30]:
+      - generic [ref=f2e31]:
+        - link "GreedAdvisor Logo GreedAdvisor" [ref=f2e32] [cursor=pointer]:
+          - /url: /
+          - img "GreedAdvisor Logo" [ref=f2e33]
+          - generic [ref=f2e34]: GreedAdvisor
+        - navigation [ref=f2e35]:
+          - link "Dashboard" [ref=f2e36] [cursor=pointer]:
+            - /url: /dashboard
+          - link "Profile" [ref=f2e37] [cursor=pointer]:
+            - /url: /profile
+          - link "Home" [ref=f2e38] [cursor=pointer]:
+            - /url: /
+        - generic [ref=f2e42]:
+          - button "Toggle theme" [ref=f2e43]
+          - button "Notifications" [ref=f2e47]
+          - button [ref=f2e51]:
+            - img "Profile" [ref=f2e53]
+    - generic [ref=f2e54]:
+      - generic [ref=f2e55]:
+        - heading "Settings" [level=1] [ref=f2e56]
+        - paragraph [ref=f2e57]: Manage your account, keys, and risk preferences
+      - generic [ref=f2e58]:
+        - tablist [ref=f2e59]:
+          - tab "Profile" [ref=f2e60]
+          - tab "AI Keys" [ref=f2e61]
+          - tab "Trading Keys" [ref=f2e62]
+          - tab "Market Data" [active] [selected] [ref=f2e63]
+        - tabpanel "Market Data" [ref=f2e103]:
+          - generic [ref=f2e104]:
+            - generic [ref=f2e105]:
+              - heading "Market Data API Keys" [level=3] [ref=f2e106]
+              - paragraph [ref=f2e107]: Manage your market data API keys (Twelve Data) for real-time quotes and candles
+            - generic [ref=f2e108]:
+              - generic [ref=f2e109]:
+                - heading "Your Market Data Keys" [level=3] [ref=f2e110]
+                - button "Add Market Data Key" [ref=f2e111]
+              - paragraph [ref=f2e113]: No market data keys found. Add your first key above.
+  - button "Open Next.js Dev Tools" [ref=f2e24] [cursor=pointer]
+  - alert [ref=f2e28]

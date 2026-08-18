@@ -199,7 +199,7 @@ export default function PortfolioOverview({
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                          <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
                             {tickerShort?.slice(0, 3) ?? '??'}
                           </div>
                           <span className="font-semibold text-foreground">{tickerShort}</span>
@@ -244,7 +244,7 @@ export default function PortfolioOverview({
                           </span>
                           <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-indigo-500 rounded-full"
+                              className="h-full bg-primary rounded-full"
                               style={{ width: `${Math.min(100, allocation * 100)}%` }}
                             />
                           </div>

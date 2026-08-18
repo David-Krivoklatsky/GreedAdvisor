@@ -1,0 +1,36 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e3]:
+    - generic [ref=f1e4]:
+      - link "GreedAdvisor Logo GreedAdvisor" [ref=f1e5] [cursor=pointer]:
+        - /url: /
+        - img "GreedAdvisor Logo" [ref=f1e6]
+        - generic [ref=f1e7]: GreedAdvisor
+      - button [ref=f1e8]
+    - generic [ref=f1e11]:
+      - generic [ref=f1e12]:
+        - img "GreedAdvisor Logo" [ref=f1e13]
+        - heading "Create your account" [level=2] [ref=f1e14]
+        - paragraph [ref=f1e15]:
+          - text: Or
+          - link "sign in to your existing account" [ref=f1e16] [cursor=pointer]:
+            - /url: /login
+      - generic [ref=f1e17]:
+        - button "Continue with Google" [ref=f1e18]
+        - button "Continue with GitHub" [ref=f1e24]
+      - generic [ref=f1e27]: or
+      - generic [ref=f1e31]:
+        - generic [ref=f1e32]:
+          - text: Email address
+          - textbox "Email address" [ref=f1e33]:
+            - /placeholder: Enter your email
+        - generic [ref=f1e34]:
+          - text: Password
+          - textbox "Password" [ref=f1e35]:
+            - /placeholder: Enter your password
+        - generic [ref=f1e36]:
+          - text: Confirm Password
+          - textbox "Confirm Password" [ref=f1e37]:
+            - /placeholder: Confirm your password
+        - button "Create account" [ref=f1e38]
+  - button "Open Next.js Dev Tools" [ref=f1e44] [cursor=pointer]
+  - alert [ref=f1e48]

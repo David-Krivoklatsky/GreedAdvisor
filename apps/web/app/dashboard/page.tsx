@@ -86,7 +86,7 @@ export default function DashboardPage() {
           <div className="xl:col-span-2">
             <ChartPanel />
           </div>
-          <div className="min-h-[520px] space-y-4">
+          <div className="flex">
             <AiAdvisorPanel
               tradingKeys={tradingKeys}
               aiKeys={aiKeys}
@@ -94,16 +94,17 @@ export default function DashboardPage() {
               selectedTradingKey={selectedTradingKey}
               onNotification={({ message, type }) => toast(message, type)}
             />
-            {user && (
-              <RiskProfileSection
-                user={user}
-                onUpdate={handleUpdateRiskProfile}
-                updating={riskUpdating}
-                stacked
-              />
-            )}
           </div>
         </div>
+
+        {/* Risk profile below */}
+        {user && (
+          <RiskProfileSection
+            user={user}
+            onUpdate={handleUpdateRiskProfile}
+            updating={riskUpdating}
+          />
+        )}
 
         {/* Portfolio below */}
         <PortfolioOverview
