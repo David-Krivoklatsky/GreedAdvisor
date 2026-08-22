@@ -73,7 +73,7 @@ export function InstrumentCombobox({ value, onSelect, className }: InstrumentCom
       displayValue={value || undefined}
       options={instruments.map(i => ({
         value: i.ticker,
-        label: `${normalizeTicker(i.ticker)} — ${i.shortName || i.name || i.ticker}`,
+        label: `${normalizeTicker(i.ticker)} — ${i.shortName || i.name || i.ticker}`
       }))}
       onValueChange={selected => {
         const instrument = instruments.find(i => i.ticker === selected);
@@ -81,7 +81,7 @@ export function InstrumentCombobox({ value, onSelect, className }: InstrumentCom
           onSelect({
             ticker: normalizeTicker(instrument.ticker),
             name: instrument.name || instrument.shortName,
-            type: instrumentType(instrument),
+            type: instrumentType(instrument)
           });
         }
       }}

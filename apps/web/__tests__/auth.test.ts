@@ -8,7 +8,7 @@ import {
   signAccessToken,
   signRefreshToken,
   verifyAccessToken,
-  verifyRefreshToken,
+  verifyRefreshToken
 } from '@greed-advisor/auth';
 
 describe('@greed-advisor/auth', () => {

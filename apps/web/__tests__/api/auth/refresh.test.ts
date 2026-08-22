@@ -5,20 +5,20 @@ import { NextRequest } from 'next/server';
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     user: {
-      findUnique: jest.fn(),
-    },
-  },
+      findUnique: jest.fn()
+    }
+  }
 }));
 
 // Mock auth functions
 jest.mock('@greed-advisor/auth', () => ({
   signAccessToken: jest.fn(),
-  verifyRefreshToken: jest.fn(),
+  verifyRefreshToken: jest.fn()
 }));
 
 // Mock middleware
 jest.mock('@greed-advisor/middleware', () => ({
-  withApiMiddleware: jest.fn((handler: any) => handler),
+  withApiMiddleware: jest.fn((handler: any) => handler)
 }));
 
 // Import the route handler after mocks are set up
@@ -39,7 +39,7 @@ describe('/api/auth/refresh', () => {
   const makeRequest = (withCookie: boolean) =>
     new NextRequest('http://localhost:3000/api/auth/refresh', {
       method: 'POST',
-      headers: withCookie ? { cookie: 'refreshToken=valid-refresh-token' } : {},
+      headers: withCookie ? { cookie: 'refreshToken=valid-refresh-token' } : {}
     });
 
   it('should issue a new access token with a valid refresh token', async () => {
@@ -49,7 +49,7 @@ describe('/api/auth/refresh', () => {
       isActive: true,
       firstName: 'Test',
       lastName: 'User',
-      createdAt: new Date(),
+      createdAt: new Date()
     });
 
     const response = await POST(makeRequest(true), {});
@@ -86,7 +86,7 @@ describe('/api/auth/refresh', () => {
       isActive: false,
       firstName: null,
       lastName: null,
-      createdAt: new Date(),
+      createdAt: new Date()
     });
 
     const response = await POST(makeRequest(true), {});

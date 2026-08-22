@@ -14,24 +14,29 @@ export const GET = withApiMiddleware(
         title: true,
         accessType: true,
         environment: true,
+        provider: true,
         isActive: true,
         createdAt: true,
-        lastUsed: true,
+        lastUsed: true
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }
     });
 
-    return NextResponse.json({ success: true, tradingKeys: apiKeys });
+    return NextResponse.json({
+      success: true,
+      tradingKeys: apiKeys.map(key => ({ ...key, provider: key.provider ?? 'trading212' }))
+    });
   })
 );
 
 export const POST = withApiMiddleware(
   withValidation(t212ApiKeySchema)(
     withAuth(async (req, ctx) => {
-      const { title, accessType, environment, apiKey, apiSecret } = ctx.data as T212ApiKeyInput;
+      const { title, accessType, environment, provider, apiKey, apiSecret } =
+        ctx.data as T212ApiKeyInput;
 
       const count = await prisma.t212ApiKey.count({
-        where: { userId: ctx.userId, deletedAt: null },
+        where: { userId: ctx.userId, deletedAt: null }
       });
       const maxKeys = Number(process.env.MAX_T212_KEYS ?? 3);
 
@@ -39,8 +44,8 @@ export const POST = withApiMiddleware(
         return NextResponse.json(
           {
             success: false,
-            message: `Maximum of ${maxKeys} Trading212 API keys allowed`,
-            error: 'API key limit reached',
+            message: `Maximum of ${maxKeys} trading API keys allowed`,
+            error: 'API key limit reached'
           },
           { status: 400 }
         );
@@ -52,18 +57,20 @@ export const POST = withApiMiddleware(
           title,
           accessType,
           environment,
+          provider,
           apiKey,
           apiSecret,
-          isActive: true,
+          isActive: true
         },
         select: {
           id: true,
           title: true,
           accessType: true,
           environment: true,
+          provider: true,
           isActive: true,
-          createdAt: true,
-        },
+          createdAt: true
+        }
       });
 
       await logKeyAudit(ctx.userId, 'trading', 'created', req);
@@ -72,7 +79,7 @@ export const POST = withApiMiddleware(
         {
           success: true,
           message: 'Trading API key created successfully',
-          apiKey: newKey,
+          apiKey: newKey
         },
         { status: 201 }
       );

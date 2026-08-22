@@ -40,7 +40,7 @@ export const POST = withApiMiddleware(async req => {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      createdAt: user.createdAt,
-    },
+      createdAt: user.createdAt
+    }
   });
 });

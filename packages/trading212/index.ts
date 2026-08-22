@@ -1,6 +1,6 @@
 export enum T212Environment {
   DEMO = 'demo',
-  LIVE = 'live',
+  LIVE = 'live'
 }
 
 export interface T212Credentials {
@@ -110,7 +110,7 @@ export interface T212Order {
 
 const BASE_URLS: Record<T212Environment, string> = {
   [T212Environment.DEMO]: 'https://demo.trading212.com/api/v0',
-  [T212Environment.LIVE]: 'https://live.trading212.com/api/v0',
+  [T212Environment.LIVE]: 'https://live.trading212.com/api/v0'
 };
 
 export class Trading212Client {
@@ -136,9 +136,9 @@ export class Trading212Client {
       method: options.method ?? 'GET',
       headers: {
         Authorization: this.authHeader(),
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
-      body: options.body ? JSON.stringify(options.body) : undefined,
+      body: options.body ? JSON.stringify(options.body) : undefined
     });
 
     if (!response.ok) {
@@ -179,14 +179,14 @@ export class Trading212Client {
   async placeOrder(order: T212OrderRequest): Promise<T212Order> {
     const baseBody = {
       ticker: order.ticker,
-      quantity: order.quantity,
+      quantity: order.quantity
     };
 
     switch (order.orderType) {
       case 'MARKET':
         return this.request<T212Order>('/equity/orders/market', {
           method: 'POST',
-          body: { ...baseBody, extendedHours: order.extendedHours ?? false },
+          body: { ...baseBody, extendedHours: order.extendedHours ?? false }
         });
       case 'LIMIT':
         return this.request<T212Order>('/equity/orders/limit', {
@@ -194,8 +194,8 @@ export class Trading212Client {
           body: {
             ...baseBody,
             limitPrice: order.limitPrice,
-            timeValidity: order.timeValidity ?? 'DAY',
-          },
+            timeValidity: order.timeValidity ?? 'DAY'
+          }
         });
       case 'STOP':
         return this.request<T212Order>('/equity/orders/stop', {
@@ -203,8 +203,8 @@ export class Trading212Client {
           body: {
             ...baseBody,
             stopPrice: order.stopPrice,
-            timeValidity: order.timeValidity ?? 'DAY',
-          },
+            timeValidity: order.timeValidity ?? 'DAY'
+          }
         });
       case 'STOP_LIMIT':
         return this.request<T212Order>('/equity/orders/stop_limit', {
@@ -213,8 +213,8 @@ export class Trading212Client {
             ...baseBody,
             stopPrice: order.stopPrice,
             limitPrice: order.limitPrice,
-            timeValidity: order.timeValidity ?? 'DAY',
-          },
+            timeValidity: order.timeValidity ?? 'DAY'
+          }
         });
       default:
         throw new Error(`Unsupported order type: ${order.orderType}`);

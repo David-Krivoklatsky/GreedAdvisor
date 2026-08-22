@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { TokenManager } from '@/lib/token-manager';
@@ -32,7 +32,7 @@ interface NavbarProps {
 
 const NAV_LINKS = [
   { href: '/dashboard', label: 'Dashboard' },
-  { href: '/profile', label: 'Profile' },
+  { href: '/profile', label: 'Profile' }
 ];
 
 export default function Navbar({ user, onLogout }: NavbarProps) {

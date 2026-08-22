@@ -82,7 +82,7 @@ export default function ProfilePage() {
 
     const response = await TokenManager.makeAuthenticatedRequest('/api/user/profile-picture', {
       method: 'POST',
-      body: formData,
+      body: formData
     });
 
     if (!response.ok) {
@@ -113,8 +113,8 @@ export default function ProfilePage() {
         body: JSON.stringify({
           email: data.email,
           ...(data.password && { password: data.password }),
-          ...(profilePictureUrl && { profilePicture: profilePictureUrl }),
-        }),
+          ...(profilePictureUrl && { profilePicture: profilePictureUrl })
+        })
       });
 
       if (!response.ok) {
@@ -137,7 +137,7 @@ export default function ProfilePage() {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/ai-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(data)
       });
 
       if (!response.ok) {
@@ -155,6 +155,7 @@ export default function ProfilePage() {
 
   const handleAddTradingKey = async (data: {
     title: string;
+    provider: string;
     accessType: string;
     environment: string;
     apiKey: string;
@@ -166,7 +167,7 @@ export default function ProfilePage() {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/trading-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(data)
       });
 
       if (!response.ok) {
@@ -188,7 +189,7 @@ export default function ProfilePage() {
       const response = await TokenManager.makeAuthenticatedRequest(`/api/user/ai-keys/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive }),
+        body: JSON.stringify({ isActive })
       });
 
       if (!response.ok) throw new Error('Failed to toggle AI key');
@@ -205,7 +206,7 @@ export default function ProfilePage() {
     setUpdating(true);
     try {
       const response = await TokenManager.makeAuthenticatedRequest(`/api/user/ai-keys/${id}`, {
-        method: 'DELETE',
+        method: 'DELETE'
       });
 
       if (!response.ok) throw new Error('Failed to delete AI key');
@@ -224,7 +225,7 @@ export default function ProfilePage() {
       const response = await TokenManager.makeAuthenticatedRequest(`/api/user/trading-keys/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive }),
+        body: JSON.stringify({ isActive })
       });
 
       if (!response.ok) throw new Error('Failed to toggle trading key');
@@ -248,7 +249,7 @@ export default function ProfilePage() {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/market-data-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(data)
       });
 
       if (!response.ok) {
@@ -272,7 +273,7 @@ export default function ProfilePage() {
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isActive }),
+          body: JSON.stringify({ isActive })
         }
       );
 
@@ -292,7 +293,7 @@ export default function ProfilePage() {
       const response = await TokenManager.makeAuthenticatedRequest(
         `/api/user/market-data-keys/${id}`,
         {
-          method: 'DELETE',
+          method: 'DELETE'
         }
       );
 
@@ -314,7 +315,7 @@ export default function ProfilePage() {
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ keyId: keyData.id }),
+          body: JSON.stringify({ keyId: keyData.id })
         }
       );
 
@@ -331,7 +332,7 @@ export default function ProfilePage() {
     setUpdating(true);
     try {
       const response = await TokenManager.makeAuthenticatedRequest(`/api/user/trading-keys/${id}`, {
-        method: 'DELETE',
+        method: 'DELETE'
       });
 
       if (!response.ok) throw new Error('Failed to delete trading key');

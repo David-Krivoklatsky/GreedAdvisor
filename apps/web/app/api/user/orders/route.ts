@@ -1,8 +1,8 @@
 import { prisma } from '@/lib/prisma';
+import { getActiveTradingClient } from '@/lib/providers';
 import { withApiMiddleware, withAuth, withValidation } from '@greed-advisor/middleware';
 import { orderSchema } from '@greed-advisor/validations';
 import type { OrderInput } from '@greed-advisor/validations';
-import { T212Environment, Trading212Client } from '@greed-advisor/trading212';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -15,78 +15,41 @@ export const POST = withApiMiddleware(
       const { tradingKeyId, ticker, quantity, side, stopLoss, takeProfit, extendedHours } =
         ctx.data as OrderInput;
 
-      const key = await prisma.t212ApiKey.findFirst({
-        where: {
-          id: tradingKeyId,
-          userId: ctx.userId,
-          deletedAt: null,
-          isActive: true,
-        },
-      });
+      const provider = await getActiveTradingClient(ctx.userId, tradingKeyId);
 
-      if (!key) {
+      if (!provider) {
         return NextResponse.json(
           {
             success: false,
-            message: 'No active Trading212 key found',
-            error: 'No active Trading212 key found',
+            message: 'No active trading key found',
+            error: 'No active trading key found'
           },
           { status: 404 }
         );
       }
 
-      const client = new Trading212Client({
-        apiKey: key.apiKey,
-        apiSecret: key.apiSecret,
-        environment: key.environment as T212Environment,
-      });
-
-      // T212 convention: sell orders use a negative quantity
-      const signedQty = side === 'SELL' ? -Math.abs(quantity) : Math.abs(quantity);
-
-      // 1) Entry order (market)
-      const entry = await client.placeOrder({
+      // 1) Entry order (market) + 2) optional protective stop/limit legs
+      // (provider-specific: T212 uses separate orders, Alpaca uses bracket legs)
+      const result = await provider.placeOrder({
         ticker,
-        quantity: signedQty,
-        orderType: 'MARKET',
-        extendedHours: extendedHours ?? false,
+        side,
+        quantity,
+        stopLoss,
+        takeProfit,
+        extendedHours: extendedHours ?? false
       });
-
-      // 2) Optional protections (separate stop + limit orders, opposite side of entry)
-      const protections = {
-        stop:
-          stopLoss != null && stopLoss > 0
-            ? await client.placeOrder({
-                ticker,
-                quantity: -signedQty,
-                orderType: 'STOP',
-                stopPrice: stopLoss,
-                timeValidity: 'GOOD_TILL_CANCEL',
-              })
-            : null,
-        takeProfit:
-          takeProfit != null && takeProfit > 0
-            ? await client.placeOrder({
-                ticker,
-                quantity: -signedQty,
-                orderType: 'LIMIT',
-                limitPrice: takeProfit,
-                timeValidity: 'GOOD_TILL_CANCEL',
-              })
-            : null,
-      };
 
       await prisma.t212ApiKey.update({
-        where: { id: key.id },
-        data: { lastUsed: new Date() },
+        where: { id: provider.key.id },
+        data: { lastUsed: new Date() }
       });
 
       return NextResponse.json(
         {
           success: true,
-          entry,
-          stop: protections.stop,
-          takeProfit: protections.takeProfit,
+          entry: { id: result.id, status: result.status },
+          stop: result.stop ?? null,
+          takeProfit: result.takeProfit ?? null
         },
         { status: 201 }
       );

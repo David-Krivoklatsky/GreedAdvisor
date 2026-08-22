@@ -1,4 +1,5 @@
 import { TokenManager } from '@/lib/token-manager';
+import type { Indicators } from '@greed-advisor/market-data';
 import { useCallback, useEffect, useState } from 'react';
 
 interface CandleData {
@@ -15,11 +16,12 @@ const INTERVAL_MAP: Record<string, string> = {
   '15min': '15min',
   '1hour': '1h',
   '4hour': '4h',
-  '1day': '1day',
+  '1day': '1day'
 };
 
 export const useMarketCandles = () => {
   const [candles, setCandles] = useState<CandleData[]>([]);
+  const [indicators, setIndicators] = useState<Indicators | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [symbol, setSymbol] = useState('AAPL');
@@ -44,6 +46,7 @@ export const useMarketCandles = () => {
 
         const data = await response.json();
         setCandles(data.candles || []);
+        setIndicators(data.indicators ?? null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load chart data');
       } finally {
@@ -59,12 +62,13 @@ export const useMarketCandles = () => {
 
   return {
     candles,
+    indicators,
     loading,
     error,
     symbol,
     setSymbol,
     interval,
     setInterval,
-    refetch: fetchCandles,
+    refetch: fetchCandles
   };
 };

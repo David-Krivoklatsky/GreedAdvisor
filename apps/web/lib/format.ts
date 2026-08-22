@@ -3,7 +3,7 @@ export function formatCurrency(value: number | undefined, currency: string): str
     style: 'currency',
     currency: currency || 'USD',
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 2
   }).format(value ?? 0);
 }
 
@@ -17,6 +17,6 @@ export function formatQuantity(value: number | undefined): string {
   const rounded = Number(value.toFixed(4));
   return rounded.toLocaleString('en-US', {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 4,
+    maximumFractionDigits: 4
   });
 }

@@ -11,7 +11,7 @@ export const POST = withApiMiddleware(
       const { keyId } = ctx.data as MarketDataKeyTestInput;
 
       const key = await prisma.marketDataKey.findFirst({
-        where: { id: keyId, userId: ctx.userId, deletedAt: null },
+        where: { id: keyId, userId: ctx.userId, deletedAt: null }
       });
 
       if (!key) {
@@ -33,13 +33,13 @@ export const POST = withApiMiddleware(
 
       await prisma.marketDataKey.update({
         where: { id: keyId },
-        data: { lastUsed: new Date() },
+        data: { lastUsed: new Date() }
       });
 
       return NextResponse.json({
         success: true,
         message: 'Market data API key is valid',
-        quote,
+        quote
       });
     })
   )

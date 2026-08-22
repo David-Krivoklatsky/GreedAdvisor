@@ -5,7 +5,7 @@ import { MarketDataKey } from '../../../types/profile';
 import ApiKeyInput from '../../forms/api-key-input';
 import KeyCard from '../../key-card';
 import { Button } from '../../ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Combobox } from '../../ui/combobox';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -25,13 +25,13 @@ export default function MarketDataKeysSection({
   onToggle,
   onDelete,
   onTest,
-  updating,
+  updating
 }: MarketDataKeysSectionProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newKey, setNewKey] = useState({
     title: '',
     provider: 'twelvedata',
-    apiKey: '',
+    apiKey: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,9 +45,6 @@ export default function MarketDataKeysSection({
     <Card>
       <CardHeader>
         <CardTitle>Market Data API Keys</CardTitle>
-        <CardDescription>
-          Manage your market data API keys (Twelve Data) for real-time quotes and candles
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex justify-between items-center mb-4">

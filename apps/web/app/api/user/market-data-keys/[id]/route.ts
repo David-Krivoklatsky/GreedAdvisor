@@ -19,7 +19,7 @@ export const PUT = withApiMiddleware(
       }
 
       const existing = await prisma.marketDataKey.findFirst({
-        where: { id: keyId, userId: ctx.userId, deletedAt: null },
+        where: { id: keyId, userId: ctx.userId, deletedAt: null }
       });
 
       if (!existing) {
@@ -37,15 +37,15 @@ export const PUT = withApiMiddleware(
           title: title ?? existing.title,
           provider: provider ?? existing.provider,
           apiKey: apiKey ?? existing.apiKey,
-          isActive: isActive ?? existing.isActive,
+          isActive: isActive ?? existing.isActive
         },
         select: {
           id: true,
           title: true,
           provider: true,
           isActive: true,
-          createdAt: true,
-        },
+          createdAt: true
+        }
       });
 
       await logKeyAudit(ctx.userId, 'market-data', 'updated', req);
@@ -53,7 +53,7 @@ export const PUT = withApiMiddleware(
       return NextResponse.json({
         success: true,
         message: 'Market data API key updated successfully',
-        apiKey: updatedKey,
+        apiKey: updatedKey
       });
     })
   )

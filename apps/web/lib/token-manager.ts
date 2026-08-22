@@ -19,7 +19,7 @@ export class TokenManager {
     try {
       const response = await fetch('/api/auth/refresh', {
         method: 'POST',
-        credentials: 'include', // Include cookies
+        credentials: 'include' // Include cookies
       });
 
       if (!response.ok) {
@@ -51,8 +51,8 @@ export class TokenManager {
       ...options,
       headers: {
         ...options.headers,
-        Authorization: `Bearer ${token}`,
-      },
+        Authorization: `Bearer ${token}`
+      }
     });
 
     // If token is expired, try to refresh
@@ -73,8 +73,8 @@ export class TokenManager {
         ...options,
         headers: {
           ...options.headers,
-          Authorization: `Bearer ${token}`,
-        },
+          Authorization: `Bearer ${token}`
+        }
       });
     }
 
@@ -87,7 +87,7 @@ export class TokenManager {
     // Clear refresh token cookie
     await fetch('/api/auth/logout', {
       method: 'POST',
-      credentials: 'include',
+      credentials: 'include'
     });
   }
 }

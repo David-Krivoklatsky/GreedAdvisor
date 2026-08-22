@@ -29,6 +29,7 @@ export interface TradingApiKey {
   createdAt: string;
   updatedAt: string;
   apiKey: string;
+  provider?: string;
 }
 
 export interface MarketDataKey {

@@ -2,8 +2,10 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Trading212Logo } from '@/components/brands/trading212-logo';
+import { AlpacaLogo } from '@/components/brands/alpaca-logo';
 import { AccountSummary, TradingKey } from '@/types/dashboard';
-import { ChevronsUpDown, Wallet } from 'lucide-react';
+import { ChevronsUpDown, RefreshCw, Wallet } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -12,7 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { formatCurrency, formatPercent } from '@/lib/format';
 
@@ -21,6 +23,8 @@ interface TerminalHeaderProps {
   selectedTradingKey: string;
   setSelectedTradingKey: (key: string) => void;
   accountSummary: AccountSummary | null;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
 export default function TerminalHeader({
@@ -28,6 +32,8 @@ export default function TerminalHeader({
   selectedTradingKey,
   setSelectedTradingKey,
   accountSummary,
+  onRefresh,
+  refreshing = false
 }: TerminalHeaderProps) {
   const currency = accountSummary?.currency ?? 'USD';
   const unrealized = accountSummary?.investments.unrealizedProfitLoss;
@@ -66,13 +72,35 @@ export default function TerminalHeader({
               className="flex items-center justify-between"
             >
               <span>{key.title || key.accessType}</span>
-              <Badge variant={key.environment === 'live' ? 'destructive' : 'secondary'}>
-                {key.environment}
-              </Badge>
+              <span className="flex items-center gap-2">
+                {key.provider === 'trading212' && <Trading212Logo size={14} />}
+                {key.provider === 'alpaca' && <AlpacaLogo size={14} />}
+                <Badge variant={key.environment === 'live' ? 'destructive' : 'secondary'}>
+                  {key.environment}
+                </Badge>
+              </span>
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Refresh account data */}
+      {onRefresh && (
+        <>
+          <Separator orientation="vertical" className="h-8 hidden sm:block" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9"
+            onClick={onRefresh}
+            disabled={refreshing || !selectedTradingKey}
+            aria-label="Refresh account data"
+            title="Refresh account data"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </>
+      )}
 
       <Separator orientation="vertical" className="h-8 hidden sm:block" />
 

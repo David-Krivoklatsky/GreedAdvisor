@@ -6,27 +6,27 @@ jest.mock('@/lib/prisma', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),
-      create: jest.fn(),
-    },
-  },
+      create: jest.fn()
+    }
+  }
 }));
 
 // Mock auth functions
 jest.mock('@greed-advisor/auth', () => ({
   hashPassword: jest.fn(),
   signAccessToken: jest.fn(),
-  signRefreshToken: jest.fn(),
+  signRefreshToken: jest.fn()
 }));
 
 // Mock rate limiting
 jest.mock('@greed-advisor/rate-limit', () => ({
-  rateLimit: jest.fn(),
+  rateLimit: jest.fn()
 }));
 
 // Mock middleware
 jest.mock('@greed-advisor/middleware', () => ({
   withApiMiddleware: jest.fn((handler: any) => handler),
-  withValidation: jest.fn(() => (handler: any) => handler),
+  withValidation: jest.fn(() => (handler: any) => handler)
 }));
 
 // Import the route handler after mocks are set up
@@ -58,7 +58,7 @@ describe('/api/auth/register', () => {
       openAiKey: null,
       t212Key: null,
       createdAt: new Date(),
-      updatedAt: new Date(),
+      updatedAt: new Date()
     };
 
     jest.mocked(prisma.user.findUnique).mockResolvedValue(null);
@@ -67,15 +67,15 @@ describe('/api/auth/register', () => {
     // Create a proper NextRequest mock
     const requestBody = {
       email: 'test@example.com',
-      password: 'password123',
+      password: 'password123'
     };
 
     const request = new NextRequest('http://localhost:3000/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(requestBody),
       headers: {
-        'content-type': 'application/json',
-      },
+        'content-type': 'application/json'
+      }
     });
 
     const response = await POST(request, { data: requestBody } as any);
@@ -91,22 +91,22 @@ describe('/api/auth/register', () => {
     // Mock existing user
     const existingUser = {
       id: 1,
-      email: 'test@example.com',
+      email: 'test@example.com'
     };
 
     jest.mocked(prisma.user.findUnique).mockResolvedValue(existingUser as any);
 
     const requestBody = {
       email: 'test@example.com',
-      password: 'password123',
+      password: 'password123'
     };
 
     const request = new NextRequest('http://localhost:3000/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(requestBody),
       headers: {
-        'content-type': 'application/json',
-      },
+        'content-type': 'application/json'
+      }
     });
 
     const response = await POST(request, { data: requestBody } as any);
@@ -123,15 +123,15 @@ describe('/api/auth/register', () => {
 
     const requestBody = {
       email: 'test@example.com',
-      password: 'password123',
+      password: 'password123'
     };
 
     const request = new NextRequest('http://localhost:3000/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(requestBody),
       headers: {
-        'content-type': 'application/json',
-      },
+        'content-type': 'application/json'
+      }
     });
 
     const response = await POST(request, { data: requestBody } as any);

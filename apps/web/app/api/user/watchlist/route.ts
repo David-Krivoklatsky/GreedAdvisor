@@ -13,9 +13,9 @@ export const GET = withApiMiddleware(
         ticker: true,
         name: true,
         instrumentType: true,
-        createdAt: true,
+        createdAt: true
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }
     });
 
     return NextResponse.json({ success: true, items: watchlist });
@@ -28,7 +28,7 @@ export const POST = withApiMiddleware(
       const { ticker, name, instrumentType } = ctx.data as WatchlistItemInput;
 
       const existing = await prisma.watchlistItem.findFirst({
-        where: { userId: ctx.userId, ticker },
+        where: { userId: ctx.userId, ticker }
       });
 
       if (existing?.isActive) {
@@ -36,7 +36,7 @@ export const POST = withApiMiddleware(
           {
             success: false,
             message: `${ticker} is already in your watchlist`,
-            error: 'Duplicate watchlist item',
+            error: 'Duplicate watchlist item'
           },
           { status: 409 }
         );
@@ -48,18 +48,18 @@ export const POST = withApiMiddleware(
             data: {
               isActive: true,
               ...(name !== undefined && name !== null ? { name } : {}),
-              ...(instrumentType ? { instrumentType } : {}),
+              ...(instrumentType ? { instrumentType } : {})
             },
-            select: { id: true, ticker: true, name: true, instrumentType: true, createdAt: true },
+            select: { id: true, ticker: true, name: true, instrumentType: true, createdAt: true }
           })
         : await prisma.watchlistItem.create({
             data: {
               userId: ctx.userId,
               ticker,
               name: name ?? null,
-              instrumentType,
+              instrumentType
             },
-            select: { id: true, ticker: true, name: true, instrumentType: true, createdAt: true },
+            select: { id: true, ticker: true, name: true, instrumentType: true, createdAt: true }
           });
 
       return NextResponse.json(

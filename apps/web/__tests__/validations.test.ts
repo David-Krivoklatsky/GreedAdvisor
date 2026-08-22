@@ -1,6 +1,12 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { watchlistItemSchema, reportSchema, orderSchema } from '@greed-advisor/validations';
+import {
+  t212ApiKeySchema,
+  updateT212ApiKeySchema,
+  watchlistItemSchema,
+  reportSchema,
+  orderSchema
+} from '@greed-advisor/validations';
 
 describe('@greed-advisor/validations', () => {
   it('accepts a valid watchlist item', () => {
@@ -20,7 +26,7 @@ describe('@greed-advisor/validations', () => {
       marketDataKeyId: '1',
       reportType: 'thesis',
       symbol: 'AAPL',
-      accountValue: '25000',
+      accountValue: '25000'
     });
     expect(result.success).toBe(true);
     if (result.success) {
@@ -37,7 +43,7 @@ describe('@greed-advisor/validations', () => {
       ticker: 'AAPL',
       quantity: '5',
       side: 'BUY',
-      stopLoss: '180',
+      stopLoss: '180'
     });
     expect(result.success).toBe(true);
     if (result.success) {
@@ -51,8 +57,67 @@ describe('@greed-advisor/validations', () => {
       tradingKeyId: 1,
       ticker: 'AAPL',
       quantity: 0,
-      side: 'BUY',
+      side: 'BUY'
     });
     expect(result.success).toBe(false);
+  });
+
+  it('defaults t212ApiKeySchema to trading212/demo/read-only', () => {
+    const result = t212ApiKeySchema.safeParse({
+      title: 'My Key',
+      apiKey: 'a',
+      apiSecret: 'b'
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.provider).toBe('trading212');
+      expect(result.data.environment).toBe('demo');
+      expect(result.data.accessType).toBe('read-only');
+    }
+  });
+
+  it('accepts an alpaca trading key', () => {
+    const result = t212ApiKeySchema.safeParse({
+      title: 'Alpaca Key',
+      provider: 'alpaca',
+      environment: 'paper',
+      apiKey: 'a',
+      apiSecret: 'b'
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.provider).toBe('alpaca');
+      expect(result.data.environment).toBe('paper');
+    }
+  });
+
+  it('rejects an unknown trading provider', () => {
+    const result = t212ApiKeySchema.safeParse({
+      title: 'Bad',
+      provider: 'ibkr',
+      apiKey: 'a',
+      apiSecret: 'b'
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts demo environment regardless of provider', () => {
+    const result = t212ApiKeySchema.safeParse({
+      title: 'Bad',
+      provider: 'alpaca',
+      environment: 'demo',
+      apiKey: 'a',
+      apiSecret: 'b'
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('strips provider from updates so it stays immutable', () => {
+    const result = updateT212ApiKeySchema.safeParse({ provider: 'alpaca', title: 'Renamed' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).not.toHaveProperty('provider');
+      expect(result.data.title).toBe('Renamed');
+    }
   });
 });

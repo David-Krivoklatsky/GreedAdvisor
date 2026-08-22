@@ -12,18 +12,18 @@ const nextConfig = {
         headers: [
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'DENY'
           },
           {
             key: 'X-Content-Type-Options',
-            value: 'nosniff',
+            value: 'nosniff'
           },
           {
             key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-        ],
-      },
+            value: 'strict-origin-when-cross-origin'
+          }
+        ]
+      }
     ];
   },
   // Transpile packages in monorepo
@@ -35,9 +35,10 @@ const nextConfig = {
     '@greed-advisor/utils',
     '@greed-advisor/validations',
     '@greed-advisor/trading212',
+    '@greed-advisor/alpaca',
     '@greed-advisor/market-data',
-    '@greed-advisor/ai',
-  ],
+    '@greed-advisor/ai'
+  ]
 };
 
 module.exports = nextConfig;

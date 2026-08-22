@@ -14,7 +14,7 @@ import {
   comparePassword,
   signToken,
   verifyToken,
-  extractTokenFromHeader,
+  extractTokenFromHeader
 } from '@greed-advisor/auth';
 
 // Password hashing during registration

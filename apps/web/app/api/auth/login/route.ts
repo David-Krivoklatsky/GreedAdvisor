@@ -17,7 +17,7 @@ export const POST = withApiMiddleware(
         {
           success: false,
           message: 'Too many requests. Please try again later.',
-          error: 'Rate limit exceeded',
+          error: 'Rate limit exceeded'
         },
         { status: 429 }
       );
@@ -53,8 +53,8 @@ export const POST = withApiMiddleware(
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        createdAt: user.createdAt,
-      },
+        createdAt: user.createdAt
+      }
     });
 
     response.cookies.set('refreshToken', refreshToken, {
@@ -62,7 +62,7 @@ export const POST = withApiMiddleware(
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      path: '/',
+      path: '/'
     });
 
     return response;

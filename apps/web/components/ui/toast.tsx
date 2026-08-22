@@ -9,7 +9,7 @@ import {
   useMemo,
   useRef,
   useState,
-  type ReactNode,
+  type ReactNode
 } from 'react';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -30,14 +30,14 @@ const ICONS: Record<ToastType, ReactNode> = {
   success: <CheckCircle2 className="h-4 w-4" />,
   error: <XCircle className="h-4 w-4" />,
   warning: <AlertTriangle className="h-4 w-4" />,
-  info: <Info className="h-4 w-4" />,
+  info: <Info className="h-4 w-4" />
 };
 
 const TYPE_STYLES: Record<ToastType, string> = {
   success: 'border-success/30 bg-success/10 text-success',
   error: 'border-destructive/30 bg-destructive/10 text-destructive',
   warning: 'border-warning/30 bg-warning/10 text-warning',
-  info: 'border-border bg-card text-foreground',
+  info: 'border-border bg-card text-foreground'
 };
 
 export function useToast() {

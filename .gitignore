@@ -32,6 +32,7 @@ coverage/
 .nyc_output/
 test-results/
 playwright-report/
+.playwright-mcp/
 
 # ===============================================
 # Environment & Configuration

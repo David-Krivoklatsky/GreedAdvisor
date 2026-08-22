@@ -1,6 +1,10 @@
 import { prisma } from '@/lib/prisma';
 import { withApiMiddleware, withAuth } from '@greed-advisor/middleware';
-import { MarketDataService, TwelveDataProvider } from '@greed-advisor/market-data';
+import {
+  MarketDataService,
+  TwelveDataProvider,
+  computeIndicators
+} from '@greed-advisor/market-data';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +24,7 @@ export const GET = withApiMiddleware(
 
     const marketDataKey = await prisma.marketDataKey.findFirst({
       where: { userId: ctx.userId, deletedAt: null, isActive: true },
-      orderBy: { lastUsed: 'asc' },
+      orderBy: { lastUsed: 'asc' }
     });
 
     if (!marketDataKey) {
@@ -28,20 +32,22 @@ export const GET = withApiMiddleware(
         {
           success: false,
           message: 'No active market data key found. Add one in your profile.',
-          error: 'No active market data key found',
+          error: 'No active market data key found'
         },
         { status: 404 }
       );
     }
 
     const marketData = new MarketDataService(new TwelveDataProvider(marketDataKey.apiKey));
-    const candles = await marketData.getCandles(symbol, interval, 200);
+    const candles = await marketData.getCandles(symbol, interval, 300);
+
+    const indicators = computeIndicators(candles);
 
     await prisma.marketDataKey.update({
       where: { id: marketDataKey.id },
-      data: { lastUsed: new Date() },
+      data: { lastUsed: new Date() }
     });
 
-    return NextResponse.json({ success: true, candles });
+    return NextResponse.json({ success: true, candles, indicators });
   })
 );

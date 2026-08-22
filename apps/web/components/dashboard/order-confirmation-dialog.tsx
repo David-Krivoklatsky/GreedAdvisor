@@ -32,7 +32,7 @@ export default function OrderConfirmationDialog({
   tradingKeys,
   defaultTradingKeyId,
   onClose,
-  onNotification,
+  onNotification
 }: OrderConfirmationDialogProps) {
   const [tradingKeyId, setTradingKeyId] = useState<string>(defaultTradingKeyId ?? '');
   const [side, setSide] = useState<'BUY' | 'SELL'>('BUY');
@@ -74,8 +74,8 @@ export default function OrderConfirmationDialog({
           quantity: qty,
           side,
           stopLoss: stopLoss ? Number(stopLoss) : undefined,
-          takeProfit: takeProfit ? Number(takeProfit) : undefined,
-        }),
+          takeProfit: takeProfit ? Number(takeProfit) : undefined
+        })
       });
 
       if (!response.ok) {
@@ -84,14 +84,14 @@ export default function OrderConfirmationDialog({
       }
 
       onNotification({
-        message: `Order placed on ${side === 'BUY' ? 'buy' : 'sell'} ${symbol} — review it in Trading212.`,
-        type: 'success',
+        message: `Order placed on ${side === 'BUY' ? 'buy' : 'sell'} ${symbol} — review it in your broker app.`,
+        type: 'success'
       });
       onClose();
     } catch (err) {
       onNotification({
         message: err instanceof Error ? err.message : 'Failed to place order',
-        type: 'error',
+        type: 'error'
       });
     } finally {
       setSubmitting(false);
@@ -105,7 +105,7 @@ export default function OrderConfirmationDialog({
       `Quantity: ${quantity}`,
       stopLoss ? `Stop loss: ${stopLoss}` : '',
       takeProfit ? `Take profit: ${takeProfit}` : '',
-      `Generated: ${new Date().toLocaleString()}`,
+      `Generated: ${new Date().toLocaleString()}`
     ].filter(Boolean);
     navigator.clipboard?.writeText(lines.join('\n'));
     onNotification({ message: 'Order details copied to clipboard', type: 'success' });

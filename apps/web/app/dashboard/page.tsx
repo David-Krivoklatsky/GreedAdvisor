@@ -7,7 +7,6 @@ import ChartPanel from '@/components/dashboard/chart-panel';
 import PortfolioOverview from '@/components/dashboard/portfolio-overview';
 import TerminalHeader from '@/components/dashboard/terminal-header';
 import PageLayout from '@/components/layout/page-layout';
-import RiskProfileSection from '@/components/profile/sections/risk-profile-section';
 import { useToast } from '@/components/ui/toast';
 import { TokenManager } from '@/lib/token-manager';
 import { useDashboardData } from '@/hooks/useDashboardData';
@@ -28,7 +27,7 @@ export default function DashboardPage() {
     notification,
     clearNotification,
     user,
-    refetch,
+    refetch
   } = useDashboardData();
   const { toast } = useToast();
   const [riskUpdating, setRiskUpdating] = useState(false);
@@ -46,7 +45,7 @@ export default function DashboardPage() {
       const response = await TokenManager.makeAuthenticatedRequest('/api/user/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(data)
       });
 
       if (!response.ok) {
@@ -79,6 +78,8 @@ export default function DashboardPage() {
           selectedTradingKey={selectedTradingKey}
           setSelectedTradingKey={setSelectedTradingKey}
           accountSummary={accountSummary}
+          onRefresh={() => refetch.fetchPositions(selectedTradingKey)}
+          refreshing={positionsLoading}
         />
 
         {/* Main grid: chart + advisor side by side */}
@@ -92,19 +93,13 @@ export default function DashboardPage() {
               aiKeys={aiKeys}
               marketDataKeys={marketDataKeys}
               selectedTradingKey={selectedTradingKey}
+              user={user}
+              onUpdateRiskProfile={handleUpdateRiskProfile}
+              riskUpdating={riskUpdating}
               onNotification={({ message, type }) => toast(message, type)}
             />
           </div>
         </div>
-
-        {/* Risk profile below */}
-        {user && (
-          <RiskProfileSection
-            user={user}
-            onUpdate={handleUpdateRiskProfile}
-            updating={riskUpdating}
-          />
-        )}
 
         {/* Portfolio below */}
         <PortfolioOverview

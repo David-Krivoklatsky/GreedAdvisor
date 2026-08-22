@@ -15,7 +15,7 @@ export const DELETE = withApiMiddleware(
     }
 
     const item = await prisma.watchlistItem.findFirst({
-      where: { id: itemId, userId: ctx.userId },
+      where: { id: itemId, userId: ctx.userId }
     });
 
     if (!item) {
@@ -28,7 +28,7 @@ export const DELETE = withApiMiddleware(
     // Soft delete so re-adding preserves the original creation date
     await prisma.watchlistItem.update({
       where: { id: itemId },
-      data: { isActive: false },
+      data: { isActive: false }
     });
 
     return NextResponse.json({ success: true, message: 'Item removed from watchlist' });

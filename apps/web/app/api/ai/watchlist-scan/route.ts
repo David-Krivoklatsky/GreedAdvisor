@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { getActiveT212Client } from '@/lib/providers';
+import { getActiveTradingClient } from '@/lib/providers';
 import { withApiMiddleware, withAuth, withValidation } from '@greed-advisor/middleware';
 import { watchlistScanSchema } from '@greed-advisor/validations';
 import type { WatchlistScanInput } from '@greed-advisor/validations';
@@ -20,12 +20,12 @@ export const POST = withApiMiddleware(
 
       const [aiKey, marketDataKey, user] = await Promise.all([
         prisma.aiApiKey.findFirst({
-          where: { id: aiKeyId, userId: ctx.userId, deletedAt: null, isActive: true },
+          where: { id: aiKeyId, userId: ctx.userId, deletedAt: null, isActive: true }
         }),
         prisma.marketDataKey.findFirst({
-          where: { id: marketDataKeyId, userId: ctx.userId, deletedAt: null, isActive: true },
+          where: { id: marketDataKeyId, userId: ctx.userId, deletedAt: null, isActive: true }
         }),
-        prisma.user.findUnique({ where: { id: ctx.userId } }),
+        prisma.user.findUnique({ where: { id: ctx.userId } })
       ]);
 
       if (!aiKey) {
@@ -39,7 +39,7 @@ export const POST = withApiMiddleware(
           {
             success: false,
             message: 'Market data key not found',
-            error: 'Market data key not found',
+            error: 'Market data key not found'
           },
           { status: 404 }
         );
@@ -48,7 +48,7 @@ export const POST = withApiMiddleware(
       const watchlist = await prisma.watchlistItem.findMany({
         where: { userId: ctx.userId, isActive: true },
         orderBy: { createdAt: 'asc' },
-        take: MAX_SCAN,
+        take: MAX_SCAN
       });
 
       if (watchlist.length === 0) {
@@ -56,20 +56,20 @@ export const POST = withApiMiddleware(
           {
             success: false,
             message: 'Your watchlist is empty. Add instruments to scan.',
-            error: 'Empty watchlist',
+            error: 'Empty watchlist'
           },
           { status: 400 }
         );
       }
 
-      // Derive the account value from the user's active Trading212 account when possible
+      // Derive the account value from the user's active trading account when possible
       let accountValue = DEFAULT_ACCOUNT_VALUE;
-      const t212 = await getActiveT212Client(ctx.userId);
-      if (t212) {
+      const trading = await getActiveTradingClient(ctx.userId);
+      if (trading) {
         try {
-          const summary = await t212.client.getAccountSummary();
-          if (summary.totalValue > 0) {
-            accountValue = summary.totalValue;
+          const value = await trading.getAccountTotalValue();
+          if (value > 0) {
+            accountValue = value;
           }
         } catch {
           // fall back to the default
@@ -101,7 +101,7 @@ export const POST = withApiMiddleware(
             reportType: 'opportunity',
             productType: type,
             riskProfile,
-            accountValue,
+            accountValue
           });
           results.push({ item, report });
         } catch (err) {
@@ -115,8 +115,8 @@ export const POST = withApiMiddleware(
         prisma.aiApiKey.update({ where: { id: aiKey.id }, data: { lastUsed: new Date() } }),
         prisma.marketDataKey.update({
           where: { id: marketDataKey.id },
-          data: { lastUsed: new Date() },
-        }),
+          data: { lastUsed: new Date() }
+        })
       ]);
 
       // Rank: actionable (BUY/SELL/ADD/TRIM) first by confidence desc
@@ -134,7 +134,7 @@ export const POST = withApiMiddleware(
         failed,
         scanned: results.length,
         riskProfile,
-        accountValue,
+        accountValue
       });
     })
   )

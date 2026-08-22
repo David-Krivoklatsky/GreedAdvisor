@@ -2,12 +2,12 @@ import { z } from 'zod';
 
 export const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters')
 });
 
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
+  password: z.string().min(1, 'Password is required')
 });
 
 const AI_PROVIDERS = ['openai', 'anthropic', 'google', 'claude'] as const;
@@ -15,25 +15,28 @@ const AI_PROVIDERS = ['openai', 'anthropic', 'google', 'claude'] as const;
 export const aiApiKeySchema = z.object({
   title: z.string().min(1, 'Title is required'),
   provider: z.enum(AI_PROVIDERS, { error: 'Provider is required' }),
-  apiKey: z.string().min(1, 'API key is required'),
+  apiKey: z.string().min(1, 'API key is required')
 });
+
+const TRADING_PROVIDERS = ['trading212', 'alpaca'] as const;
 
 export const t212ApiKeySchema = z.object({
   title: z.string().min(1, 'Title is required'),
-  accessType: z.enum(
-    { 'read-only': 'read-only', 'full-access': 'full-access' },
-    { error: 'Access type is required' }
-  ),
-  environment: z.enum({ demo: 'demo', live: 'live' }).default('demo'),
+  accessType: z
+    .enum({ 'read-only': 'read-only', 'full-access': 'full-access' })
+    .optional()
+    .default('read-only'),
+  environment: z.enum({ demo: 'demo', live: 'live', paper: 'paper' }).default('demo'),
+  provider: z.enum(TRADING_PROVIDERS).default('trading212'),
   apiKey: z.string().min(1, 'API key is required'),
-  apiSecret: z.string().min(1, 'API secret is required'),
+  apiSecret: z.string().min(1, 'API secret is required')
 });
 
 export const updateAiApiKeySchema = z.object({
   title: z.string().min(1, 'Title is required').optional(),
   provider: z.enum(AI_PROVIDERS).optional(),
   apiKey: z.string().min(1, 'API key is required').optional(),
-  isActive: z.boolean().optional(),
+  isActive: z.boolean().optional()
 });
 
 export const profileUpdateSchema = z.object({
@@ -42,29 +45,29 @@ export const profileUpdateSchema = z.object({
   profilePicture: z.string().optional(),
   riskProfile: z
     .enum({ conservative: 'conservative', balanced: 'balanced', aggressive: 'aggressive' })
-    .optional(),
+    .optional()
 });
 
 export const updateT212ApiKeySchema = z.object({
   title: z.string().min(1, 'Title is required').optional(),
   accessType: z.enum({ 'read-only': 'read-only', 'full-access': 'full-access' }).optional(),
-  environment: z.enum({ demo: 'demo', live: 'live' }).optional(),
+  environment: z.enum({ demo: 'demo', live: 'live', paper: 'paper' }).optional(),
   apiKey: z.string().min(1, 'API key is required').optional(),
   apiSecret: z.string().min(1, 'API secret is required').optional(),
-  isActive: z.boolean().optional(),
+  isActive: z.boolean().optional()
 });
 
 export const marketDataKeySchema = z.object({
   title: z.string().min(1, 'Title is required'),
   provider: z.enum({ twelvedata: 'twelvedata' }, { error: 'Provider is required' }),
-  apiKey: z.string().min(1, 'API key is required'),
+  apiKey: z.string().min(1, 'API key is required')
 });
 
 export const updateMarketDataKeySchema = z.object({
   title: z.string().min(1, 'Title is required').optional(),
   provider: z.enum({ twelvedata: 'twelvedata' }).optional(),
   apiKey: z.string().min(1, 'API key is required').optional(),
-  isActive: z.boolean().optional(),
+  isActive: z.boolean().optional()
 });
 
 export const watchlistItemSchema = z.object({
@@ -72,11 +75,11 @@ export const watchlistItemSchema = z.object({
   name: z.string().optional().nullable(),
   instrumentType: z
     .enum({ STOCK: 'STOCK', ETF: 'ETF', CRYPTO: 'CRYPTO', FOREX: 'FOREX' })
-    .optional(),
+    .optional()
 });
 
 export const marketDataKeyTestSchema = z.object({
-  keyId: z.coerce.number().int().positive('keyId is required'),
+  keyId: z.coerce.number().int().positive('keyId is required')
 });
 
 export const orderSchema = z.object({
@@ -86,13 +89,13 @@ export const orderSchema = z.object({
   side: z.enum({ BUY: 'BUY', SELL: 'SELL' }, { error: 'Side must be BUY or SELL' }),
   stopLoss: z.coerce.number().optional(),
   takeProfit: z.coerce.number().optional(),
-  extendedHours: z.boolean().optional(),
+  extendedHours: z.boolean().optional()
 });
 
 export const watchlistScanSchema = z.object({
   aiKeyId: z.coerce.number().int().positive('AI key is required'),
   marketDataKeyId: z.coerce.number().int().positive('Market data key is required'),
-  productType: z.enum({ INVEST: 'INVEST', CFD: 'CFD', CRYPTO: 'CRYPTO' }).default('INVEST'),
+  productType: z.enum({ INVEST: 'INVEST', CFD: 'CFD', CRYPTO: 'CRYPTO' }).default('INVEST')
 });
 
 export const reportSchema = z.object({
@@ -105,7 +108,7 @@ export const reportSchema = z.object({
   riskProfile: z
     .enum({ conservative: 'conservative', balanced: 'balanced', aggressive: 'aggressive' })
     .default('balanced'),
-  accountValue: z.coerce.number().positive().optional(),
+  accountValue: z.coerce.number().positive().optional()
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

@@ -23,7 +23,7 @@ export default function ApiKeyInput({
   onChange,
   placeholder = 'Enter your API key',
   required = false,
-  className = '',
+  className = ''
 }: ApiKeyInputProps) {
   const [isVisible, setIsVisible] = useState(false);
 

@@ -27,7 +27,7 @@ export const POST = withApiMiddleware(
         {
           success: false,
           message: 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.',
-          error: 'Invalid file type',
+          error: 'Invalid file type'
         },
         { status: 400 }
       );
@@ -39,7 +39,7 @@ export const POST = withApiMiddleware(
         {
           success: false,
           message: 'File too large. Maximum size is 5MB.',
-          error: 'File too large',
+          error: 'File too large'
         },
         { status: 400 }
       );
@@ -53,13 +53,13 @@ export const POST = withApiMiddleware(
     // Store in database
     await prisma.user.update({
       where: { id: ctx.userId },
-      data: { profilePicture: dataUrl },
+      data: { profilePicture: dataUrl }
     });
 
     return NextResponse.json({
       success: true,
       message: 'Profile picture uploaded successfully',
-      profilePictureUrl: dataUrl,
+      profilePictureUrl: dataUrl
     });
   })
 );

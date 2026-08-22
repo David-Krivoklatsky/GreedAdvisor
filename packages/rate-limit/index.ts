@@ -17,7 +17,7 @@ export function rateLimit(ip: string): { success: boolean; remaining?: number } 
     // Reset or create new entry
     rateLimitMap.set(ip, {
       count: 1,
-      resetTime: now + RATE_LIMIT_WINDOW,
+      resetTime: now + RATE_LIMIT_WINDOW
     });
     return { success: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1 };
   }

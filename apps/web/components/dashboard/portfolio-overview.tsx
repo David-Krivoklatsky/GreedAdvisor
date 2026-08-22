@@ -37,7 +37,7 @@ export default function PortfolioOverview({
   positions,
   accountSummary,
   loading,
-  currency,
+  currency
 }: PortfolioOverviewProps) {
   const accCurrency = accountSummary?.currency ?? currency ?? 'USD';
 
@@ -144,7 +144,7 @@ export default function PortfolioOverview({
             <div className="text-4xl mb-2">📈</div>
             <p className="text-muted-foreground">No open positions found.</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Connect a Trading212 key with a portfolio to see your holdings here.
+              Connect a trading account (Trading212 or Alpaca) to see your holdings here.
             </p>
           </div>
         ) : (

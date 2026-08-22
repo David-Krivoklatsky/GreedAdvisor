@@ -23,7 +23,7 @@ const ACTION_COLORS: Record<string, string> = {
   ADD: 'bg-success text-white',
   SELL: 'bg-destructive text-white',
   TRIM: 'bg-warning text-white',
-  HOLD: 'bg-muted text-muted-foreground',
+  HOLD: 'bg-muted text-muted-foreground'
 };
 
 export default function TradePlanModal({
@@ -34,7 +34,7 @@ export default function TradePlanModal({
   tradingKeys,
   defaultTradingKeyId,
   onClose,
-  onNotification,
+  onNotification
 }: TradePlanModalProps) {
   const [showOrderDialog, setShowOrderDialog] = useState(false);
 
@@ -55,7 +55,7 @@ export default function TradePlanModal({
       plan.positionSize ? `Suggested size: ${plan.positionSize}` : '',
       plan.riskAmount ? `Suggested risk: ${plan.riskAmount}` : '',
       ``,
-      plan.summary,
+      plan.summary
     ].filter(line => line !== '');
     navigator.clipboard?.writeText(lines.join('\n'));
     onNotification({ message: 'Trade plan copied to clipboard', type: 'success' });

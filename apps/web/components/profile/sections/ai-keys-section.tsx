@@ -5,7 +5,7 @@ import { AiApiKey } from '../../../types/profile';
 import ApiKeyInput from '../../forms/api-key-input';
 import KeyCard from '../../key-card';
 import { Button } from '../../ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Combobox } from '../../ui/combobox';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -23,13 +23,13 @@ export default function AiKeysSection({
   onAdd,
   onToggle,
   onDelete,
-  updating,
+  updating
 }: AiKeysSectionProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newKey, setNewKey] = useState({
     title: '',
     provider: 'openai',
-    apiKey: '',
+    apiKey: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,7 +43,6 @@ export default function AiKeysSection({
     <Card>
       <CardHeader>
         <CardTitle>AI API Keys</CardTitle>
-        <CardDescription>Manage your AI provider API keys (OpenAI, Claude, etc.)</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex justify-between items-center mb-4">
@@ -83,7 +82,7 @@ export default function AiKeysSection({
                       { value: 'openai', label: 'OpenAI' },
                       { value: 'anthropic', label: 'Anthropic (Claude)' },
                       { value: 'google', label: 'Google (Gemini)' },
-                      { value: 'other', label: 'Other' },
+                      { value: 'other', label: 'Other' }
                     ]}
                     value={newKey.provider}
                     onValueChange={(value: string) => setNewKey({ ...newKey, provider: value })}

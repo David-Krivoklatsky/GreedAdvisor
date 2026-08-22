@@ -21,7 +21,7 @@ export const GET = withApiMiddleware(async (req, ctx) => {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 10 * 60 * 1000, // 10 minutes
-      path: '/',
+      path: '/'
     });
 
     return response;
