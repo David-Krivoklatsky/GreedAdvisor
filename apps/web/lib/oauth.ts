@@ -43,7 +43,7 @@ export function buildProviderAuthUrl(
       response_type: 'code',
       scope: 'openid email profile',
       state,
-      prompt: 'select_account',
+      prompt: 'select_account'
     });
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   }
@@ -52,7 +52,7 @@ export function buildProviderAuthUrl(
     client_id: clientId,
     redirect_uri: redirectUri,
     scope: 'read:user user:email',
-    state,
+    state
   });
   return `https://github.com/login/oauth/authorize?${params.toString()}`;
 }
@@ -81,8 +81,8 @@ export async function exchangeCodeForProfile(
         client_id: clientId,
         client_secret: clientSecret,
         redirect_uri: redirectUri,
-        grant_type: 'authorization_code',
-      }),
+        grant_type: 'authorization_code'
+      })
     });
 
     if (!tokenResponse.ok) {
@@ -95,7 +95,7 @@ export async function exchangeCodeForProfile(
     }
 
     const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      headers: { Authorization: `Bearer ${tokenData.access_token}` }
     });
 
     if (!userResponse.ok) {
@@ -117,7 +117,7 @@ export async function exchangeCodeForProfile(
       providerAccountId: user.id,
       email: user.email,
       name: user.name,
-      profilePicture: user.picture,
+      profilePicture: user.picture
     };
   }
 
@@ -126,14 +126,14 @@ export async function exchangeCodeForProfile(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Accept: 'application/json',
+      Accept: 'application/json'
     },
     body: JSON.stringify({
       client_id: clientId,
       client_secret: clientSecret,
       code,
-      redirect_uri: redirectUri,
-    }),
+      redirect_uri: redirectUri
+    })
   });
 
   if (!tokenResponse.ok) {
@@ -149,8 +149,8 @@ export async function exchangeCodeForProfile(
     headers: {
       Authorization: `Bearer ${tokenData.access_token}`,
       Accept: 'application/vnd.github+json',
-      'User-Agent': 'GreedAdvisor',
-    },
+      'User-Agent': 'GreedAdvisor'
+    }
   });
 
   if (!userResponse.ok) {
@@ -172,8 +172,8 @@ export async function exchangeCodeForProfile(
       headers: {
         Authorization: `Bearer ${tokenData.access_token}`,
         Accept: 'application/vnd.github+json',
-        'User-Agent': 'GreedAdvisor',
-      },
+        'User-Agent': 'GreedAdvisor'
+      }
     });
 
     if (emailsResponse.ok) {
@@ -194,6 +194,6 @@ export async function exchangeCodeForProfile(
     providerAccountId: String(user.id),
     email,
     name: user.name ?? user.login ?? undefined,
-    profilePicture: user.avatar_url ?? undefined,
+    profilePicture: user.avatar_url ?? undefined
   };
 }

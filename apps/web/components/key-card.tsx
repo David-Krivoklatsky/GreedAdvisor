@@ -1,4 +1,6 @@
 import ApiKeyDisplay from '@/components/forms/api-key-display';
+import { Trading212Logo } from '@/components/brands/trading212-logo';
+import { AlpacaLogo } from '@/components/brands/alpaca-logo';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,7 +10,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialogTrigger
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 
@@ -28,6 +30,7 @@ interface AiKey extends BaseKey {
 
 interface TradingKey extends BaseKey {
   accessType: string;
+  provider?: string;
 }
 
 interface MarketDataKey extends BaseKey {
@@ -50,7 +53,7 @@ export default function KeyCard({
   onToggle,
   onDelete,
   onTest,
-  updating,
+  updating
 }: KeyCardProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -78,15 +81,23 @@ export default function KeyCard({
             {keyData.lastUsed && <p>Last used: {formatDate(keyData.lastUsed)}</p>}
           </div>
         </div>
-        <span
-          className={`px-3 py-1 rounded-full text-xs font-medium border ${
-            keyData.isActive
-              ? 'bg-success/10 text-success border-success/20'
-              : 'bg-destructive/10 text-destructive border-destructive/20'
-          }`}
-        >
-          {keyData.isActive ? 'Active' : 'Inactive'}
-        </span>
+        <div className="flex flex-col items-end gap-2">
+          {keyType === 'trading' &&
+            ((keyData as TradingKey).provider === 'alpaca' ? (
+              <AlpacaLogo size={20} />
+            ) : (keyData as TradingKey).provider === 'trading212' ? (
+              <Trading212Logo size={20} />
+            ) : null)}
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-medium border ${
+              keyData.isActive
+                ? 'bg-success/10 text-success border-success/20'
+                : 'bg-destructive/10 text-destructive border-destructive/20'
+            }`}
+          >
+            {keyData.isActive ? 'Active' : 'Inactive'}
+          </span>
+        </div>
       </div>
 
       {/* API Key Display Section */}

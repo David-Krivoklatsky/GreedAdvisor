@@ -17,7 +17,7 @@ export const POST = withApiMiddleware(
         {
           success: false,
           message: 'Too many requests. Please try again later.',
-          error: 'Rate limit exceeded',
+          error: 'Rate limit exceeded'
         },
         { status: 429 }
       );
@@ -30,7 +30,7 @@ export const POST = withApiMiddleware(
         {
           success: false,
           message: 'User with this email already exists',
-          error: 'User already exists',
+          error: 'User already exists'
         },
         { status: 409 }
       );
@@ -40,8 +40,8 @@ export const POST = withApiMiddleware(
     const user = await prisma.user.create({
       data: {
         email,
-        password: hashedPassword,
-      },
+        password: hashedPassword
+      }
     });
 
     const payload = { userId: user.id, email: user.email };
@@ -59,8 +59,8 @@ export const POST = withApiMiddleware(
           firstName: user.firstName,
           lastName: user.lastName,
           createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-        },
+          updatedAt: user.updatedAt
+        }
       },
       { status: 201 }
     );
@@ -70,7 +70,7 @@ export const POST = withApiMiddleware(
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      path: '/',
+      path: '/'
     });
 
     return response;

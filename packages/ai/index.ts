@@ -25,6 +25,20 @@ export interface AiReportInput {
   productType?: AiProductType;
   riskProfile?: AiRiskProfile;
   accountValue?: number;
+  indicators?: {
+    ema9?: number | null;
+    ema21?: number | null;
+    sma200?: number | null;
+    rsi?: number | null;
+    macd?: number | null;
+    macdSignal?: number | null;
+    macdHistogram?: number | null;
+    vwap?: number | null;
+    atr?: number | null;
+    bollingerUpper?: number | null;
+    bollingerMiddle?: number | null;
+    bollingerLower?: number | null;
+  };
 }
 
 export interface AiReport {
@@ -57,7 +71,7 @@ export interface AiReport {
 const RISK_PCT: Record<AiRiskProfile, number> = {
   conservative: 0.01,
   balanced: 0.02,
-  aggressive: 0.03,
+  aggressive: 0.03
 };
 
 const PRODUCT_NOTES: Record<AiProductType, string> = {
@@ -65,7 +79,7 @@ const PRODUCT_NOTES: Record<AiProductType, string> = {
     'INVEST (long-term share dealing): no leverage. Recommend ADD/HOLD/TRIM accumulation actions. Stop-loss is optional; focus on thesis, valuation and long horizon. If the action is ADD/TRIM suggest a smaller position than a full BUY/SELL.',
   CFD: 'CFD (leveraged contracts for difference): high risk, leverage amplifies losses. You MUST set a stopLoss and takeProfit. Position size must be conservative. Add an explicit leverage warning in risks.',
   CRYPTO:
-    'CRYPTO (24/7, highly volatile): high risk. You MUST set a stopLoss and takeProfit. Position size must be small due to volatility. Add an explicit volatility warning in risks.',
+    'CRYPTO (24/7, highly volatile): high risk. You MUST set a stopLoss and takeProfit. Position size must be small due to volatility. Add an explicit volatility warning in risks.'
 };
 
 const REPORT_PROMPT = (input: AiReportInput): string => {
@@ -92,6 +106,25 @@ ${input.candles
 
 User risk profile: ${input.riskProfile ?? 'balanced'} (max risk ${(riskPct * 100).toFixed(0)}% of account per trade)
 Account value: ${input.accountValue ?? 'unknown'}
+
+Technical indicators (computed from the candle series above):
+- EMA 9: ${input.indicators?.ema9 ?? 'n/a'}
+- EMA 21: ${input.indicators?.ema21 ?? 'n/a'}
+- SMA 200: ${input.indicators?.sma200 ?? 'n/a'}
+- RSI (14): ${input.indicators?.rsi ?? 'n/a'}
+- MACD: ${input.indicators?.macd ?? 'n/a'}
+- MACD signal: ${input.indicators?.macdSignal ?? 'n/a'}
+- MACD histogram: ${input.indicators?.macdHistogram ?? 'n/a'}
+- VWAP: ${input.indicators?.vwap ?? 'n/a'}
+- ATR (14): ${input.indicators?.atr ?? 'n/a'}
+- Bollinger upper/middle/lower (20, 2): ${input.indicators?.bollingerUpper ?? 'n/a'} / ${input.indicators?.bollingerMiddle ?? 'n/a'} / ${input.indicators?.bollingerLower ?? 'n/a'}
+
+Use the indicators alongside the price action. Reference the trend structure
+(EMA 9/21 alignment and crossovers, price vs SMA 200 regime), momentum (RSI
+overbought/oversold and divergences, MACD signal-line crossovers), value vs
+VWAP, and volatility context (Bollinger band width/squeeze, ATR for stop
+sizing) in the "technicals" analysis. Do not invent indicator values;
+only use the ones provided.
 
 Return JSON with this exact shape:
 {
@@ -188,7 +221,7 @@ function toReport(raw: RawReport, provider: AiProvider, input: AiReportInput): A
       fundamentals: raw.analysis?.fundamentals,
       technicals: raw.analysis?.technicals ?? 'No technical analysis provided.',
       sentiment: raw.analysis?.sentiment,
-      risks: raw.analysis?.risks,
+      risks: raw.analysis?.risks
     },
     entryPrice,
     stopLoss,
@@ -199,10 +232,10 @@ function toReport(raw: RawReport, provider: AiProvider, input: AiReportInput): A
     priceTargets: {
       current: entryPrice || input.quote.price,
       stopLoss,
-      takeProfit,
+      takeProfit
     },
     generatedAt: new Date().toISOString(),
-    provider,
+    provider
   };
 }
 
@@ -221,17 +254,17 @@ export class OpenAIProvider implements AiProviderClient {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: this.model,
         messages: [
           { role: 'system', content: 'You are a financial analyst returning JSON only.' },
-          { role: 'user', content: REPORT_PROMPT(input) },
+          { role: 'user', content: REPORT_PROMPT(input) }
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.3,
-      }),
+        temperature: 0.3
+      })
     });
 
     if (!response.ok) {
@@ -262,13 +295,13 @@ export class AnthropicProvider implements AiProviderClient {
       headers: {
         'x-api-key': this.apiKey,
         'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: this.model,
         max_tokens: 2048,
-        messages: [{ role: 'user', content: REPORT_PROMPT(input) }],
-      }),
+        messages: [{ role: 'user', content: REPORT_PROMPT(input) }]
+      })
     });
 
     if (!response.ok) {
@@ -301,8 +334,8 @@ export class GoogleProvider implements AiProviderClient {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: REPORT_PROMPT(input) }] }],
-        }),
+          contents: [{ parts: [{ text: REPORT_PROMPT(input) }] }]
+        })
       }
     );
 

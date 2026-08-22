@@ -4,8 +4,12 @@ import { reportSchema } from '@greed-advisor/validations';
 import type { ReportInput } from '@greed-advisor/validations';
 import { createAiProvider } from '@greed-advisor/ai';
 import type { AiProvider, AiProductType, AiRiskProfile } from '@greed-advisor/ai';
-import { MarketDataService, TwelveDataProvider } from '@greed-advisor/market-data';
-import { T212Environment, Trading212Client } from '@greed-advisor/trading212';
+import {
+  MarketDataService,
+  TwelveDataProvider,
+  computeIndicators
+} from '@greed-advisor/market-data';
+import { getActiveTradingClient } from '@/lib/providers';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -21,20 +25,20 @@ export const POST = withApiMiddleware(
         symbol,
         productType,
         riskProfile,
-        accountValue,
+        accountValue
       } = ctx.data as ReportInput;
 
       // Load keys and verify ownership
       const [tradingKey, aiKey, marketDataKey] = await Promise.all([
         prisma.t212ApiKey.findFirst({
-          where: { id: tradingKeyId, userId: ctx.userId, deletedAt: null, isActive: true },
+          where: { id: tradingKeyId, userId: ctx.userId, deletedAt: null, isActive: true }
         }),
         prisma.aiApiKey.findFirst({
-          where: { id: aiKeyId, userId: ctx.userId, deletedAt: null, isActive: true },
+          where: { id: aiKeyId, userId: ctx.userId, deletedAt: null, isActive: true }
         }),
         prisma.marketDataKey.findFirst({
-          where: { id: marketDataKeyId, userId: ctx.userId, deletedAt: null, isActive: true },
-        }),
+          where: { id: marketDataKeyId, userId: ctx.userId, deletedAt: null, isActive: true }
+        })
       ]);
 
       if (!tradingKey) {
@@ -54,7 +58,7 @@ export const POST = withApiMiddleware(
           {
             success: false,
             message: 'Market data key not found',
-            error: 'Market data key not found',
+            error: 'Market data key not found'
           },
           { status: 404 }
         );
@@ -64,31 +68,33 @@ export const POST = withApiMiddleware(
       let targetSymbol = symbol;
 
       if (!targetSymbol) {
-        const t212 = new Trading212Client({
-          apiKey: tradingKey.apiKey,
-          apiSecret: tradingKey.apiSecret,
-          environment: tradingKey.environment as T212Environment,
-        });
-        const positions = await t212.getPositions();
-        const first = positions[0];
-        if (!first) {
+        const trading = await getActiveTradingClient(ctx.userId, tradingKeyId);
+        if (!trading) {
+          return NextResponse.json(
+            { success: false, message: 'Trading key not found', error: 'Trading key not found' },
+            { status: 404 }
+          );
+        }
+        const firstSymbol = await trading.getFirstPositionSymbol();
+        if (!firstSymbol) {
           return NextResponse.json(
             {
               success: false,
               message: 'No positions found to analyze',
-              error: 'No positions found',
+              error: 'No positions found'
             },
             { status: 400 }
           );
         }
-        // T212 tickers look like "AAPL_US_EQ"; strip the exchange suffix for market data
-        targetSymbol = first.instrument.ticker.replace(/_US_EQ$/, '').replace(/_.+/, '');
+        targetSymbol = firstSymbol;
       }
 
       // Fetch real market data
       const marketData = new MarketDataService(new TwelveDataProvider(marketDataKey.apiKey));
       const quote = await marketData.getQuote(targetSymbol);
-      const candles = await marketData.getCandles(targetSymbol, '1day', 30);
+      const candles = await marketData.getCandles(targetSymbol, '1day', 300);
+
+      const indicators = computeIndicators(candles);
 
       // Generate AI report
       const aiProvider = createAiProvider(aiKey.provider as AiProvider, aiKey.apiKey);
@@ -96,24 +102,25 @@ export const POST = withApiMiddleware(
         symbol: targetSymbol,
         companyName: quote.name,
         quote,
-        candles,
+        candles: candles.slice(-90),
+        indicators: indicators.snapshot,
         reportType,
         productType: productType as AiProductType,
         riskProfile: riskProfile as AiRiskProfile,
-        accountValue: accountValue ?? undefined,
+        accountValue: accountValue ?? undefined
       });
 
       // Mark keys as used
       await Promise.all([
         prisma.t212ApiKey.update({
           where: { id: tradingKey.id },
-          data: { lastUsed: new Date() },
+          data: { lastUsed: new Date() }
         }),
         prisma.aiApiKey.update({ where: { id: aiKey.id }, data: { lastUsed: new Date() } }),
         prisma.marketDataKey.update({
           where: { id: marketDataKey.id },
-          data: { lastUsed: new Date() },
-        }),
+          data: { lastUsed: new Date() }
+        })
       ]);
 
       return NextResponse.json({ success: true, report });

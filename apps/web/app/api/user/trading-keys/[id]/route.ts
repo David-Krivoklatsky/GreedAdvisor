@@ -19,7 +19,7 @@ export const PUT = withApiMiddleware(
       }
 
       const existing = await prisma.t212ApiKey.findFirst({
-        where: { id: keyId, userId: ctx.userId, deletedAt: null },
+        where: { id: keyId, userId: ctx.userId, deletedAt: null }
       });
 
       if (!existing) {
@@ -40,16 +40,17 @@ export const PUT = withApiMiddleware(
           environment: environment ?? existing.environment,
           apiKey: apiKey ?? existing.apiKey,
           apiSecret: apiSecret ?? existing.apiSecret,
-          isActive: isActive ?? existing.isActive,
+          isActive: isActive ?? existing.isActive
         },
         select: {
           id: true,
           title: true,
           accessType: true,
           environment: true,
+          provider: true,
           isActive: true,
-          createdAt: true,
-        },
+          createdAt: true
+        }
       });
 
       await logKeyAudit(ctx.userId, 'trading', 'updated', req);
@@ -57,7 +58,7 @@ export const PUT = withApiMiddleware(
       return NextResponse.json({
         success: true,
         message: 'Trading API key updated successfully',
-        apiKey: updatedKey,
+        apiKey: updatedKey
       });
     })
   )

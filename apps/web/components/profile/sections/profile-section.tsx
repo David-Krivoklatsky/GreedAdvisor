@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { User } from '../../../types/profile';
 import { Button } from '../../ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 
@@ -48,7 +48,7 @@ export default function ProfileSection({ user, onUpdate, updating }: ProfileSect
     await onUpdate({
       email,
       ...(password && { password }),
-      ...(profilePictureFile && { profilePictureFile }),
+      ...(profilePictureFile && { profilePictureFile })
     });
   };
 
@@ -58,7 +58,6 @@ export default function ProfileSection({ user, onUpdate, updating }: ProfileSect
     <Card>
       <CardHeader>
         <CardTitle>Profile Information</CardTitle>
-        <CardDescription>Update your account information</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">

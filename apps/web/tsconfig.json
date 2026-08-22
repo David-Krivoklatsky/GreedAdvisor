@@ -15,6 +15,7 @@
       "@greed-advisor/rate-limit": ["../../packages/rate-limit"],
       "@greed-advisor/middleware": ["../../packages/middleware"],
       "@greed-advisor/trading212": ["../../packages/trading212"],
+      "@greed-advisor/alpaca": ["../../packages/alpaca"],
       "@greed-advisor/market-data": ["../../packages/market-data"],
       "@greed-advisor/ai": ["../../packages/ai"]
     }

@@ -14,8 +14,8 @@ export const metadata: Metadata = {
   icons: {
     icon: '/GA.png',
     shortcut: '/GA.png',
-    apple: '/GA.png',
-  },
+    apple: '/GA.png'
+  }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

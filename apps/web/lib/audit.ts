@@ -13,7 +13,7 @@ export async function logKeyAudit(
       keyType,
       action,
       ipAddress: req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? '',
-      userAgent: req.headers.get('user-agent') ?? '',
-    },
+      userAgent: req.headers.get('user-agent') ?? ''
+    }
   });
 }

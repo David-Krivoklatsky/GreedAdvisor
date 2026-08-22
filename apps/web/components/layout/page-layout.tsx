@@ -8,7 +8,7 @@ interface PageLayoutProps {
 
 export default function PageLayout({
   children,
-  className = 'min-h-screen bg-background',
+  className = 'min-h-screen bg-background'
 }: PageLayoutProps) {
   return (
     <div className={className}>

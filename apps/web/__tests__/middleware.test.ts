@@ -5,7 +5,7 @@ import { z } from 'zod';
 // Mock auth so no JWT_SECRET is required at import time
 jest.mock('@greed-advisor/auth', () => ({
   extractTokenFromHeader: jest.fn(),
-  verifyAccessToken: jest.fn(),
+  verifyAccessToken: jest.fn()
 }));
 
 const { extractTokenFromHeader, verifyAccessToken } = require('@greed-advisor/auth');
@@ -16,7 +16,7 @@ const jsonRequest = (body: unknown) =>
   new NextRequest('http://localhost:3000/api/test', {
     method: 'POST',
     body: JSON.stringify(body),
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json' }
   });
 
 describe('withApiMiddleware', () => {
@@ -69,7 +69,7 @@ describe('withAuth', () => {
 
     await handler(
       new NextRequest('http://localhost:3000/api/test', {
-        headers: { authorization: 'Bearer token' },
+        headers: { authorization: 'Bearer token' }
       }),
       {}
     );
@@ -93,7 +93,7 @@ describe('withAuth', () => {
     const handler = withAuth(async () => NextResponse.json({ success: true }));
     const response = await handler(
       new NextRequest('http://localhost:3000/api/test', {
-        headers: { authorization: 'Bearer bad-token' },
+        headers: { authorization: 'Bearer bad-token' }
       }),
       {}
     );
@@ -105,7 +105,7 @@ describe('withAuth', () => {
 describe('withValidation', () => {
   const schema = z.object({
     email: z.string().email(),
-    password: z.string().min(6),
+    password: z.string().min(6)
   });
 
   beforeEach(() => {
@@ -152,8 +152,8 @@ describe('withValidation', () => {
         body: JSON.stringify({ email: 'a@b.com', password: 'secret123' }),
         headers: {
           'content-type': 'application/json',
-          authorization: 'Bearer token',
-        },
+          authorization: 'Bearer token'
+        }
       }),
       {}
     );

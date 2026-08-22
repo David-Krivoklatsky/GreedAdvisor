@@ -13,7 +13,7 @@ interface ApiKeyDisplayProps {
 export default function ApiKeyDisplay({
   apiKey,
   className = '',
-  placeholder = '••••••••••••••••••••••••••••••••',
+  placeholder = '••••••••••••••••••••••••••••••••'
 }: ApiKeyDisplayProps) {
   const [isVisible, setIsVisible] = useState(false);
 

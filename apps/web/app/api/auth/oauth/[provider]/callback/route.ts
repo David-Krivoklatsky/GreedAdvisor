@@ -32,7 +32,7 @@ export const GET = withApiMiddleware(async (req, ctx) => {
     const profile = await exchangeCodeForProfile(provider, code, origin);
 
     let user = await prisma.user.findFirst({
-      where: { provider, providerAccountId: profile.providerAccountId },
+      where: { provider, providerAccountId: profile.providerAccountId }
     });
 
     if (!user) {
@@ -48,8 +48,8 @@ export const GET = withApiMiddleware(async (req, ctx) => {
             name: byEmail.name ?? profile.name ?? null,
             firstName: byEmail.firstName ?? profile.name?.split(' ')[0] ?? null,
             lastName: byEmail.lastName ?? (profile.name?.split(' ').slice(1).join(' ') || null),
-            profilePicture: byEmail.profilePicture ?? profile.profilePicture ?? null,
-          },
+            profilePicture: byEmail.profilePicture ?? profile.profilePicture ?? null
+          }
         });
       } else {
         const nameParts = profile.name?.split(' ') ?? [];
@@ -61,8 +61,8 @@ export const GET = withApiMiddleware(async (req, ctx) => {
             name: profile.name,
             firstName: nameParts[0] ?? null,
             lastName: nameParts.slice(1).join(' ') || null,
-            profilePicture: profile.profilePicture,
-          },
+            profilePicture: profile.profilePicture
+          }
         });
       }
     } else {
@@ -72,8 +72,8 @@ export const GET = withApiMiddleware(async (req, ctx) => {
         data: {
           name: profile.name ?? user.name,
           profilePicture: profile.profilePicture ?? user.profilePicture,
-          lastLogin: new Date(),
-        },
+          lastLogin: new Date()
+        }
       });
     }
 
@@ -90,7 +90,7 @@ export const GET = withApiMiddleware(async (req, ctx) => {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      path: '/',
+      path: '/'
     });
 
     response.cookies.set('oauth_state', '', { maxAge: 0, path: '/' });

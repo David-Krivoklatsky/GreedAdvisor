@@ -5,7 +5,7 @@ import { TradingApiKey } from '../../../types/profile';
 import ApiKeyInput from '../../forms/api-key-input';
 import KeyCard from '../../key-card';
 import { Button } from '../../ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Combobox } from '../../ui/combobox';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -14,6 +14,7 @@ interface TradingKeysSectionProps {
   tradingKeys: TradingApiKey[];
   onAdd: (data: {
     title: string;
+    provider: string;
     accessType: string;
     environment: string;
     apiKey: string;
@@ -24,31 +25,61 @@ interface TradingKeysSectionProps {
   updating: boolean;
 }
 
+const PROVIDER_OPTIONS = [
+  { value: 'trading212', label: 'Trading212' },
+  { value: 'alpaca', label: 'Alpaca' }
+];
+
+const PROVIDER_ENV: Record<string, { value: string; label: string }[]> = {
+  trading212: [
+    { value: 'demo', label: 'Demo (Paper Trading)' },
+    { value: 'live', label: 'Live' }
+  ],
+  alpaca: [
+    { value: 'paper', label: 'Paper' },
+    { value: 'live', label: 'Live' }
+  ]
+};
+
 export default function TradingKeysSection({
   tradingKeys,
   onAdd,
   onToggle,
   onDelete,
-  updating,
+  updating
 }: TradingKeysSectionProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newKey, setNewKey] = useState({
     title: '',
+    provider: 'trading212',
     accessType: 'read-only',
     environment: 'demo',
     apiKey: '',
-    apiSecret: '',
+    apiSecret: ''
   });
+
+  const provider = newKey.provider;
+  const isAlpaca = provider === 'alpaca';
+
+  const handleProviderChange = (value: string) => {
+    setNewKey({
+      ...newKey,
+      provider: value,
+      environment: value === 'alpaca' ? 'paper' : 'demo',
+      accessType: value === 'alpaca' ? 'read-only' : newKey.accessType
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onAdd(newKey);
     setNewKey({
       title: '',
+      provider: 'trading212',
       accessType: 'read-only',
       environment: 'demo',
       apiKey: '',
-      apiSecret: '',
+      apiSecret: ''
     });
     setShowAddForm(false);
   };
@@ -57,7 +88,6 @@ export default function TradingKeysSection({
     <Card>
       <CardHeader>
         <CardTitle>Trading API Keys</CardTitle>
-        <CardDescription>Manage your Trading212 API keys</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex justify-between items-center mb-4">
@@ -85,32 +115,42 @@ export default function TradingKeysSection({
                     value={newKey.title}
                     onChange={e => setNewKey({ ...newKey, title: e.target.value })}
                     className="mt-1"
-                    placeholder="e.g., My Trading212 Key"
+                    placeholder={`e.g., My ${isAlpaca ? 'Alpaca' : 'Trading212'} Key`}
                     required
                   />
                 </div>
 
                 <div>
-                  <Label>Access Type</Label>
+                  <Label>Provider</Label>
                   <Combobox
-                    options={[
-                      { value: 'read-only', label: 'Read Only' },
-                      { value: 'full-access', label: 'Full Access' },
-                    ]}
-                    value={newKey.accessType}
-                    onValueChange={(value: string) => setNewKey({ ...newKey, accessType: value })}
-                    placeholder="Select option..."
+                    options={PROVIDER_OPTIONS}
+                    value={newKey.provider}
+                    onValueChange={handleProviderChange}
+                    placeholder="Select provider..."
                     className="w-full mt-1"
                   />
                 </div>
 
+                {!isAlpaca && (
+                  <div>
+                    <Label>Access Type</Label>
+                    <Combobox
+                      options={[
+                        { value: 'read-only', label: 'Read Only' },
+                        { value: 'full-access', label: 'Full Access' }
+                      ]}
+                      value={newKey.accessType}
+                      onValueChange={(value: string) => setNewKey({ ...newKey, accessType: value })}
+                      placeholder="Select option..."
+                      className="w-full mt-1"
+                    />
+                  </div>
+                )}
+
                 <div>
                   <Label>Environment</Label>
                   <Combobox
-                    options={[
-                      { value: 'demo', label: 'Demo (Paper Trading)' },
-                      { value: 'live', label: 'Live' },
-                    ]}
+                    options={PROVIDER_ENV[provider] ?? PROVIDER_ENV.trading212}
                     value={newKey.environment}
                     onValueChange={(value: string) => setNewKey({ ...newKey, environment: value })}
                     placeholder="Select environment..."
@@ -120,19 +160,25 @@ export default function TradingKeysSection({
 
                 <ApiKeyInput
                   id="tradingApiKey"
-                  label="API Key"
+                  label={isAlpaca ? 'API Key ID' : 'API Key'}
                   value={newKey.apiKey}
                   onChange={(value: string) => setNewKey({ ...newKey, apiKey: value })}
-                  placeholder="Enter your Trading212 API key"
+                  placeholder={
+                    isAlpaca ? 'Enter your Alpaca API key ID' : 'Enter your Trading212 API key'
+                  }
                   required
                 />
 
                 <ApiKeyInput
                   id="tradingApiSecret"
-                  label="API Secret"
+                  label={isAlpaca ? 'API Secret Key' : 'API Secret'}
                   value={newKey.apiSecret}
                   onChange={(value: string) => setNewKey({ ...newKey, apiSecret: value })}
-                  placeholder="Enter your Trading212 API secret"
+                  placeholder={
+                    isAlpaca
+                      ? 'Enter your Alpaca API secret key'
+                      : 'Enter your Trading212 API secret'
+                  }
                   required
                 />
 

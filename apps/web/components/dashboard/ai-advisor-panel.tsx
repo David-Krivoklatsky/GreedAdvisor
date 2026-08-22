@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
 import { TokenManager } from '@/lib/token-manager';
@@ -11,24 +11,28 @@ import {
   MarketDataKey,
   NotificationData,
   TradingKey,
+  User,
   WatchlistItem,
-  WatchlistScanResult,
+  WatchlistScanResult
 } from '@/types/dashboard';
 import { useEffect, useState } from 'react';
 import { Plus, ScanLine, Trash2, Loader2 } from 'lucide-react';
 import TradePlanModal from './trade-plan-modal';
 import { InstrumentCombobox } from './instrument-combobox';
+import RiskProfileSection from '@/components/profile/sections/risk-profile-section';
 
 interface AiAdvisorPanelProps {
   tradingKeys: TradingKey[];
   aiKeys: AiKey[];
   marketDataKeys: MarketDataKey[];
   selectedTradingKey: string;
+  user?: User | null;
+  onUpdateRiskProfile?: (data: { riskProfile: string }) => Promise<void>;
+  riskUpdating?: boolean;
   onNotification: (n: NotificationData) => void;
 }
 
-const PRODUCT_TYPES = ['INVEST', 'CFD', 'CRYPTO'] as const;
-const INSTRUMENT_TYPES = ['STOCK', 'ETF', 'CRYPTO', 'FOREX'] as const;
+const INSTRUMENT_TYPES = ['STOCK', 'ETF'] as const;
 
 const FOREX_PATTERN =
   /^(?:XAU|XAG|XPT|XPD|EUR|USD|GBP|JPY|CHF|AUD|CAD|NZD|CNH|HKD|NOK|SEK|SGD|MXN|TRY|ZAR|PLN|CZK|DKK|HUF|RUB|BRL|INR|KRW|TWD|THB|CLP|COP|ILS|SAR|AED|NGN|GHS|KES|PKR|BDT|VND|MYR|IDR|PHP)\s*(?:USD|EUR|GBP|JPY|CHF|AUD|CAD|NZD|CNH|HKD|NOK|SEK|SGD|MXN|TRY|ZAR|PLN|CZK|DKK|HUF|RUB|BRL|INR|KRW|TWD|THB|CLP|COP|ILS|SAR|AED|NGN|GHS|KES|PKR|BDT|VND|MYR|IDR|PHP)$/;
@@ -63,7 +67,7 @@ const CRYPTO_TICKERS = new Set([
   'RNDR',
   'HBAR',
   'VET',
-  'TRX',
+  'TRX'
 ]);
 
 function inferInstrumentType(ticker: string): string {
@@ -79,7 +83,7 @@ function actionBadge(action: string) {
     ADD: 'bg-success/10 text-success',
     SELL: 'bg-destructive/10 text-destructive',
     TRIM: 'bg-warning/15 text-warning',
-    HOLD: 'bg-muted text-muted-foreground',
+    HOLD: 'bg-muted text-muted-foreground'
   };
   return colors[action] ?? 'bg-muted text-foreground';
 }
@@ -89,7 +93,10 @@ export default function AiAdvisorPanel({
   aiKeys,
   marketDataKeys,
   selectedTradingKey,
-  onNotification,
+  user,
+  onUpdateRiskProfile,
+  riskUpdating = false,
+  onNotification
 }: AiAdvisorPanelProps) {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [newTicker, setNewTicker] = useState('');
@@ -139,8 +146,8 @@ export default function AiAdvisorPanel({
         body: JSON.stringify({
           ticker,
           instrumentType,
-          ...(newName.trim() ? { name: newName.trim() } : {}),
-        }),
+          ...(newName.trim() ? { name: newName.trim() } : {})
+        })
       });
       if (!response.ok) {
         const body = await response.json().catch(() => null);
@@ -154,7 +161,7 @@ export default function AiAdvisorPanel({
     } catch (err) {
       onNotification({
         message: err instanceof Error ? err.message : 'Failed to add',
-        type: 'error',
+        type: 'error'
       });
     }
   };
@@ -162,7 +169,7 @@ export default function AiAdvisorPanel({
   const removeFromWatchlist = async (id: number) => {
     try {
       const response = await TokenManager.makeAuthenticatedRequest(`/api/user/watchlist/${id}`, {
-        method: 'DELETE',
+        method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to remove');
       setWatchlist(prev => prev.filter(i => i.id !== id));
@@ -190,8 +197,8 @@ export default function AiAdvisorPanel({
         body: JSON.stringify({
           aiKeyId: Number(selectedAiKey),
           marketDataKeyId: Number(selectedMarketDataKey),
-          productType,
-        }),
+          productType
+        })
       });
 
       if (!response.ok) {
@@ -203,12 +210,12 @@ export default function AiAdvisorPanel({
       setResult(data);
       onNotification({
         message: `Scan complete — ${data.opportunities?.length ?? 0} opportunities found`,
-        type: 'success',
+        type: 'success'
       });
     } catch (err) {
       onNotification({
         message: err instanceof Error ? err.message : 'Scan failed',
-        type: 'error',
+        type: 'error'
       });
     } finally {
       setScanning(false);
@@ -219,10 +226,7 @@ export default function AiAdvisorPanel({
     <Card className="h-full overflow-y-auto">
       <CardHeader className="border-b border-border">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">AI Advisor</CardTitle>
-            <CardDescription>AI proposes trade plans — you make the final call</CardDescription>
-          </div>
+          <CardTitle className="flex items-center gap-2">AI Advisor</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="pt-4 space-y-4">
@@ -253,22 +257,7 @@ export default function AiAdvisorPanel({
         {/* Product type */}
         <div>
           <Label className="text-xs">What do you want to trade?</Label>
-          <div className="mt-1 grid grid-cols-3 gap-2">
-            {PRODUCT_TYPES.map(type => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setProductType(type)}
-                className={`py-2 rounded-md text-xs font-semibold border transition-colors ${
-                  productType === type
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'border-border text-muted-foreground hover:bg-accent'
-                }`}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
+          <p className="text-xs text-muted-foreground mt-1">Only Invest is supported for now.</p>
         </div>
 
         {/* Watchlist add */}
@@ -337,8 +326,6 @@ export default function AiAdvisorPanel({
           )}
           {scanning ? 'Analyzing watchlist…' : 'Scan watchlist'}
         </Button>
-
-        {/* Results */}
         {result && (
           <div className="space-y-4">
             {result.opportunities.length > 0 && (
@@ -355,7 +342,7 @@ export default function AiAdvisorPanel({
                         setSelectedPlan({
                           plan: report,
                           symbol: item.ticker,
-                          companyName: item.name ?? undefined,
+                          companyName: item.name ?? undefined
                         })
                       }
                       className="w-full text-left rounded-lg border border-border p-3 hover:border-ring hover:shadow-sm transition-all"
@@ -416,6 +403,18 @@ export default function AiAdvisorPanel({
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Risk profile */}
+        {user && onUpdateRiskProfile && (
+          <div className="pt-2 border-t border-border">
+            <RiskProfileSection
+              user={user}
+              onUpdate={onUpdateRiskProfile}
+              updating={riskUpdating}
+              stacked
+            />
           </div>
         )}
       </CardContent>

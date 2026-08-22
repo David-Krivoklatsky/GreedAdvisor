@@ -10,7 +10,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList,
+  CommandList
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@greed-advisor/utils';
@@ -49,7 +49,7 @@ export function Combobox({
   loading = false,
   displayValue,
   open: openProp,
-  onOpenChange,
+  onOpenChange
 }: ComboboxProps) {
   const [openState, setOpenState] = React.useState(false);
   const open = openProp ?? openState;

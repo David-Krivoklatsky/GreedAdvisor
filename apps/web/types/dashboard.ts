@@ -14,6 +14,7 @@ export interface TradingKey {
   accessType: string;
   environment: string;
   isActive: boolean;
+  provider?: string;
 }
 
 export interface AiKey {
@@ -119,7 +120,7 @@ export interface Position {
 }
 
 export interface AccountSummary {
-  id: number;
+  id: number | string;
   currency: string;
   totalValue: number;
   cash: {

@@ -1,18 +1,30 @@
 'use client';
 
-import { LightweightChart } from '@/components/charts/lightweight-chart';
+import {
+  DEFAULT_ENABLED_INDICATORS,
+  LightweightChart,
+  type IndicatorKey
+} from '@/components/charts/lightweight-chart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMarketCandles } from '@/hooks/useMarketCandles';
 import { useEffect, useState } from 'react';
 import { CandlestickChart } from 'lucide-react';
 
 export default function ChartPanel() {
-  const { candles, loading, error, symbol, setSymbol, interval, setInterval } = useMarketCandles();
+  const { candles, indicators, loading, error, symbol, setSymbol, interval, setInterval } =
+    useMarketCandles();
   const [displaySymbol, setDisplaySymbol] = useState(symbol);
+  const [enabledIndicators, setEnabledIndicators] = useState<Record<IndicatorKey, boolean>>(
+    DEFAULT_ENABLED_INDICATORS
+  );
 
   useEffect(() => {
     setDisplaySymbol(symbol);
   }, [symbol]);
+
+  const toggleIndicator = (key: IndicatorKey) => {
+    setEnabledIndicators(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   return (
     <Card className="flex flex-col overflow-hidden border-border">
@@ -30,6 +42,7 @@ export default function ChartPanel() {
         <div className="h-[440px]">
           <LightweightChart
             candles={candles}
+            indicators={indicators}
             symbol={displaySymbol}
             onSymbolChange={sym => {
               setSymbol(sym);
@@ -38,6 +51,8 @@ export default function ChartPanel() {
             onIntervalChange={iv => {
               setInterval(iv);
             }}
+            enabled={enabledIndicators}
+            onToggleIndicator={toggleIndicator}
             loading={loading}
             height={440}
           />

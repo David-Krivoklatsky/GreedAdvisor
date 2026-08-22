@@ -26,8 +26,8 @@ export const GET = withApiMiddleware(
             title: true,
             provider: true,
             isActive: true,
-            createdAt: true,
-          },
+            createdAt: true
+          }
         },
         t212ApiKeys: {
           select: {
@@ -35,10 +35,10 @@ export const GET = withApiMiddleware(
             title: true,
             accessType: true,
             isActive: true,
-            createdAt: true,
-          },
-        },
-      },
+            createdAt: true
+          }
+        }
+      }
     });
 
     if (!user) {
@@ -53,8 +53,8 @@ export const GET = withApiMiddleware(
       {
         status: 200,
         headers: {
-          'Cache-Control': 'private, max-age=60',
-        },
+          'Cache-Control': 'private, max-age=60'
+        }
       }
     );
   })
@@ -75,7 +75,7 @@ export const PUT = withApiMiddleware(
             {
               success: false,
               message: 'User with this email already exists',
-              error: 'Email already in use',
+              error: 'Email already in use'
             },
             { status: 409 }
           );
@@ -103,14 +103,14 @@ export const PUT = withApiMiddleware(
           firstName: true,
           lastName: true,
           profilePicture: true,
-          createdAt: true,
-        },
+          createdAt: true
+        }
       });
 
       return NextResponse.json({
         success: true,
         message: 'Profile updated successfully',
-        user: updatedUser,
+        user: updatedUser
       });
     })
   )

@@ -6,7 +6,7 @@ import {
   NotificationData,
   Position,
   TradingKey,
-  User,
+  User
 } from '@/types/dashboard';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -22,6 +22,8 @@ export const useDashboardData = () => {
   const [positionsLoading, setPositionsLoading] = useState(false);
   const [selectedTradingKey, setSelectedTradingKey] = useState<string>('');
   const [notification, setNotification] = useState<NotificationData | null>(null);
+
+  const STORAGE_KEY = 'ga.selectedTradingKey';
 
   const fetchUser = async () => {
     try {
@@ -108,11 +110,11 @@ export const useDashboardData = () => {
       setPositions(data.positions || []);
       setAccountSummary(data.accountSummary || null);
     } catch (err) {
-      setPositions([]);
-      setAccountSummary(null);
+      // Keep the previously loaded account data — a failed refresh must not
+      // wipe the user's balances.
       showNotification({
-        message: err instanceof Error ? err.message : 'Failed to load positions',
-        type: 'warning',
+        message: "Couldn't load info from trading API",
+        type: 'warning'
       });
     } finally {
       setPositionsLoading(false);
@@ -126,19 +128,33 @@ export const useDashboardData = () => {
     fetchMarketDataKeys();
   }, []);
 
-  // When trading keys load, auto-select the first active one
+  // When trading keys load, auto-select the previously used active one (persisted),
+  // falling back to the first active key.
   useEffect(() => {
     if (tradingKeys.length > 0) {
-      setSelectedTradingKey(prev =>
-        prev && tradingKeys.some(k => k.id.toString() === prev)
-          ? prev
-          : tradingKeys[0].id.toString()
-      );
+      setSelectedTradingKey(prev => {
+        const stored = window.localStorage.getItem(STORAGE_KEY);
+        const preferred =
+          stored && tradingKeys.some(k => k.id.toString() === stored) ? stored : prev;
+        const next =
+          preferred && tradingKeys.some(k => k.id.toString() === preferred)
+            ? preferred
+            : tradingKeys[0].id.toString();
+        window.localStorage.setItem(STORAGE_KEY, next);
+        return next;
+      });
     } else {
       setPositions([]);
       setAccountSummary(null);
     }
   }, [tradingKeys]);
+
+  // Persist the selection so the dashboard restores it on the next visit.
+  useEffect(() => {
+    if (selectedTradingKey) {
+      window.localStorage.setItem(STORAGE_KEY, selectedTradingKey);
+    }
+  }, [selectedTradingKey]);
 
   // When selected trading key changes, load the portfolio
   useEffect(() => {
@@ -175,7 +191,7 @@ export const useDashboardData = () => {
       fetchTradingKeys,
       fetchAiKeys,
       fetchMarketDataKeys,
-      fetchPositions,
-    },
+      fetchPositions
+    }
   };
 };

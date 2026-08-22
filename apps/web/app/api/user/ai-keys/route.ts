@@ -15,9 +15,9 @@ export const GET = withApiMiddleware(
         provider: true,
         isActive: true,
         createdAt: true,
-        lastUsed: true,
+        lastUsed: true
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }
     });
 
     return NextResponse.json({ success: true, aiKeys: apiKeys });
@@ -30,7 +30,7 @@ export const POST = withApiMiddleware(
       const { title, provider, apiKey } = ctx.data as AiApiKeyInput;
 
       const count = await prisma.aiApiKey.count({
-        where: { userId: ctx.userId, deletedAt: null },
+        where: { userId: ctx.userId, deletedAt: null }
       });
       const maxAiKeys = Number(process.env.MAX_AI_KEYS ?? 3);
 
@@ -39,7 +39,7 @@ export const POST = withApiMiddleware(
           {
             success: false,
             message: `Maximum of ${maxAiKeys} AI API keys allowed`,
-            error: 'API key limit reached',
+            error: 'API key limit reached'
           },
           { status: 400 }
         );
@@ -51,15 +51,15 @@ export const POST = withApiMiddleware(
           title,
           provider,
           apiKey,
-          isActive: true,
+          isActive: true
         },
         select: {
           id: true,
           title: true,
           provider: true,
           isActive: true,
-          createdAt: true,
-        },
+          createdAt: true
+        }
       });
 
       await logKeyAudit(ctx.userId, 'ai', 'created', req);
@@ -68,7 +68,7 @@ export const POST = withApiMiddleware(
         {
           success: true,
           message: 'API key created successfully',
-          apiKey: newKey,
+          apiKey: newKey
         },
         { status: 201 }
       );

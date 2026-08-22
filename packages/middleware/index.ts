@@ -29,7 +29,7 @@ const unauthorizedResponse = (): NextResponse =>
       success: false,
       message: 'Unauthorized',
       error: 'Missing or invalid authorization header',
-      statusCode: 401,
+      statusCode: 401
     } satisfies ApiErrorResponse,
     { status: 401 }
   );
@@ -40,7 +40,7 @@ const invalidTokenResponse = (): NextResponse =>
       success: false,
       message: 'Unauthorized',
       error: 'Invalid or expired token',
-      statusCode: 401,
+      statusCode: 401
     } satisfies ApiErrorResponse,
     { status: 401 }
   );
@@ -51,7 +51,7 @@ const validationErrorResponse = (error: ZodError): NextResponse =>
       success: false,
       message: 'Validation failed',
       error: error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', '),
-      statusCode: 400,
+      statusCode: 400
     } satisfies ApiErrorResponse,
     { status: 400 }
   );
@@ -62,7 +62,7 @@ const internalErrorResponse = (): NextResponse =>
       success: false,
       message: 'Internal server error',
       error: 'An unexpected error occurred',
-      statusCode: 500,
+      statusCode: 500
     } satisfies ApiErrorResponse,
     { status: 500 }
   );

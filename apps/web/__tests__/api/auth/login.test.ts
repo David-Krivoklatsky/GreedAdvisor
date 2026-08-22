@@ -5,27 +5,27 @@ import { NextRequest } from 'next/server';
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     user: {
-      findUnique: jest.fn(),
-    },
-  },
+      findUnique: jest.fn()
+    }
+  }
 }));
 
 // Mock auth functions
 jest.mock('@greed-advisor/auth', () => ({
   comparePassword: jest.fn(),
   signAccessToken: jest.fn(),
-  signRefreshToken: jest.fn(),
+  signRefreshToken: jest.fn()
 }));
 
 // Mock rate limiting
 jest.mock('@greed-advisor/rate-limit', () => ({
-  rateLimit: jest.fn(),
+  rateLimit: jest.fn()
 }));
 
 // Mock middleware
 jest.mock('@greed-advisor/middleware', () => ({
   withApiMiddleware: jest.fn((handler: any) => handler),
-  withValidation: jest.fn(() => (handler: any) => handler),
+  withValidation: jest.fn(() => (handler: any) => handler)
 }));
 
 // Import the route handler after mocks are set up
@@ -50,7 +50,7 @@ describe('/api/auth/login', () => {
     new NextRequest('http://localhost:3000/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email: 'test@example.com', password: 'password123' }),
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json' }
     });
 
   const mockUser = {
@@ -59,14 +59,14 @@ describe('/api/auth/login', () => {
     password: 'hashedPassword',
     firstName: 'Test',
     lastName: 'User',
-    createdAt: new Date(),
+    createdAt: new Date()
   };
 
   it('should return tokens and user on successful login', async () => {
     jest.mocked(prisma.user.findUnique).mockResolvedValue(mockUser);
 
     const response = await POST(makeRequest(), {
-      data: { email: mockUser.email, password: 'password123' },
+      data: { email: mockUser.email, password: 'password123' }
     } as any);
     const data = await response.json();
 
@@ -81,7 +81,7 @@ describe('/api/auth/login', () => {
     jest.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
     const response = await POST(makeRequest(), {
-      data: { email: 'nobody@example.com', password: 'password123' },
+      data: { email: 'nobody@example.com', password: 'password123' }
     } as any);
     const data = await response.json();
 
@@ -95,7 +95,7 @@ describe('/api/auth/login', () => {
     jest.mocked(comparePassword).mockResolvedValue(false);
 
     const response = await POST(makeRequest(), {
-      data: { email: mockUser.email, password: 'wrong' },
+      data: { email: mockUser.email, password: 'wrong' }
     } as any);
     const data = await response.json();
 
@@ -107,7 +107,7 @@ describe('/api/auth/login', () => {
     jest.mocked(rateLimit).mockReturnValue({ success: false });
 
     const response = await POST(makeRequest(), {
-      data: { email: mockUser.email, password: 'password123' },
+      data: { email: mockUser.email, password: 'password123' }
     } as any);
     const data = await response.json();
 

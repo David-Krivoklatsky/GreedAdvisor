@@ -119,7 +119,7 @@ const fetchMarketData = async () => {
     const data = await response.json();
     setMarketData({
       price: data['Global Quote']['05. price'],
-      symbol: marketData.symbol,
+      symbol: marketData.symbol
     });
   } catch (error) {
     console.error('Failed to fetch market data:', error);

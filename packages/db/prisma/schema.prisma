@@ -106,7 +106,8 @@ model T212ApiKey {
   apiKey     String   @db.Text
   apiSecret  String   @db.Text
   environment String  @db.VarChar(20) @default("demo") // 'demo' or 'live'
-  accessType String   @db.VarChar(50) // 'read-only', 'full-access'
+  accessType String   @db.VarChar(50) // 'read-only', 'full-access' (Trading212 only)
+  provider   String   @db.VarChar(20) @default("trading212") // 'trading212' or 'alpaca'
   isActive   Boolean  @default(true)
   lastUsed   DateTime?
   createdAt  DateTime @default(now())
@@ -119,6 +120,7 @@ model T212ApiKey {
   @@index([userId])
   @@index([environment])
   @@index([accessType])
+  @@index([provider])
   @@index([isActive])
   @@map("t212_api_keys")
 }

@@ -23,7 +23,7 @@ export default function LoginPage() {
         state_mismatch: 'Sign-in could not be verified. Please try again.',
         missing_code: 'Sign-in was cancelled. Please try again.',
         oauth_failed: 'Sign-in failed. Please try again.',
-        unsupported_provider: 'This sign-in method is not supported.',
+        unsupported_provider: 'This sign-in method is not supported.'
       };
       toast(messages[oauthError] ?? 'Sign-in failed. Please try again.', 'error');
       router.replace('/login');
@@ -38,10 +38,10 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ email, password }),
-        credentials: 'include',
+        credentials: 'include'
       });
 
       const data = await response.json();
