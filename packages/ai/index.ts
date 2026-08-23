@@ -1,4 +1,4 @@
-export type AiProvider = 'openai' | 'anthropic' | 'google' | 'claude';
+export type AiProvider = 'openai' | 'anthropic' | 'google' | 'claude' | 'opencode';
 
 export type AiAction = 'BUY' | 'SELL' | 'HOLD' | 'ADD' | 'TRIM';
 export type AiProductType = 'INVEST' | 'CFD' | 'CRYPTO';
@@ -356,15 +356,120 @@ export class GoogleProvider implements AiProviderClient {
   }
 }
 
-export function createAiProvider(provider: AiProvider, apiKey: string): AiProviderClient {
+export class OpenCodeProvider implements AiProviderClient {
+  // OpenCode GO subscription gateway (OpenAI-compatible)
+  private static readonly BASE_URL = 'https://opencode.ai/zen/go/v1/chat/completions';
+
+  constructor(
+    private readonly apiKey: string,
+    private readonly model = 'glm-5.2'
+  ) {}
+
+  async generateReport(input: AiReportInput): Promise<AiReport> {
+    const response = await fetch(OpenCodeProvider.BASE_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages: [
+          { role: 'system', content: 'You are a financial analyst returning JSON only.' },
+          { role: 'user', content: REPORT_PROMPT(input) }
+        ],
+        temperature: 0.3
+      })
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`OpenCode API error ${response.status}: ${text}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    return this.parse(content, 'opencode', input);
+  }
+
+  private parse(content: string, provider: AiProvider, input: AiReportInput): AiReport {
+    const json = content.match(/\{[\s\S]*\}/);
+    const raw = JSON.parse(json?.[0] ?? content) as RawReport;
+    return toReport(raw, provider, input);
+  }
+}
+
+// Selectable models per provider. `opencode` lists the OpenCode GO gateway
+// models; other providers list their most common chat models.
+export const AI_MODEL_OPTIONS: Record<AiProvider, { value: string; label: string }[]> = {
+  openai: [
+    { value: 'gpt-4o-mini', label: 'GPT-4o mini' },
+    { value: 'gpt-4o', label: 'GPT-4o' },
+    { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini' },
+    { value: 'gpt-4.1', label: 'GPT-4.1' }
+  ],
+  anthropic: [
+    { value: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet' },
+    { value: 'claude-3-5-haiku-latest', label: 'Claude 3.5 Haiku' },
+    { value: 'claude-3-7-sonnet-latest', label: 'Claude 3.7 Sonnet' }
+  ],
+  claude: [
+    { value: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet' },
+    { value: 'claude-3-5-haiku-latest', label: 'Claude 3.5 Haiku' },
+    { value: 'claude-3-7-sonnet-latest', label: 'Claude 3.7 Sonnet' }
+  ],
+  google: [
+    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+    { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' }
+  ],
+  opencode: [
+    { value: 'glm-5.2', label: 'GLM 5.2' },
+    { value: 'glm-5.3', label: 'GLM 5.3' },
+    { value: 'glm-5.1', label: 'GLM 5.1' },
+    { value: 'glm-5', label: 'GLM 5' },
+    { value: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro' },
+    { value: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash' },
+    { value: 'deepseek-v4-flash-vision-exp', label: 'DeepSeek V4 Flash Vision (exp)' },
+    { value: 'minimax-m3', label: 'Minimax M3' },
+    { value: 'minimax-m2.7', label: 'Minimax M2.7' },
+    { value: 'minimax-m2.5', label: 'Minimax M2.5' },
+    { value: 'kimi-k2.7-code', label: 'Kimi K2.7 Code' },
+    { value: 'kimi-k2.6', label: 'Kimi K2.6' },
+    { value: 'kimi-k2.5', label: 'Kimi K2.5' },
+    { value: 'qwen3.8-max', label: 'Qwen 3.8 Max' },
+    { value: 'qwen3.7-max', label: 'Qwen 3.7 Max' },
+    { value: 'qwen3.7-plus', label: 'Qwen 3.7 Plus' },
+    { value: 'qwen3.6-plus', label: 'Qwen 3.6 Plus' },
+    { value: 'qwen3.5-plus', label: 'Qwen 3.5 Plus' },
+    { value: 'gpt-5.6-luna', label: 'GPT 5.6 Luna' },
+    { value: 'grok-4.5', label: 'Grok 4.5' },
+    { value: 'mimo-v2.5-pro', label: 'Mimo V2.5 Pro' },
+    { value: 'mimo-v2.5', label: 'Mimo V2.5' },
+    { value: 'mimo-v2-pro', label: 'Mimo V2 Pro' },
+    { value: 'mimo-v2-omni', label: 'Mimo V2 Omni' },
+    { value: 'hy3', label: 'Hy3' },
+    { value: 'hy3-preview', label: 'Hy3 Preview' },
+    { value: 'ox-alpha-free', label: 'Ox Alpha (free)' },
+    { value: 'muse-spark-1.2-contributor', label: 'Muse Spark 1.2' }
+  ]
+};
+
+export function createAiProvider(
+  provider: AiProvider,
+  apiKey: string,
+  model?: string
+): AiProviderClient {
   switch (provider) {
     case 'openai':
-      return new OpenAIProvider(apiKey);
+      return new OpenAIProvider(apiKey, model);
     case 'anthropic':
     case 'claude':
-      return new AnthropicProvider(apiKey);
+      return new AnthropicProvider(apiKey, model);
     case 'google':
-      return new GoogleProvider(apiKey);
+      return new GoogleProvider(apiKey, model);
+    case 'opencode':
+      return new OpenCodeProvider(apiKey, model);
     default:
       throw new Error(`Unsupported AI provider: ${provider}`);
   }

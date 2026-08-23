@@ -63,3 +63,40 @@ export const PUT = withApiMiddleware(
     })
   )
 );
+
+export const DELETE = withApiMiddleware(
+  withAuth(async (req, ctx) => {
+    const params = (await ctx.params) ?? {};
+    const keyId = Number(params.id);
+
+    if (!Number.isInteger(keyId)) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid API key id', error: 'Invalid id' },
+        { status: 400 }
+      );
+    }
+
+    const existing = await prisma.t212ApiKey.findFirst({
+      where: { id: keyId, userId: ctx.userId, deletedAt: null }
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, message: 'API key not found', error: 'API key not found' },
+        { status: 404 }
+      );
+    }
+
+    await prisma.t212ApiKey.update({
+      where: { id: keyId },
+      data: { deletedAt: new Date(), isActive: false }
+    });
+
+    await logKeyAudit(ctx.userId, 'trading', 'deleted', req);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Trading API key deleted successfully'
+    });
+  })
+);

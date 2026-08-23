@@ -82,6 +82,7 @@ export default function AiKeysSection({
                       { value: 'openai', label: 'OpenAI' },
                       { value: 'anthropic', label: 'Anthropic (Claude)' },
                       { value: 'google', label: 'Google (Gemini)' },
+                      { value: 'opencode', label: 'OpenCode' },
                       { value: 'other', label: 'Other' }
                     ]}
                     value={newKey.provider}

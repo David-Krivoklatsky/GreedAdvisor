@@ -16,7 +16,7 @@ const DEFAULT_ACCOUNT_VALUE = 10000;
 export const POST = withApiMiddleware(
   withValidation(watchlistScanSchema)(
     withAuth(async (_req, ctx) => {
-      const { aiKeyId, marketDataKeyId, productType } = ctx.data as WatchlistScanInput;
+      const { aiKeyId, marketDataKeyId, productType, model } = ctx.data as WatchlistScanInput;
 
       const [aiKey, marketDataKey, user] = await Promise.all([
         prisma.aiApiKey.findFirst({
@@ -77,7 +77,7 @@ export const POST = withApiMiddleware(
       }
 
       const marketData = new MarketDataService(new TwelveDataProvider(marketDataKey.apiKey));
-      const aiProvider = createAiProvider(aiKey.provider as AiProvider, aiKey.apiKey);
+      const aiProvider = createAiProvider(aiKey.provider as AiProvider, aiKey.apiKey, model);
       const type = productType as AiProductType;
       const riskProfile = (user?.riskProfile ?? 'balanced') as
         'conservative' | 'balanced' | 'aggressive';

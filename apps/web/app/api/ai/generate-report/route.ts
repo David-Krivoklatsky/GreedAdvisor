@@ -25,7 +25,8 @@ export const POST = withApiMiddleware(
         symbol,
         productType,
         riskProfile,
-        accountValue
+        accountValue,
+        model
       } = ctx.data as ReportInput;
 
       // Load keys and verify ownership
@@ -97,7 +98,7 @@ export const POST = withApiMiddleware(
       const indicators = computeIndicators(candles);
 
       // Generate AI report
-      const aiProvider = createAiProvider(aiKey.provider as AiProvider, aiKey.apiKey);
+      const aiProvider = createAiProvider(aiKey.provider as AiProvider, aiKey.apiKey, model);
       const report = await aiProvider.generateReport({
         symbol: targetSymbol,
         companyName: quote.name,

@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
 import { TokenManager } from '@/lib/token-manager';
+import { AI_MODEL_OPTIONS } from '@greed-advisor/ai';
+import type { AiProvider } from '@greed-advisor/ai';
 import {
   AiKey,
   AiTradePlan,
@@ -104,6 +106,7 @@ export default function AiAdvisorPanel({
   const [newType, setNewType] = useState<string>('STOCK');
   const [selectedAiKey, setSelectedAiKey] = useState<string>('');
   const [selectedMarketDataKey, setSelectedMarketDataKey] = useState<string>('');
+  const [selectedModel, setSelectedModel] = useState<string>('');
   const [productType, setProductType] = useState<string>('INVEST');
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<WatchlistScanResult | null>(null);
@@ -132,6 +135,18 @@ export default function AiAdvisorPanel({
   useEffect(() => {
     loadWatchlist();
   }, []);
+
+  const selectedAiKeyData = aiKeys.find(k => k.id.toString() === selectedAiKey);
+  const modelOptions = selectedAiKeyData
+    ? (AI_MODEL_OPTIONS[selectedAiKeyData.provider as AiProvider] ?? [])
+    : [];
+
+  // Reset the model selection when the AI key (and thus provider) changes
+  useEffect(() => {
+    setSelectedModel(prev =>
+      prev && modelOptions.some(o => o.value === prev) ? prev : (modelOptions[0]?.value ?? '')
+    );
+  }, [selectedAiKey]);
 
   const addToWatchlist = async () => {
     const ticker = newTicker.trim().toUpperCase();
@@ -197,7 +212,8 @@ export default function AiAdvisorPanel({
         body: JSON.stringify({
           aiKeyId: Number(selectedAiKey),
           marketDataKeyId: Number(selectedMarketDataKey),
-          productType
+          productType,
+          ...(selectedModel ? { model: selectedModel } : {})
         })
       });
 
@@ -252,6 +268,18 @@ export default function AiAdvisorPanel({
               className="w-full"
             />
           </div>
+        </div>
+
+        {/* Model */}
+        <div>
+          <Label className="text-xs">Model</Label>
+          <Combobox
+            options={modelOptions}
+            value={selectedModel}
+            onValueChange={setSelectedModel}
+            placeholder={selectedAiKey ? 'Select model' : 'Select an AI key first'}
+            className="w-full mt-1"
+          />
         </div>
 
         {/* Product type */}
