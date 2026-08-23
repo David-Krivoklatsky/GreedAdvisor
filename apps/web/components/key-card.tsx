@@ -116,7 +116,7 @@ export default function KeyCard({
         <Button
           size="sm"
           variant="outline"
-          onClick={() => onToggle(keyData.id, keyData.isActive)}
+          onClick={() => onToggle(keyData.id, !keyData.isActive)}
           disabled={updating}
           className="flex-1"
         >

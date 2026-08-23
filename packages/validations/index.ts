@@ -10,7 +10,7 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required')
 });
 
-const AI_PROVIDERS = ['openai', 'anthropic', 'google', 'claude'] as const;
+const AI_PROVIDERS = ['openai', 'anthropic', 'google', 'claude', 'opencode'] as const;
 
 export const aiApiKeySchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -95,7 +95,8 @@ export const orderSchema = z.object({
 export const watchlistScanSchema = z.object({
   aiKeyId: z.coerce.number().int().positive('AI key is required'),
   marketDataKeyId: z.coerce.number().int().positive('Market data key is required'),
-  productType: z.enum({ INVEST: 'INVEST', CFD: 'CFD', CRYPTO: 'CRYPTO' }).default('INVEST')
+  productType: z.enum({ INVEST: 'INVEST', CFD: 'CFD', CRYPTO: 'CRYPTO' }).default('INVEST'),
+  model: z.string().min(1).max(100).optional()
 });
 
 export const reportSchema = z.object({
@@ -108,7 +109,8 @@ export const reportSchema = z.object({
   riskProfile: z
     .enum({ conservative: 'conservative', balanced: 'balanced', aggressive: 'aggressive' })
     .default('balanced'),
-  accountValue: z.coerce.number().positive().optional()
+  accountValue: z.coerce.number().positive().optional(),
+  model: z.string().min(1).max(100).optional()
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
