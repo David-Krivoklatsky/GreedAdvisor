@@ -33,6 +33,26 @@ export async function notify(
       log('error', 'Failed to send Telegram notification', { error: String(error) });
     }
   }
+
+  const webhookUrl = process.env.NOTIFICATION_WEBHOOK_URL;
+  if (webhookUrl) {
+    try {
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          title,
+          body,
+          payload: payload ?? null,
+          timestamp: new Date().toISOString()
+        }),
+        signal: AbortSignal.timeout(5000)
+      });
+    } catch (error) {
+      log('error', 'Failed to deliver notification webhook', { error: String(error) });
+    }
+  }
 }
 
 async function sendTelegram(token: string, chatId: string, text: string): Promise<void> {
