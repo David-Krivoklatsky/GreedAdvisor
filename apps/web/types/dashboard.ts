@@ -149,6 +149,51 @@ export interface NotificationData {
   type: 'success' | 'error' | 'info' | 'warning';
 }
 
+export interface AutomationRunStep {
+  id: number;
+  step: string;
+  label: string;
+  status: 'running' | 'ok' | 'warn' | 'skipped' | 'failed';
+  detail?: Record<string, unknown> | null;
+  startedAt: string;
+  finishedAt?: string | null;
+}
+
+export interface AutomationRunLog {
+  id: number;
+  status: string;
+  startedAt: string;
+  finishedAt?: string | null;
+  error?: string | null;
+  details?: Record<string, unknown> | null;
+  steps: AutomationRunStep[];
+}
+
+export interface AutomationConfig {
+  id: number;
+  title: string;
+  enabled: boolean;
+  mode: 'advisory' | 'paper' | 'live';
+  allowLive: boolean;
+  universe: string;
+  scanIntervalMinutes: number;
+  maxCandidates: number;
+  maxPositions: number;
+  maxRiskPerTradePct: number;
+  dailyLossLimitPct: number;
+  confidenceThreshold: number;
+  manageStops: boolean;
+  flattenAtClose: boolean;
+  cooldownMinutes: number;
+  tradingKeyId: number | null;
+  aiKeyId: number | null;
+  marketDataKeyId: number | null;
+  nextRunAt: string;
+  lastRunAt?: string | null;
+  lastRunStatus?: string | null;
+  latestRun?: AutomationRunLog | null;
+}
+
 export interface ComboboxOption {
   value: string;
   label: string;

@@ -39,6 +39,29 @@ CREATE TABLE "automation_configs" (
 ALTER TABLE "automation_configs" ADD COLUMN "manageStops" BOOLEAN NOT NULL DEFAULT false;
 
 -- CreateTable
+CREATE TABLE "automation_run_steps" (
+    "id" SERIAL NOT NULL,
+    "runLogId" INTEGER NOT NULL,
+    "step" VARCHAR(60) NOT NULL,
+    "label" VARCHAR(200) NOT NULL,
+    "status" VARCHAR(20) NOT NULL,
+    "detail" JSONB,
+    "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "finishedAt" TIMESTAMP(3),
+
+    CONSTRAINT "automation_run_steps_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "automation_run_steps_runLogId_idx" ON "automation_run_steps"("runLogId");
+
+-- CreateIndex
+CREATE INDEX "automation_run_steps_status_idx" ON "automation_run_steps"("status");
+
+-- AddForeignKey
+ALTER TABLE "automation_run_steps" ADD CONSTRAINT "automation_run_steps_runLogId_fkey" FOREIGN KEY ("runLogId") REFERENCES "automation_run_logs"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- CreateTable
 CREATE TABLE "trade_signals" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,

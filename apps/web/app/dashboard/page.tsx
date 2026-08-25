@@ -3,6 +3,7 @@
 import ErrorState from '@/components/common/error-state';
 import LoadingState from '@/components/common/loading-state';
 import AiAdvisorPanel from '@/components/dashboard/ai-advisor-panel';
+import AutomationOverview from '@/components/dashboard/automation-overview';
 import ChartPanel from '@/components/dashboard/chart-panel';
 import PortfolioOverview from '@/components/dashboard/portfolio-overview';
 import TerminalHeader from '@/components/dashboard/terminal-header';
@@ -19,6 +20,8 @@ export default function DashboardPage() {
     tradingKeys,
     aiKeys,
     marketDataKeys,
+    automationConfigs,
+    automationsLoading,
     positions,
     accountSummary,
     positionsLoading,
@@ -80,6 +83,13 @@ export default function DashboardPage() {
           accountSummary={accountSummary}
           onRefresh={() => refetch.fetchPositions(selectedTradingKey)}
           refreshing={positionsLoading}
+        />
+
+        {/* Autonomous trading — front and center */}
+        <AutomationOverview
+          automationConfigs={automationConfigs}
+          loading={automationsLoading}
+          onRefresh={refetch.fetchAutomations}
         />
 
         {/* Main grid: chart + advisor side by side */}

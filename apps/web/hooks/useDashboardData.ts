@@ -2,6 +2,7 @@ import { TokenManager } from '@/lib/token-manager';
 import {
   AccountSummary,
   AiKey,
+  AutomationConfig,
   MarketDataKey,
   NotificationData,
   Position,
@@ -17,6 +18,8 @@ export const useDashboardData = () => {
   const [tradingKeys, setTradingKeys] = useState<TradingKey[]>([]);
   const [aiKeys, setAiKeys] = useState<AiKey[]>([]);
   const [marketDataKeys, setMarketDataKeys] = useState<MarketDataKey[]>([]);
+  const [automationConfigs, setAutomationConfigs] = useState<AutomationConfig[]>([]);
+  const [automationsLoading, setAutomationsLoading] = useState(false);
   const [positions, setPositions] = useState<Position[]>([]);
   const [accountSummary, setAccountSummary] = useState<AccountSummary | null>(null);
   const [positionsLoading, setPositionsLoading] = useState(false);
@@ -87,6 +90,20 @@ export const useDashboardData = () => {
     }
   };
 
+  const fetchAutomations = useCallback(async () => {
+    setAutomationsLoading(true);
+    try {
+      const response = await TokenManager.makeAuthenticatedRequest('/api/user/automation');
+      if (!response.ok) throw new Error('Failed to fetch automations');
+      const data = await response.json();
+      setAutomationConfigs(data.automationConfigs ?? []);
+    } catch {
+      setAutomationConfigs([]);
+    } finally {
+      setAutomationsLoading(false);
+    }
+  }, []);
+
   const fetchPositions = useCallback(async (keyId?: string) => {
     setPositionsLoading(true);
     try {
@@ -126,7 +143,8 @@ export const useDashboardData = () => {
     fetchTradingKeys();
     fetchAiKeys();
     fetchMarketDataKeys();
-  }, []);
+    fetchAutomations();
+  }, [fetchAutomations]);
 
   // When trading keys load, auto-select the previously used active one (persisted),
   // falling back to the first active key.
@@ -178,6 +196,8 @@ export const useDashboardData = () => {
     tradingKeys,
     aiKeys,
     marketDataKeys,
+    automationConfigs,
+    automationsLoading,
     positions,
     accountSummary,
     positionsLoading,
@@ -191,6 +211,7 @@ export const useDashboardData = () => {
       fetchTradingKeys,
       fetchAiKeys,
       fetchMarketDataKeys,
+      fetchAutomations,
       fetchPositions
     }
   };
