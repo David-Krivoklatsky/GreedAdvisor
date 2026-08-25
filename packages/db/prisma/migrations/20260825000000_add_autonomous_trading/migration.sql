@@ -35,6 +35,9 @@ CREATE TABLE "automation_configs" (
     CONSTRAINT "automation_configs_pkey" PRIMARY KEY ("id")
 );
 
+-- AlterTable
+ALTER TABLE "automation_configs" ADD COLUMN "manageStops" BOOLEAN NOT NULL DEFAULT false;
+
 -- CreateTable
 CREATE TABLE "trade_signals" (
     "id" SERIAL NOT NULL,

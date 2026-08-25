@@ -2,8 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
   moduleFormat = "cjs"
 }
 
@@ -12,35 +12,35 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique @db.VarChar(255)
-  password  String?  @db.VarChar(255)
-  name      String?  @db.VarChar(255)
-  firstName String?  @db.VarChar(100)
-  lastName  String?  @db.VarChar(100)
-  provider  String   @default("email") @db.VarChar(20) // 'email' | 'google' | 'github'
-  providerAccountId String? @db.VarChar(255)
-  profilePicture String? @db.Text
-  riskProfile String @default("balanced") @db.VarChar(20) // 'conservative' | 'balanced' | 'aggressive'
-  isActive  Boolean  @default(true)
-  lastLogin DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
+  id                Int       @id @default(autoincrement())
+  email             String    @unique @db.VarChar(255)
+  password          String?   @db.VarChar(255)
+  name              String?   @db.VarChar(255)
+  firstName         String?   @db.VarChar(100)
+  lastName          String?   @db.VarChar(100)
+  provider          String    @default("email") @db.VarChar(20) // 'email' | 'google' | 'github'
+  providerAccountId String?   @db.VarChar(255)
+  profilePicture    String?   @db.Text
+  riskProfile       String    @default("balanced") @db.VarChar(20) // 'conservative' | 'balanced' | 'aggressive'
+  isActive          Boolean   @default(true)
+  lastLogin         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
 
   // Relations
-  sessions UserSession[]
-  apiKeyLogs ApiKeyLog[]
-  aiApiKeys AiApiKey[]
-  t212ApiKeys T212ApiKey[]
-  marketDataKeys MarketDataKey[]
-  watchlistItems WatchlistItem[]
+  sessions          UserSession[]
+  apiKeyLogs        ApiKeyLog[]
+  aiApiKeys         AiApiKey[]
+  t212ApiKeys       T212ApiKey[]
+  marketDataKeys    MarketDataKey[]
+  watchlistItems    WatchlistItem[]
   automationConfigs AutomationConfig[]
-  tradeSignals TradeSignal[]
-  tradeRecords TradeRecord[]
-  notifications Notification[]
+  tradeSignals      TradeSignal[]
+  tradeRecords      TradeRecord[]
+  notifications     Notification[]
   automationRunLogs AutomationRunLog[]
-  dailyStats DailyStat[]
+  dailyStats        DailyStat[]
 
   @@unique([provider, providerAccountId])
   @@index([email])
@@ -85,15 +85,15 @@ model ApiKeyLog {
 }
 
 model AiApiKey {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   userId    Int
-  title     String   @db.VarChar(255)
-  provider  String   @db.VarChar(100) // 'openai', 'anthropic', 'google', etc.
-  apiKey    String   @db.Text
-  isActive  Boolean  @default(true)
+  title     String    @db.VarChar(255)
+  provider  String    @db.VarChar(100) // 'openai', 'anthropic', 'google', etc.
+  apiKey    String    @db.Text
+  isActive  Boolean   @default(true)
   lastUsed  DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   // Relations
@@ -106,19 +106,19 @@ model AiApiKey {
 }
 
 model T212ApiKey {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  title      String   @db.VarChar(255)
-  apiKey     String   @db.Text
-  apiSecret  String   @db.Text
-  environment String  @db.VarChar(20) @default("demo") // 'demo' or 'live'
-  accessType String   @db.VarChar(50) // 'read-only', 'full-access' (Trading212 only)
-  provider   String   @db.VarChar(20) @default("trading212") // 'trading212' or 'alpaca'
-  isActive   Boolean  @default(true)
-  lastUsed   DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  deletedAt  DateTime?
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  title       String    @db.VarChar(255)
+  apiKey      String    @db.Text
+  apiSecret   String    @db.Text
+  environment String    @default("demo") @db.VarChar(20) // 'demo' or 'live'
+  accessType  String    @db.VarChar(50) // 'read-only', 'full-access' (Trading212 only)
+  provider    String    @default("trading212") @db.VarChar(20) // 'trading212' or 'alpaca'
+  isActive    Boolean   @default(true)
+  lastUsed    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -132,16 +132,16 @@ model T212ApiKey {
 }
 
 model MarketDataKey {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  title      String   @db.VarChar(255)
-  provider   String   @db.VarChar(100) // 'twelvedata', etc.
-  apiKey     String   @db.Text
-  isActive   Boolean  @default(true)
-  lastUsed   DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  deletedAt  DateTime?
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  title     String    @db.VarChar(255)
+  provider  String    @db.VarChar(100) // 'twelvedata', etc.
+  apiKey    String    @db.Text
+  isActive  Boolean   @default(true)
+  lastUsed  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -153,14 +153,14 @@ model MarketDataKey {
 }
 
 model WatchlistItem {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  ticker     String   @db.VarChar(50) // plain symbol, e.g. 'AAPL', 'BTC'
-  name       String?  @db.VarChar(255)
-  instrumentType String @db.VarChar(30) @default("STOCK") // 'STOCK' | 'ETF' | 'CRYPTO' | 'FOREX'
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  ticker         String   @db.VarChar(50) // plain symbol, e.g. 'AAPL', 'BTC'
+  name           String?  @db.VarChar(255)
+  instrumentType String   @default("STOCK") @db.VarChar(30) // 'STOCK' | 'ETF' | 'CRYPTO' | 'FOREX'
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -173,44 +173,45 @@ model WatchlistItem {
 
 // Per-user autonomous trading engine configuration.
 model AutomationConfig {
-  id                  Int      @id @default(autoincrement())
-  userId              Int
-  title               String   @db.VarChar(255)
-  enabled             Boolean  @default(false)
-  mode                String   @default("advisory") @db.VarChar(20) // 'advisory' | 'paper' | 'live'
-  allowLive           Boolean  @default(false)
-  scanIntervalMinutes Int      @default(5)
-  universe            String   @default("watchlist") @db.VarChar(30) // 'watchlist' | 'watchlist+movers'
-  maxCandidates       Int      @default(5)
-  maxPositions        Int      @default(10)
-  maxRiskPerTradePct  Float    @default(0.02)
-  dailyLossLimitPct   Float    @default(0.03)
-  maxDailyTrades      Int      @default(5)
-  confidenceThreshold Int      @default(70)
-  respectPdt          Boolean  @default(true)
-  flattenAtClose      Boolean  @default(false)
-  cooldownMinutes     Int      @default(30)
-  orderType           String   @default("MARKET") @db.VarChar(20) // 'MARKET' | 'LIMIT'
-  slippageTolerancePct Float   @default(0.005)
-  extendedHours       Boolean  @default(false)
-  tradingKeyId        Int?
-  aiKeyId             Int?
-  marketDataKeyId     Int?
-  model               String?  @db.VarChar(100)
-  telegramChatId      String?  @db.VarChar(255)
-  nextRunAt           DateTime @default(now())
-  lastRunAt           DateTime?
-  lastRunStatus       String?  @db.VarChar(50)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  deletedAt           DateTime?
+  id                   Int       @id @default(autoincrement())
+  userId               Int
+  title                String    @db.VarChar(255)
+  enabled              Boolean   @default(false)
+  mode                 String    @default("advisory") @db.VarChar(20) // 'advisory' | 'paper' | 'live'
+  allowLive            Boolean   @default(false)
+  scanIntervalMinutes  Int       @default(5)
+  universe             String    @default("watchlist") @db.VarChar(30) // 'watchlist' | 'watchlist+movers'
+  maxCandidates        Int       @default(5)
+  maxPositions         Int       @default(10)
+  maxRiskPerTradePct   Float     @default(0.02)
+  dailyLossLimitPct    Float     @default(0.03)
+  maxDailyTrades       Int       @default(5)
+  confidenceThreshold  Int       @default(70)
+  respectPdt           Boolean   @default(true)
+  flattenAtClose       Boolean   @default(false)
+  manageStops          Boolean   @default(false)
+  cooldownMinutes      Int       @default(30)
+  orderType            String    @default("MARKET") @db.VarChar(20) // 'MARKET' | 'LIMIT'
+  slippageTolerancePct Float     @default(0.005)
+  extendedHours        Boolean   @default(false)
+  tradingKeyId         Int?
+  aiKeyId              Int?
+  marketDataKeyId      Int?
+  model                String?   @db.VarChar(100)
+  telegramChatId       String?   @db.VarChar(255)
+  nextRunAt            DateTime  @default(now())
+  lastRunAt            DateTime?
+  lastRunStatus        String?   @db.VarChar(50)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime?
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  runs AutomationRunLog[]
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  runs         AutomationRunLog[]
   tradeSignals TradeSignal[]
   tradeRecords TradeRecord[]
-  dailyStats DailyStat[]
+  dailyStats   DailyStat[]
 
   @@index([userId])
   @@index([enabled])
@@ -221,34 +222,34 @@ model AutomationConfig {
 // Persisted AI trade signals (reports) so advice is auditable and the engine
 // can act on them.
 model TradeSignal {
-  id             Int      @id @default(autoincrement())
-  userId         Int
+  id                 Int       @id @default(autoincrement())
+  userId             Int
   automationConfigId Int?
-  symbol         String   @db.VarChar(50)
-  action         String   @db.VarChar(20) // BUY | SELL | HOLD | ADD | TRIM
-  recommendation String   @db.VarChar(20) // BUY | SELL | HOLD
-  confidence     Int      @default(0)
-  summary        String   @db.Text
-  analysis       Json?
-  entryPrice     Float?
-  stopLoss       Float?
-  takeProfit     Float?
-  positionSize   Float?
-  riskAmount     Float?
-  riskPerUnit    Float?
-  report         Json
-  marketSnapshot Json?
-  news           Json?
-  status         String   @default("open") @db.VarChar(20) // open | acted | ignored | expired
-  source         String   @default("scheduled") @db.VarChar(20) // manual | scheduled | engine
-  provider       String?  @db.VarChar(50)
-  generatedAt    DateTime @default(now())
-  actedAt        DateTime?
+  symbol             String    @db.VarChar(50)
+  action             String    @db.VarChar(20) // BUY | SELL | HOLD | ADD | TRIM
+  recommendation     String    @db.VarChar(20) // BUY | SELL | HOLD
+  confidence         Int       @default(0)
+  summary            String    @db.Text
+  analysis           Json?
+  entryPrice         Float?
+  stopLoss           Float?
+  takeProfit         Float?
+  positionSize       Float?
+  riskAmount         Float?
+  riskPerUnit        Float?
+  report             Json
+  marketSnapshot     Json?
+  news               Json?
+  status             String    @default("open") @db.VarChar(20) // open | acted | ignored | expired
+  source             String    @default("scheduled") @db.VarChar(20) // manual | scheduled | engine
+  provider           String?   @db.VarChar(50)
+  generatedAt        DateTime  @default(now())
+  actedAt            DateTime?
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   automationConfig AutomationConfig? @relation(fields: [automationConfigId], references: [id], onDelete: SetNull)
-  tradeRecord TradeRecord?
+  tradeRecord      TradeRecord?
 
   @@index([userId])
   @@index([automationConfigId])
@@ -259,36 +260,36 @@ model TradeSignal {
 
 // Order book: every order placed through the app (manual or autonomous).
 model TradeRecord {
-  id               Int      @id @default(autoincrement())
-  userId           Int
+  id                 Int       @id @default(autoincrement())
+  userId             Int
   automationConfigId Int?
-  signalId         Int?     @unique
-  tradingKeyId     Int
-  symbol           String   @db.VarChar(50)
-  side             String   @db.VarChar(10) // BUY | SELL
-  quantity         Float
-  orderType        String   @default("MARKET") @db.VarChar(20)
-  orderId          String   @db.VarChar(100)
-  clientOrderId    String?  @db.VarChar(128)
-  entryPrice       Float?
-  stopLoss         Float?
-  takeProfit       Float?
-  stopOrderId      String?  @db.VarChar(100)
-  takeProfitOrderId String? @db.VarChar(100)
-  status           String   @db.VarChar(30) // submitted | partial | filled | cancelled | rejected | expired
-  reason           String?  @db.VarChar(255)
-  filledQuantity   Float    @default(0)
-  filledAvgPrice   Float?
-  exitPrice        Float?
-  realizedPnl      Float?
-  closedAt         DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  signalId           Int?      @unique
+  tradingKeyId       Int
+  symbol             String    @db.VarChar(50)
+  side               String    @db.VarChar(10) // BUY | SELL
+  quantity           Float
+  orderType          String    @default("MARKET") @db.VarChar(20)
+  orderId            String    @db.VarChar(100)
+  clientOrderId      String?   @db.VarChar(128)
+  entryPrice         Float?
+  stopLoss           Float?
+  takeProfit         Float?
+  stopOrderId        String?   @db.VarChar(100)
+  takeProfitOrderId  String?   @db.VarChar(100)
+  status             String    @db.VarChar(30) // submitted | partial | filled | cancelled | rejected | expired
+  reason             String?   @db.VarChar(255)
+  filledQuantity     Float     @default(0)
+  filledAvgPrice     Float?
+  exitPrice          Float?
+  realizedPnl        Float?
+  closedAt           DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   automationConfig AutomationConfig? @relation(fields: [automationConfigId], references: [id], onDelete: SetNull)
-  signal TradeSignal? @relation(fields: [signalId], references: [id], onDelete: SetNull)
+  signal           TradeSignal?      @relation(fields: [signalId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([automationConfigId])
@@ -319,17 +320,17 @@ model Notification {
 
 // Audit row for every scheduled engine run.
 model AutomationRunLog {
-  id               Int      @id @default(autoincrement())
-  userId           Int
+  id                 Int       @id @default(autoincrement())
+  userId             Int
   automationConfigId Int?
-  status           String   @db.VarChar(30) // running | success | partial | failed | skipped
-  startedAt        DateTime @default(now())
-  finishedAt       DateTime?
-  error            String?  @db.Text
-  details          Json?
+  status             String    @db.VarChar(30) // running | success | partial | failed | skipped
+  startedAt          DateTime  @default(now())
+  finishedAt         DateTime?
+  error              String?   @db.Text
+  details            Json?
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   automationConfig AutomationConfig? @relation(fields: [automationConfigId], references: [id], onDelete: SetNull)
 
   @@index([userId])
@@ -339,20 +340,20 @@ model AutomationRunLog {
 
 // Per-day trading stats used for daily-loss and PDT guardrails.
 model DailyStat {
-  id               Int      @id @default(autoincrement())
-  userId           Int
+  id                 Int      @id @default(autoincrement())
+  userId             Int
   automationConfigId Int?
-  date             DateTime @db.Date
-  startEquity      Float    @default(0)
-  realizedPnl      Float    @default(0)
-  unrealizedPnl    Float    @default(0)
-  tradeCount       Int      @default(0)
-  dayTradeCount    Int      @default(0)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  date               DateTime @db.Date
+  startEquity        Float    @default(0)
+  realizedPnl        Float    @default(0)
+  unrealizedPnl      Float    @default(0)
+  tradeCount         Int      @default(0)
+  dayTradeCount      Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   automationConfig AutomationConfig? @relation(fields: [automationConfigId], references: [id], onDelete: SetNull)
 
   @@unique([userId, automationConfigId, date])

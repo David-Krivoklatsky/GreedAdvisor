@@ -18,6 +18,7 @@ import { preScreenSymbol, rankCandidates } from './pre-screen';
 import type { CandidateScore } from './pre-screen';
 import { approximateUsMarketWindow, etDateOnly, getAlpacaWindow } from './market-hours';
 import { fetchNewsForSymbols } from './news';
+import { manageStops, reconcileOrders } from './positions';
 import { lockKeyForConfig, releaseAdvisoryLock, tryAcquireAdvisoryLock } from './lock';
 
 export interface CycleResult {
@@ -332,8 +333,7 @@ async function handleSignal(params: {
     where: { id: dailyStat.id },
     data: {
       tradeCount: { increment: 1 },
-      dayTradeCount: side === 'SELL' ? { increment: 1 } : undefined,
-      realizedPnl: realizedPnl !== undefined ? { increment: realizedPnl } : undefined
+      dayTradeCount: side === 'SELL' ? { increment: 1 } : undefined
     }
   });
 
@@ -494,6 +494,10 @@ async function runCycleLocked(config: AutomationConfig): Promise<CycleResult> {
     data: { unrealizedPnl: unrealized }
   });
 
+  const marketData = new MarketDataService(
+    new TwelveDataProvider(decryptSecret(marketDataKey.apiKey))
+  );
+
   // Market-hours gate
   let marketOpen = true;
   let closingSoon = false;
@@ -518,15 +522,27 @@ async function runCycleLocked(config: AutomationConfig): Promise<CycleResult> {
     await flattenAtClose(config, binding);
   }
 
+  // Position management: reconcile fills and trail stops (Alpaca).
+  if (canTrade) {
+    try {
+      await reconcileOrders(config, binding);
+    } catch (error) {
+      log('warn', 'Order reconciliation failed', { error: String(error) });
+    }
+    try {
+      await manageStops(config, binding, marketData);
+    } catch (error) {
+      log('warn', 'Stop management failed', { error: String(error) });
+    }
+    dailyStat = await refreshDailyPnl(config, dailyStat);
+  }
+
   // Universe → pre-screen → top-K analysis
   const universe = await buildUniverse(config, binding);
   if (universe.length === 0) {
     return { status: 'skipped', reason: 'empty universe' };
   }
 
-  const marketData = new MarketDataService(
-    new TwelveDataProvider(decryptSecret(marketDataKey.apiKey))
-  );
   const aiProvider = createAiProvider(
     aiKey.provider as AiProvider,
     decryptSecret(aiKey.apiKey),

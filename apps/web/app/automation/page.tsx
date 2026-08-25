@@ -28,6 +28,7 @@ interface AutomationConfig {
   confidenceThreshold: number;
   respectPdt: boolean;
   flattenAtClose: boolean;
+  manageStops: boolean;
   cooldownMinutes: number;
   orderType: 'MARKET' | 'LIMIT';
   slippageTolerancePct: number;
@@ -78,6 +79,8 @@ const EMPTY_FORM = {
   confidenceThreshold: 70,
   cooldownMinutes: 30,
   orderType: 'MARKET',
+  manageStops: false,
+  flattenAtClose: false,
   tradingKeyId: '',
   aiKeyId: '',
   marketDataKeyId: '',
@@ -159,6 +162,8 @@ export default function AutomationPage() {
           confidenceThreshold: Number(form.confidenceThreshold),
           cooldownMinutes: Number(form.cooldownMinutes),
           orderType: form.orderType,
+          manageStops: form.manageStops,
+          flattenAtClose: form.flattenAtClose,
           tradingKeyId: form.tradingKeyId ? Number(form.tradingKeyId) : null,
           aiKeyId: form.aiKeyId ? Number(form.aiKeyId) : null,
           marketDataKeyId: form.marketDataKeyId ? Number(form.marketDataKeyId) : null,
@@ -401,6 +406,27 @@ export default function AutomationPage() {
                 </div>
               )}
 
+              {showAdvanced && (
+                <div className="flex flex-wrap gap-4 pt-2">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.manageStops}
+                      onChange={e => setForm({ ...form, manageStops: e.target.checked })}
+                    />
+                    Trail stops (breakeven + ATR trail, Alpaca)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.flattenAtClose}
+                      onChange={e => setForm({ ...form, flattenAtClose: e.target.checked })}
+                    />
+                    Flatten all positions before close (day trading)
+                  </label>
+                </div>
+              )}
+
               <Button onClick={createConfig} disabled={saving || !form.title}>
                 {saving ? 'Creating...' : 'Create automation'}
               </Button>
@@ -441,12 +467,38 @@ export default function AutomationPage() {
                       </Badge>
                       <Badge variant="outline">{config.mode}</Badge>
                       <Badge variant="outline">every {config.scanIntervalMinutes}m</Badge>
+                      {config.manageStops && <Badge variant="outline">trail stops</Badge>}
+                      {config.flattenAtClose && <Badge variant="outline">flatten @ close</Badge>}
                       {config.universe === 'watchlist+movers' && (
                         <Badge variant="outline">+movers</Badge>
                       )}
                       <Badge className={statusColor(config.lastRunStatus)}>
                         last: {config.lastRunStatus ?? 'never'}
                       </Badge>
+                      <label
+                        className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground"
+                        title="Move stop to breakeven then trail it by one ATR (Alpaca)"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={config.manageStops}
+                          onChange={async e => {
+                            try {
+                              await updateConfig(config.id, { manageStops: e.target.checked });
+                              toast(
+                                `Trailing stops ${e.target.checked ? 'enabled' : 'disabled'}`,
+                                'success'
+                              );
+                            } catch (err) {
+                              toast(
+                                err instanceof Error ? err.message : 'Failed to update stops',
+                                'error'
+                              );
+                            }
+                          }}
+                        />
+                        Trail
+                      </label>
                       <Button size="sm" variant="secondary" onClick={() => toggle(config)}>
                         {config.enabled ? 'Pause' : 'Start'}
                       </Button>
