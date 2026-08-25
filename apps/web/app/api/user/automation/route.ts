@@ -15,7 +15,18 @@ export const GET = withApiMiddleware(
       orderBy: { createdAt: 'desc' }
     });
 
-    return NextResponse.json({ success: true, automationConfigs: configs });
+    const withRuns = await Promise.all(
+      configs.map(async config => {
+        const latestRun = await prisma.automationRunLog.findFirst({
+          where: { automationConfigId: config.id },
+          orderBy: { startedAt: 'desc' },
+          include: { steps: { orderBy: { startedAt: 'asc' } } }
+        });
+        return { ...config, latestRun };
+      })
+    );
+
+    return NextResponse.json({ success: true, automationConfigs: withRuns });
   })
 );
 

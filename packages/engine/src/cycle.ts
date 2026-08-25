@@ -19,6 +19,7 @@ import type { CandidateScore } from './pre-screen';
 import { approximateUsMarketWindow, etDateOnly, getAlpacaWindow } from './market-hours';
 import { fetchNewsForSymbols } from './news';
 import { manageStops, reconcileOrders } from './positions';
+import { beginStep, endStep, recordStep } from './steps';
 import { lockKeyForConfig, releaseAdvisoryLock, tryAcquireAdvisoryLock } from './lock';
 
 export interface CycleResult {
@@ -183,7 +184,7 @@ async function handleSignal(params: {
     volume: number;
   }[];
   news: unknown[];
-}): Promise<void> {
+}): Promise<'acted' | 'signal' | 'ignored' | 'skipped'> {
   const { config, binding, account, dailyStat, canTrade, symbol, report, candles, news } = params;
 
   const positions = await binding.getPositions();
@@ -240,7 +241,7 @@ async function handleSignal(params: {
       data: { status: 'ignored' }
     });
     log('info', `Signal ignored ${symbol} ${report.action}`, { reason: guard.reason });
-    return;
+    return 'ignored';
   }
 
   await notify(
@@ -254,7 +255,7 @@ async function handleSignal(params: {
 
   if (!canTrade) {
     log('info', `Signal stored (advisory mode) ${symbol} ${report.action}`);
-    return;
+    return 'signal';
   }
 
   // Recompute sizing — never trust the LLM's numbers blindly.
@@ -272,7 +273,7 @@ async function handleSignal(params: {
         : held;
     if (quantity <= 0 || held <= 0) {
       log('info', `Skipping ${report.action} for ${symbol}: nothing held`);
-      return;
+      return 'skipped';
     }
   } else {
     side = 'BUY';
@@ -350,6 +351,8 @@ async function handleSignal(params: {
     orderId: result.id,
     status: result.status
   });
+
+  return 'acted';
 }
 
 async function flattenAtClose(
@@ -414,7 +417,8 @@ async function flattenAtClose(
   );
 }
 
-async function runCycleLocked(config: AutomationConfig): Promise<CycleResult> {
+async function runCycleLocked(config: AutomationConfig, runLogId: number): Promise<CycleResult> {
+  const keysStep = await beginStep(runLogId, 'keys', 'Load broker, AI and market-data keys');
   const [tradingKey, aiKey, marketDataKey, user] = await Promise.all([
     config.tradingKeyId
       ? prisma.t212ApiKey.findFirst({
@@ -458,15 +462,26 @@ async function runCycleLocked(config: AutomationConfig): Promise<CycleResult> {
       where: { id: config.id },
       data: { enabled: false, lastRunStatus: 'failed' }
     });
+    await endStep(keysStep, 'failed', { missing });
     return { status: 'failed', reason: `Missing ${missing}` };
   }
 
+  await endStep(keysStep, 'ok', {
+    tradingKey: tradingKey.provider,
+    aiKey: aiKey.provider,
+    marketDataKey: marketDataKey.provider
+  });
+
   const binding = await getActiveTradingClient(config.userId, config.tradingKeyId ?? undefined);
   if (!binding) {
+    await recordStep(runLogId, 'binding', 'Bind trading client', 'failed', {
+      reason: 'No active trading client'
+    });
     return { status: 'failed', reason: 'No active trading client' };
   }
 
   // Mode gating — advisory never trades; live requires the explicit flag.
+  const modeStep = await beginStep(runLogId, 'mode', 'Trading mode gate');
   const environment = binding.environment;
   const mode = config.mode ?? 'advisory';
   let canTrade = false;
@@ -478,7 +493,15 @@ async function runCycleLocked(config: AutomationConfig): Promise<CycleResult> {
       environment === 'live' &&
       (binding.provider === 'trading212' ? binding.key.accessType !== 'read-only' : true);
   }
+  await endStep(modeStep, 'ok', {
+    mode,
+    provider: binding.provider,
+    environment,
+    canTrade,
+    allowLive: config.allowLive
+  });
 
+  const accountStep = await beginStep(runLogId, 'account', 'Load account and daily stats');
   const account = await binding.getAccountMeta();
   let dailyStat = await getDailyStat(config, account.equity);
   dailyStat = await refreshDailyPnl(config, dailyStat);
@@ -493,18 +516,29 @@ async function runCycleLocked(config: AutomationConfig): Promise<CycleResult> {
     where: { id: dailyStat.id },
     data: { unrealizedPnl: unrealized }
   });
+  await endStep(accountStep, 'ok', {
+    equity: account.equity,
+    buyingPower: account.buyingPower,
+    patternDayTrader: account.patternDayTrader,
+    unrealized,
+    tradeCount: dailyStat.tradeCount,
+    dayTradeCount: dailyStat.dayTradeCount
+  });
 
   const marketData = new MarketDataService(
     new TwelveDataProvider(decryptSecret(marketDataKey.apiKey))
   );
 
   // Market-hours gate
+  const hoursStep = await beginStep(runLogId, 'market_hours', 'Check market hours');
   let marketOpen = true;
   let closingSoon = false;
+  let nextClose: string | undefined;
   if (binding.provider === 'alpaca') {
     const window = await getAlpacaWindow(binding.key);
     if (window) {
       marketOpen = window.open || config.extendedHours;
+      nextClose = window.nextClose;
       if (window.nextClose) {
         const closeTime = new Date(window.nextClose).getTime();
         closingSoon = Date.now() >= closeTime - 15 * 60000;
@@ -515,33 +549,48 @@ async function runCycleLocked(config: AutomationConfig): Promise<CycleResult> {
   }
 
   if (!marketOpen) {
+    await endStep(hoursStep, 'skipped', { open: false, nextClose });
     return { status: 'skipped', reason: 'market closed' };
   }
+  await endStep(hoursStep, 'ok', { open: true, closingSoon, nextClose });
 
   if (config.flattenAtClose && closingSoon) {
+    const flattenStep = await beginStep(runLogId, 'flatten', 'Flatten positions before close');
     await flattenAtClose(config, binding);
+    await endStep(flattenStep, 'ok');
   }
 
   // Position management: reconcile fills and trail stops (Alpaca).
   if (canTrade) {
+    const reconcileStep = await beginStep(runLogId, 'reconcile', 'Reconcile orders with broker');
     try {
       await reconcileOrders(config, binding);
+      await endStep(reconcileStep, 'ok');
     } catch (error) {
-      log('warn', 'Order reconciliation failed', { error: String(error) });
+      await endStep(reconcileStep, 'warn', { error: String(error) });
     }
+    const manageStopsStep = await beginStep(
+      runLogId,
+      'manage_stops',
+      'Trail stops (breakeven / 1x ATR)'
+    );
     try {
       await manageStops(config, binding, marketData);
+      await endStep(manageStopsStep, 'ok');
     } catch (error) {
-      log('warn', 'Stop management failed', { error: String(error) });
+      await endStep(manageStopsStep, 'warn', { error: String(error) });
     }
     dailyStat = await refreshDailyPnl(config, dailyStat);
   }
 
   // Universe → pre-screen → top-K analysis
+  const universeStep = await beginStep(runLogId, 'universe', `Build universe (${config.universe})`);
   const universe = await buildUniverse(config, binding);
   if (universe.length === 0) {
+    await endStep(universeStep, 'warn', { count: 0 });
     return { status: 'skipped', reason: 'empty universe' };
   }
+  await endStep(universeStep, 'ok', { count: universe.length });
 
   const aiProvider = createAiProvider(
     aiKey.provider as AiProvider,
@@ -551,6 +600,11 @@ async function runCycleLocked(config: AutomationConfig): Promise<CycleResult> {
   const productType = 'INVEST' as AiProductType;
   const riskProfile = (user?.riskProfile ?? 'balanced') as AiRiskProfile;
 
+  const preScreenStep = await beginStep(
+    runLogId,
+    'pre_screen',
+    `Pre-screen ${Math.min(universe.length, MAX_PRE_SCREEN)} symbols`
+  );
   const preScreenPool = universe.slice(0, MAX_PRE_SCREEN);
   const scored: CandidateScore[] = [];
   for (const symbol of preScreenPool) {
@@ -558,12 +612,19 @@ async function runCycleLocked(config: AutomationConfig): Promise<CycleResult> {
     if (score) scored.push(score);
   }
   const candidates = rankCandidates(scored, universe, config.maxCandidates);
+  await endStep(preScreenStep, 'ok', {
+    candidates,
+    scored: scored.map(s => ({ symbol: s.symbol, score: s.score }))
+  });
 
+  const newsStep = await beginStep(runLogId, 'news', `Fetch news for ${candidates.length} symbols`);
   const newsMap = await fetchNewsForSymbols(binding.key, candidates, 5);
+  await endStep(newsStep, 'ok', { symbols: candidates.length });
 
   let analyzed = 0;
   let acted = 0;
   for (const symbol of candidates) {
+    const symbolStep = await beginStep(runLogId, `analyze:${symbol}`, `AI analysis ${symbol}`);
     try {
       const quote = await marketData.getQuote(symbol);
       const candles = await marketData.getCandles(symbol, '1day', 90);
@@ -587,7 +648,7 @@ async function runCycleLocked(config: AutomationConfig): Promise<CycleResult> {
       const beforeCount = await prisma.tradeRecord.count({
         where: { userId: config.userId, automationConfigId: config.id }
       });
-      await handleSignal({
+      const outcome = await handleSignal({
         config,
         binding,
         account,
@@ -602,7 +663,24 @@ async function runCycleLocked(config: AutomationConfig): Promise<CycleResult> {
         where: { userId: config.userId, automationConfigId: config.id }
       });
       if (afterCount > beforeCount) acted++;
+
+      await endStep(
+        symbolStep,
+        outcome === 'acted' ? 'ok' : outcome === 'signal' ? 'warn' : 'skipped',
+        {
+          action: report.action,
+          confidence: report.confidence,
+          outcome,
+          price: quote.price,
+          entry: report.entryPrice,
+          stopLoss: report.stopLoss,
+          takeProfit: report.takeProfit,
+          earningsDate: earnings?.date,
+          newsCount: newsMap[symbol]?.length ?? 0
+        }
+      );
     } catch (error) {
+      await endStep(symbolStep, 'failed', { error: String(error) });
       log('warn', `Analysis failed for ${symbol}`, { error: String(error) });
     }
   }
@@ -633,7 +711,7 @@ export async function runCycle(configId: number): Promise<CycleResult> {
   });
 
   try {
-    const result = await runCycleLocked(config);
+    const result = await runCycleLocked(config, runLog.id);
     await prisma.automationRunLog.update({
       where: { id: runLog.id },
       data: {

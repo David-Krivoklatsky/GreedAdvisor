@@ -320,22 +320,43 @@ model Notification {
 
 // Audit row for every scheduled engine run.
 model AutomationRunLog {
-  id                 Int       @id @default(autoincrement())
-  userId             Int
+  id               Int      @id @default(autoincrement())
+  userId           Int
   automationConfigId Int?
-  status             String    @db.VarChar(30) // running | success | partial | failed | skipped
-  startedAt          DateTime  @default(now())
-  finishedAt         DateTime?
-  error              String?   @db.Text
-  details            Json?
+  status           String   @db.VarChar(30) // running | success | partial | failed | skipped
+  startedAt        DateTime @default(now())
+  finishedAt       DateTime?
+  error            String?  @db.Text
+  details          Json?
 
   // Relations
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   automationConfig AutomationConfig? @relation(fields: [automationConfigId], references: [id], onDelete: SetNull)
+  steps AutomationRunStep[]
 
   @@index([userId])
   @@index([automationConfigId])
   @@map("automation_run_logs")
+}
+
+// One step of an automation cycle (e.g. market-hours gate, pre-screen,
+// AI report, guardrails, order placement) with its status and result.
+model AutomationRunStep {
+  id         Int      @id @default(autoincrement())
+  runLogId   Int
+  step       String   @db.VarChar(60) // machine key, e.g. 'analyze:AAPL'
+  label      String   @db.VarChar(200)
+  status     String   @db.VarChar(20) // running | ok | warn | skipped | failed
+  detail     Json?
+  startedAt  DateTime @default(now())
+  finishedAt DateTime?
+
+  // Relations
+  runLog AutomationRunLog @relation(fields: [runLogId], references: [id], onDelete: Cascade)
+
+  @@index([runLogId])
+  @@index([status])
+  @@map("automation_run_steps")
 }
 
 // Per-day trading stats used for daily-loss and PDT guardrails.
