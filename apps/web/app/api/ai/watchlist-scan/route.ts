@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { getClientIp } from '@/lib/api';
 import { getActiveTradingClient } from '@/lib/providers';
 import { withApiMiddleware, withAuth, withValidation } from '@greed-advisor/middleware';
 import { watchlistScanSchema } from '@greed-advisor/validations';
@@ -6,6 +7,8 @@ import type { WatchlistScanInput } from '@greed-advisor/validations';
 import { createAiProvider } from '@greed-advisor/ai';
 import type { AiProvider, AiReport, AiProductType } from '@greed-advisor/ai';
 import { MarketDataService, TwelveDataProvider } from '@greed-advisor/market-data';
+import { decryptSecret } from '@greed-advisor/crypto';
+import { rateLimit } from '@greed-advisor/rate-limit';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -15,8 +18,20 @@ const DEFAULT_ACCOUNT_VALUE = 10000;
 
 export const POST = withApiMiddleware(
   withValidation(watchlistScanSchema)(
-    withAuth(async (_req, ctx) => {
+    withAuth(async (req, ctx) => {
       const { aiKeyId, marketDataKeyId, productType, model } = ctx.data as WatchlistScanInput;
+
+      const rateLimitResult = rateLimit(getClientIp(req));
+      if (!rateLimitResult.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Too many requests. Please try again later.',
+            error: 'Rate limit exceeded'
+          },
+          { status: 429 }
+        );
+      }
 
       const [aiKey, marketDataKey, user] = await Promise.all([
         prisma.aiApiKey.findFirst({
@@ -76,8 +91,14 @@ export const POST = withApiMiddleware(
         }
       }
 
-      const marketData = new MarketDataService(new TwelveDataProvider(marketDataKey.apiKey));
-      const aiProvider = createAiProvider(aiKey.provider as AiProvider, aiKey.apiKey, model);
+      const marketData = new MarketDataService(
+        new TwelveDataProvider(decryptSecret(marketDataKey.apiKey))
+      );
+      const aiProvider = createAiProvider(
+        aiKey.provider as AiProvider,
+        decryptSecret(aiKey.apiKey),
+        model
+      );
       const type = productType as AiProductType;
       const riskProfile = (user?.riskProfile ?? 'balanced') as
         'conservative' | 'balanced' | 'aggressive';

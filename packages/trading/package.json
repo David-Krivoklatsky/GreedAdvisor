@@ -1,0 +1,21 @@
+{
+  "name": "@greed-advisor/trading",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "dependencies": {
+    "@greed-advisor/alpaca": "^0.1.0",
+    "@greed-advisor/crypto": "^0.1.0",
+    "@greed-advisor/db": "^0.1.0",
+    "@greed-advisor/market-data": "^0.1.0",
+    "@greed-advisor/trading212": "^0.1.0"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^6.0.3"
+  }
+}

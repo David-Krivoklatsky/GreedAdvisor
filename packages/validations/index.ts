@@ -113,6 +113,39 @@ export const reportSchema = z.object({
   model: z.string().min(1).max(100).optional()
 });
 
+export const automationSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(255),
+  enabled: z.boolean().optional(),
+  mode: z.enum({ advisory: 'advisory', paper: 'paper', live: 'live' }).optional(),
+  allowLive: z.boolean().optional(),
+  scanIntervalMinutes: z.coerce.number().int().min(1).max(1440).optional(),
+  universe: z.enum({ watchlist: 'watchlist', 'watchlist+movers': 'watchlist+movers' }).optional(),
+  maxCandidates: z.coerce.number().int().min(1).max(50).optional(),
+  maxPositions: z.coerce.number().int().min(1).max(200).optional(),
+  maxRiskPerTradePct: z.coerce.number().min(0.001).max(0.1).optional(),
+  dailyLossLimitPct: z.coerce.number().min(0.001).max(0.5).optional(),
+  maxDailyTrades: z.coerce.number().int().min(1).max(100).optional(),
+  confidenceThreshold: z.coerce.number().int().min(0).max(100).optional(),
+  respectPdt: z.boolean().optional(),
+  flattenAtClose: z.boolean().optional(),
+  cooldownMinutes: z.coerce.number().int().min(0).max(1440).optional(),
+  orderType: z.enum({ MARKET: 'MARKET', LIMIT: 'LIMIT' }).optional(),
+  slippageTolerancePct: z.coerce.number().min(0).max(0.1).optional(),
+  extendedHours: z.boolean().optional(),
+  tradingKeyId: z.coerce.number().int().positive().optional().nullable(),
+  aiKeyId: z.coerce.number().int().positive().optional().nullable(),
+  marketDataKeyId: z.coerce.number().int().positive().optional().nullable(),
+  model: z.string().min(1).max(100).optional().nullable(),
+  telegramChatId: z.string().max(255).optional().nullable()
+});
+
+export const updateAutomationSchema = automationSchema.partial();
+
+export const notificationReadSchema = z.object({
+  ids: z.array(z.coerce.number().int().positive()).optional(),
+  all: z.boolean().optional()
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type AiApiKeyInput = z.infer<typeof aiApiKeySchema>;
@@ -127,3 +160,6 @@ export type MarketDataKeyTestInput = z.infer<typeof marketDataKeyTestSchema>;
 export type OrderInput = z.infer<typeof orderSchema>;
 export type WatchlistScanInput = z.infer<typeof watchlistScanSchema>;
 export type ReportInput = z.infer<typeof reportSchema>;
+export type AutomationInput = z.infer<typeof automationSchema>;
+export type UpdateAutomationInput = z.infer<typeof updateAutomationSchema>;
+export type NotificationReadInput = z.infer<typeof notificationReadSchema>;

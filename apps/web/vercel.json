@@ -2,5 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "buildCommand": "npx turbo run build --filter=web",
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "crons": [
+    {
+      "path": "/api/engine/run?all=true&secret=REPLACE_WITH_ENGINE_WEBHOOK_SECRET",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }

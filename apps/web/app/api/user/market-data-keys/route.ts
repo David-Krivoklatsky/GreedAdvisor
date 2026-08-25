@@ -1,8 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import { logKeyAudit } from '@/lib/audit';
+import { getClientIp } from '@/lib/api';
 import { withApiMiddleware, withAuth, withValidation } from '@greed-advisor/middleware';
 import { marketDataKeySchema } from '@greed-advisor/validations';
 import type { MarketDataKeyInput } from '@greed-advisor/validations';
+import { encryptSecret } from '@greed-advisor/crypto';
+import { rateLimit } from '@greed-advisor/rate-limit';
 import { NextResponse } from 'next/server';
 
 export const GET = withApiMiddleware(
@@ -29,6 +32,18 @@ export const POST = withApiMiddleware(
     withAuth(async (req, ctx) => {
       const { title, provider, apiKey } = ctx.data as MarketDataKeyInput;
 
+      const rateLimitResult = rateLimit(getClientIp(req));
+      if (!rateLimitResult.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Too many requests. Please try again later.',
+            error: 'Rate limit exceeded'
+          },
+          { status: 429 }
+        );
+      }
+
       const count = await prisma.marketDataKey.count({
         where: { userId: ctx.userId, deletedAt: null }
       });
@@ -50,7 +65,7 @@ export const POST = withApiMiddleware(
           userId: ctx.userId,
           title,
           provider,
-          apiKey,
+          apiKey: encryptSecret(apiKey),
           isActive: true
         },
         select: {

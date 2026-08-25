@@ -1,8 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import { logKeyAudit } from '@/lib/audit';
+import { getClientIp } from '@/lib/api';
 import { withApiMiddleware, withAuth, withValidation } from '@greed-advisor/middleware';
 import { t212ApiKeySchema } from '@greed-advisor/validations';
 import type { T212ApiKeyInput } from '@greed-advisor/validations';
+import { encryptSecret } from '@greed-advisor/crypto';
+import { rateLimit } from '@greed-advisor/rate-limit';
 import { NextResponse } from 'next/server';
 
 export const GET = withApiMiddleware(
@@ -35,6 +38,18 @@ export const POST = withApiMiddleware(
       const { title, accessType, environment, provider, apiKey, apiSecret } =
         ctx.data as T212ApiKeyInput;
 
+      const rateLimitResult = rateLimit(getClientIp(req));
+      if (!rateLimitResult.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Too many requests. Please try again later.',
+            error: 'Rate limit exceeded'
+          },
+          { status: 429 }
+        );
+      }
+
       const count = await prisma.t212ApiKey.count({
         where: { userId: ctx.userId, deletedAt: null }
       });
@@ -58,8 +73,8 @@ export const POST = withApiMiddleware(
           accessType,
           environment,
           provider,
-          apiKey,
-          apiSecret,
+          apiKey: encryptSecret(apiKey),
+          apiSecret: encryptSecret(apiSecret),
           isActive: true
         },
         select: {
