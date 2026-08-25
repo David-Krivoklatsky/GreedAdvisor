@@ -568,6 +568,7 @@ async function runCycleLocked(config: AutomationConfig): Promise<CycleResult> {
       const quote = await marketData.getQuote(symbol);
       const candles = await marketData.getCandles(symbol, '1day', 90);
       const indicators = computeIndicators(candles);
+      const earnings = await marketData.getEarnings(symbol);
       const report = await aiProvider.generateReport({
         symbol,
         companyName: quote.name,
@@ -578,7 +579,8 @@ async function runCycleLocked(config: AutomationConfig): Promise<CycleResult> {
         productType,
         riskProfile,
         accountValue: account.equity,
-        news: newsMap[symbol]
+        news: newsMap[symbol],
+        earnings: earnings ?? undefined
       });
       analyzed++;
 

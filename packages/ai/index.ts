@@ -32,6 +32,10 @@ export interface AiReportInput {
     summary?: string;
     url?: string;
   }>;
+  earnings?: {
+    date?: string;
+    estimate?: string;
+  };
   indicators?: {
     ema9?: number | null;
     ema21?: number | null;
@@ -149,6 +153,18 @@ Weigh this news against the technicals. Flag material catalysts or event risk
 and widen the stop-loss or downgrade the action if an event could gap the price.
 `
     : 'No recent news available. Proceed on technicals alone.'
+}
+
+${
+  input.earnings?.date
+    ? `
+Upcoming earnings: ${input.earnings.date}${
+        input.earnings.estimate ? ` (EPS estimate ${input.earnings.estimate})` : ''
+      }.
+Earnings can gap the price. If the report is within 3 trading days, prefer HOLD or a
+wider stop-loss, and explicitly note the event risk in "risks".
+`
+    : 'No upcoming earnings data available.'
 }
 
 Return JSON with this exact shape:

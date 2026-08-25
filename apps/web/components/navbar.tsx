@@ -9,7 +9,8 @@ import {
   LogOut,
   Radar,
   Settings,
-  User as UserIcon
+  User as UserIcon,
+  Wallet
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -218,6 +219,9 @@ export default function Navbar({ user, onLogout }: NavbarProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push('/dashboard')}>
                 <UserIcon className="mr-2 h-4 w-4" /> Dashboard
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/portfolio')}>
+                <Wallet className="mr-2 h-4 w-4" /> Portfolio (all accounts)
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push('/automation')}>
                 <Cpu className="mr-2 h-4 w-4" /> Autonomous Trading

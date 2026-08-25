@@ -120,6 +120,7 @@ export const POST = withApiMiddleware(
         decryptSecret(aiKey.apiKey),
         model
       );
+      const earnings = await marketData.getEarnings(targetSymbol);
       const report = await aiProvider.generateReport({
         symbol: targetSymbol,
         companyName: quote.name,
@@ -129,7 +130,8 @@ export const POST = withApiMiddleware(
         reportType,
         productType: productType as AiProductType,
         riskProfile: riskProfile as AiRiskProfile,
-        accountValue: accountValue ?? undefined
+        accountValue: accountValue ?? undefined,
+        earnings: earnings ?? undefined
       });
 
       // Mark keys as used

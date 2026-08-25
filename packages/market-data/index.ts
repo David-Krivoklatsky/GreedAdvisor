@@ -9,6 +9,12 @@ export interface MarketQuote {
   timestamp: string;
 }
 
+export interface EarningsInfo {
+  symbol: string;
+  date?: string;
+  estimate?: string;
+}
+
 export interface MarketCandle {
   datetime: string;
   open: number;
@@ -21,6 +27,7 @@ export interface MarketCandle {
 export interface MarketDataProvider {
   getQuote(symbol: string): Promise<MarketQuote>;
   getCandles(symbol: string, interval: string, count: number): Promise<MarketCandle[]>;
+  getEarnings(symbol: string): Promise<EarningsInfo | null>;
 }
 
 const BASE_URL = 'https://api.twelvedata.com';
@@ -81,6 +88,26 @@ export class TwelveDataProvider implements MarketDataProvider {
       volume: parseInt(candle.volume, 10)
     }));
   }
+
+  // Next scheduled earnings announcement (graceful: null on failure).
+  async getEarnings(symbol: string): Promise<EarningsInfo | null> {
+    try {
+      const url = `${BASE_URL}/earnings?symbol=${encodeURIComponent(symbol)}&apikey=${this.apiKey}`;
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      const data = await response.json();
+      if (data.status === 'error') return null;
+      const next = data.earnings?.[0];
+      if (!next) return null;
+      return {
+        symbol: data.symbol ?? symbol,
+        date: next.date,
+        estimate: next.eps_estimate
+      };
+    } catch {
+      return null;
+    }
+  }
 }
 
 export class MarketDataService {
@@ -96,6 +123,10 @@ export class MarketDataService {
 
   async getCandles(symbol: string, interval = '1day', count = 30): Promise<MarketCandle[]> {
     return this.provider.getCandles(symbol, interval, count);
+  }
+
+  async getEarnings(symbol: string): Promise<EarningsInfo | null> {
+    return this.provider.getEarnings(symbol);
   }
 }
 
