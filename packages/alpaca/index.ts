@@ -256,6 +256,28 @@ export class AlpacaClient {
     });
   }
 
+  // Replace an open order (e.g. move a stop-loss leg). Only fields provided
+  // are updated.
+  async replaceOrder(
+    orderId: string,
+    fields: { limitPrice?: number; stopPrice?: number }
+  ): Promise<AlpacaOrder> {
+    const body: Record<string, unknown> = {};
+    if (fields.limitPrice !== undefined) {
+      body.limit_price = String(fields.limitPrice);
+    }
+    if (fields.stopPrice !== undefined) {
+      body.stop_price = String(fields.stopPrice);
+    }
+    if (Object.keys(body).length === 0) {
+      throw new Error('No fields provided to replace order');
+    }
+    return this.request<AlpacaOrder>(`/v2/orders/${encodeURIComponent(orderId)}`, {
+      method: 'PATCH',
+      body
+    });
+  }
+
   async getOrder(orderId: string): Promise<AlpacaOrder | null> {
     try {
       return await this.request<AlpacaOrder>(`/v2/orders/${encodeURIComponent(orderId)}`);

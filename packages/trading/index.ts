@@ -69,6 +69,8 @@ export interface OrderStatus {
   quantity: number;
   filledQuantity: number;
   filledAvgPrice: number | null;
+  limitPrice: number | null;
+  stopPrice: number | null;
   createdAt: string;
 }
 
@@ -108,6 +110,7 @@ export interface TradingClientBinding {
   getPendingOrders(): Promise<PendingOrder[]>;
   getOrder(orderId: string): Promise<OrderStatus | null>;
   cancelOrder(orderId: string): Promise<void>;
+  replaceOrder(orderId: string, fields: { limitPrice?: number; stopPrice?: number }): Promise<void>;
   placeOrder(input: PlaceOrderInput): Promise<OrderResult>;
 }
 
@@ -174,11 +177,16 @@ function t212Binding(key: TradingKeyRecord): TradingClientBinding {
         quantity: order.quantity,
         filledQuantity: order.filledQuantity,
         filledAvgPrice: null,
+        limitPrice: order.limitPrice ?? null,
+        stopPrice: order.stopPrice ?? null,
         createdAt: order.createdAt
       };
     },
     cancelOrder: async orderId => {
       await client.cancelOrder(Number(orderId));
+    },
+    replaceOrder: async () => {
+      throw new Error('Trading212 does not support order replacement');
     },
     placeOrder: async input => {
       if (key.accessType === 'read-only') {
@@ -404,11 +412,16 @@ function alpacaBinding(key: TradingKeyRecord): TradingClientBinding {
         quantity: Number(order.qty) || 0,
         filledQuantity: Number(order.filled_qty) || 0,
         filledAvgPrice: order.filled_avg_price ? Number(order.filled_avg_price) : null,
+        limitPrice: order.limit_price ? Number(order.limit_price) : null,
+        stopPrice: order.stop_price ? Number(order.stop_price) : null,
         createdAt: order.created_at
       };
     },
     cancelOrder: async orderId => {
       await client.cancelOrder(orderId);
+    },
+    replaceOrder: async (orderId, fields) => {
+      await client.replaceOrder(orderId, fields);
     },
     placeOrder: async input => {
       const type = input.orderType ?? 'MARKET';

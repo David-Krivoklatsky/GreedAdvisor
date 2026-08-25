@@ -128,6 +128,7 @@ export const automationSchema = z.object({
   confidenceThreshold: z.coerce.number().int().min(0).max(100).optional(),
   respectPdt: z.boolean().optional(),
   flattenAtClose: z.boolean().optional(),
+  manageStops: z.boolean().optional(),
   cooldownMinutes: z.coerce.number().int().min(0).max(1440).optional(),
   orderType: z.enum({ MARKET: 'MARKET', LIMIT: 'LIMIT' }).optional(),
   slippageTolerancePct: z.coerce.number().min(0).max(0.1).optional(),

@@ -112,6 +112,7 @@ export const POST = withApiMiddleware(
           confidenceThreshold: data.confidenceThreshold,
           respectPdt: data.respectPdt,
           flattenAtClose: data.flattenAtClose,
+          manageStops: data.manageStops ?? false,
           cooldownMinutes: data.cooldownMinutes,
           orderType: data.orderType,
           slippageTolerancePct: data.slippageTolerancePct,

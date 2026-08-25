@@ -126,6 +126,7 @@ export const PUT = withApiMiddleware(
           confidenceThreshold: data.confidenceThreshold ?? existing.confidenceThreshold,
           respectPdt: data.respectPdt ?? existing.respectPdt,
           flattenAtClose: data.flattenAtClose ?? existing.flattenAtClose,
+          manageStops: data.manageStops ?? existing.manageStops,
           cooldownMinutes: data.cooldownMinutes ?? existing.cooldownMinutes,
           orderType: data.orderType ?? existing.orderType,
           slippageTolerancePct: data.slippageTolerancePct ?? existing.slippageTolerancePct,
