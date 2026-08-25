@@ -29,6 +29,7 @@ const nextConfig = {
   // Transpile packages in monorepo
   transpilePackages: [
     '@greed-advisor/auth',
+    '@greed-advisor/crypto',
     '@greed-advisor/db',
     '@greed-advisor/middleware',
     '@greed-advisor/rate-limit',
@@ -37,6 +38,8 @@ const nextConfig = {
     '@greed-advisor/trading212',
     '@greed-advisor/alpaca',
     '@greed-advisor/market-data',
+    '@greed-advisor/trading',
+    '@greed-advisor/engine',
     '@greed-advisor/ai'
   ]
 };

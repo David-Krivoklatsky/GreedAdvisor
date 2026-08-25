@@ -74,6 +74,7 @@ export interface AlpacaOrderRequest {
   takeProfit?: number;
   stopLoss?: number;
   extendedHours?: boolean;
+  clientOrderId?: string;
 }
 
 export interface AlpacaOrder {
@@ -103,10 +104,32 @@ export interface AlpacaClock {
   next_close: string;
 }
 
+export interface AlpacaNewsItem {
+  id: number;
+  headline: string;
+  summary: string;
+  source: string;
+  url: string;
+  author?: string;
+  created_at: string;
+  symbols: string[];
+}
+
+export interface AlpacaMover {
+  symbol: string;
+  name?: string;
+  price: number;
+  change: number;
+  change_pct: number;
+  volume?: number;
+}
+
 const BASE_URLS: Record<AlpacaEnvironment, string> = {
   [AlpacaEnvironment.PAPER]: 'https://paper-api.alpaca.markets',
   [AlpacaEnvironment.LIVE]: 'https://api.alpaca.markets'
 };
+
+const DATA_BASE_URL = 'https://data.alpaca.markets';
 
 export class AlpacaClient {
   private readonly apiKey: string;
@@ -128,9 +151,11 @@ export class AlpacaClient {
 
   private async request<T>(
     path: string,
-    options: { method?: string; body?: unknown } = {}
+    options: { method?: string; body?: unknown } = {},
+    useDataApi = false
   ): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
+    const baseUrl = useDataApi ? DATA_BASE_URL : this.baseUrl;
+    const response = await fetch(`${baseUrl}${path}`, {
       method: options.method ?? 'GET',
       headers: {
         ...this.authHeaders(),
@@ -204,6 +229,10 @@ export class AlpacaClient {
       body.stop_price = String(order.stopPrice);
     }
 
+    if (order.clientOrderId !== undefined) {
+      body.client_order_id = order.clientOrderId;
+    }
+
     if (hasProtectiveLegs) {
       body.order_class = 'bracket';
       if (order.takeProfit !== undefined) {
@@ -227,7 +256,49 @@ export class AlpacaClient {
     });
   }
 
+  async getOrder(orderId: string): Promise<AlpacaOrder | null> {
+    try {
+      return await this.request<AlpacaOrder>(`/v2/orders/${encodeURIComponent(orderId)}`);
+    } catch {
+      return null;
+    }
+  }
+
   async getClock(): Promise<AlpacaClock> {
     return this.request<AlpacaClock>('/v2/clock');
+  }
+
+  // Alpaca News API (data host). Returns up to `limit` recent articles for the
+  // given symbols, newest first.
+  async getNews(symbols: string[], limit = 10): Promise<AlpacaNewsItem[]> {
+    const params = new URLSearchParams();
+    params.set('symbols', symbols.join(','));
+    params.set('limit', String(Math.max(1, Math.min(limit, 50))));
+    const data = await this.request<{ news: AlpacaNewsItem[] }>(
+      `/v1beta1/news?${params.toString()}`,
+      {},
+      true
+    );
+    return data.news ?? [];
+  }
+
+  // Top gainers/losers for the trading session (data host).
+  async getMarketMovers(top = 10): Promise<AlpacaMover[]> {
+    const data = await this.request<AlpacaMover[]>(
+      `/v1beta1/screener/stocks/movers?top=${Math.max(1, Math.min(top, 50))}`,
+      {},
+      true
+    );
+    return Array.isArray(data) ? data : [];
+  }
+
+  // Most actively traded stocks by volume or trade count (data host).
+  async getMostActive(top = 10, by: 'volume' | 'trades' = 'volume'): Promise<AlpacaMover[]> {
+    const data = await this.request<AlpacaMover[]>(
+      `/v1beta1/screener/stocks/most-actives?top=${Math.max(1, Math.min(top, 100))}&by=${by}`,
+      {},
+      true
+    );
+    return Array.isArray(data) ? data : [];
   }
 }

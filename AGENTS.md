@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Turborepo + npm workspaces monorepo (Node 22 per `.nvmrc`, npm@11.4.2). Only app: `apps/web` (Next.js 16 App Router). Shared TS packages in `packages/*` (`ai`, `auth`, `db`, `market-data`, `middleware`, `rate-limit`, `trading212`, `utils`, `validations`), consumed as raw TS (`main: index.ts`, no build step); Next.js transpiles them via `transpilePackages`.
+Turborepo + npm workspaces monorepo (Node 22 per `.nvmrc`, npm@11.4.2). Only app: `apps/web` (Next.js 16 App Router). Shared TS packages in `packages/*` (`ai`, `alpaca`, `auth`, `crypto`, `db`, `engine`, `market-data`, `middleware`, `rate-limit`, `trading`, `trading212`, `utils`, `validations`), consumed as raw TS (`main: index.ts`, no build step); Next.js transpiles them via `transpilePackages`.
 
 ## Commands (run from root; turbo delegates to whichever workspace defines the script)
 
@@ -8,6 +8,9 @@ Turborepo + npm workspaces monorepo (Node 22 per `.nvmrc`, npm@11.4.2). Only app
 - `npm run test` — jest in `apps/web`. Single test: `cd apps/web && npx jest __tests__/api/auth/register.test.ts`
 - `npm run db:up` / `db:down` — docker-compose Postgres (host port **5433**, not 5432)
 - `npm run db:generate|migrate|push|seed` — Prisma in `packages/db`
+- `npm run db:encrypt-keys` — encrypt existing plaintext API keys at rest (idempotent)
+- `npm run engine:start` — run the autonomous trading engine scheduler (`@greed-advisor/engine`, standalone `tsx` process)
+- `npm run engine:cycle -- <configId>` — run one engine cycle by automation-config id (also `npx tsx packages/engine/src/cycle-cli.ts <configId>`)
 - `npm run format` / `format:check` — Prettier on `**/*.{ts,tsx,md,json}`
 - Pre-commit: lint-staged runs `eslint --fix` + `prettier --write`. Conventional Commits enforced by `commitlint.config.js` (the husky `commit-msg` hook is currently disabled, so it is not actually enforced).
 
@@ -21,7 +24,9 @@ Turborepo + npm workspaces monorepo (Node 22 per `.nvmrc`, npm@11.4.2). Only app
 - `@greed-advisor/auth` throws at import time if `JWT_SECRET` is missing (tests mock it or set `process.env.JWT_SECRET` before importing, real code needs it).
 - Prisma schema lives at `packages/db/prisma/schema.prisma` — **not** `apps/web/prisma`.
 - **Stale docs**: `README.md` and `docs/database.md` describe the old single-key `User` model; `docs/route-structure.md` describes a `routes/` directory that does not exist. Trust the code.
-- API keys are stored in plaintext (`apiKey` is `Text` in the schema). Rate limiting is in-memory (100 req / 15 min per IP).
+- **Broken Prisma migration history**: `prisma migrate dev` fails to replay migrations on a fresh shadow DB (`20260814000001_add_market_data_keys` collides with an earlier table). The live Neon DB has **no recorded migrations** — the repo syncs schema with `npm run db:push`. Do NOT run `migrate deploy`. New schema changes are saved as timestamped migration folders for reference only.
+- **Autonomous engine**: `@greed-advisor/engine` (PM2 `greed-advisor-engine`, **single fork instance — never cluster**) runs the scheduler loop. Safety: Postgres advisory locks + persisted `nextRunAt`; guardrails in `packages/engine/src/guardrails.ts`; mode gating (`advisory`/`paper`/`live`, live requires `allowLive`). Env: `ENGINE_ENABLED`, `ENGINE_PAUSED`, `ENGINE_TICK_MS`, `ENGINE_WEBHOOK_SECRET` (auths `POST/GET /api/engine/run` for Vercel cron / cron-job.org), `TELEGRAM_BOT_TOKEN`. The standalone entry (`src/index.ts` / `src/cycle-cli.ts`) loads env from the repo root `.env` + `packages/db/.env` via `src/env.ts`; the engine must NOT import `@greed-advisor/auth` (throws at import without `JWT_SECRET`).
+- **API keys are encrypted at rest**: `@greed-advisor/crypto` AES-256-GCM with `ENCRYPTION_KEY`. Stored values are `enc:v1:...`; `decryptSecret` passes legacy plaintext through unchanged. Keys are encrypted on write (key CRUD routes) and decrypted at the point of use (`packages/trading` bindings, AI/market-data routes, engine). Existing plaintext keys were migrated with `npm run db:encrypt-keys`. Rate limiting is in-memory (100 req / 15 min per IP) and now also covers order/AI/automation/key-creation endpoints.
 - To add a new `@greed-advisor/*` package, you must update `apps/web/next.config.js` (`transpilePackages`), `apps/web/tsconfig.json` (`paths`), and `apps/web/jest.config.js` (`moduleNameMapper`).
 
 ## Conventions

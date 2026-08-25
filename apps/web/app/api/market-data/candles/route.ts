@@ -5,6 +5,7 @@ import {
   TwelveDataProvider,
   computeIndicators
 } from '@greed-advisor/market-data';
+import { decryptSecret } from '@greed-advisor/crypto';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -38,7 +39,9 @@ export const GET = withApiMiddleware(
       );
     }
 
-    const marketData = new MarketDataService(new TwelveDataProvider(marketDataKey.apiKey));
+    const marketData = new MarketDataService(
+      new TwelveDataProvider(decryptSecret(marketDataKey.apiKey))
+    );
     const candles = await marketData.getCandles(symbol, interval, 300);
 
     const indicators = computeIndicators(candles);

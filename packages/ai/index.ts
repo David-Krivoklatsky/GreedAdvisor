@@ -25,6 +25,13 @@ export interface AiReportInput {
   productType?: AiProductType;
   riskProfile?: AiRiskProfile;
   accountValue?: number;
+  news?: Array<{
+    title: string;
+    source?: string;
+    publishedAt?: string;
+    summary?: string;
+    url?: string;
+  }>;
   indicators?: {
     ema9?: number | null;
     ema21?: number | null;
@@ -125,6 +132,24 @@ overbought/oversold and divergences, MACD signal-line crossovers), value vs
 VWAP, and volatility context (Bollinger band width/squeeze, ATR for stop
 sizing) in the "technicals" analysis. Do not invent indicator values;
 only use the ones provided.
+
+${
+  input.news && input.news.length > 0
+    ? `
+Recent news headlines (do NOT treat these as definitive; treat as sentiment/risk context):
+${input.news
+  .map(
+    n =>
+      `- [${n.publishedAt ?? 'recent'}] ${n.title}${n.source ? ` (${n.source})` : ''}${n.summary ? ` — ${n.summary}` : ''}`
+  )
+  .join('\n')}
+
+Weigh this news against the technicals. Flag material catalysts or event risk
+(earnings, guidance, regulatory, macro) in the "sentiment" and "risks" fields,
+and widen the stop-loss or downgrade the action if an event could gap the price.
+`
+    : 'No recent news available. Proceed on technicals alone.'
+}
 
 Return JSON with this exact shape:
 {

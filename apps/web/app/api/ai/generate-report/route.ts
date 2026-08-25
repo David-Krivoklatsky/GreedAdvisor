@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { getClientIp } from '@/lib/api';
 import { withApiMiddleware, withAuth, withValidation } from '@greed-advisor/middleware';
 import { reportSchema } from '@greed-advisor/validations';
 import type { ReportInput } from '@greed-advisor/validations';
@@ -9,14 +10,16 @@ import {
   TwelveDataProvider,
   computeIndicators
 } from '@greed-advisor/market-data';
+import { decryptSecret } from '@greed-advisor/crypto';
 import { getActiveTradingClient } from '@/lib/providers';
+import { rateLimit } from '@greed-advisor/rate-limit';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
 export const POST = withApiMiddleware(
   withValidation(reportSchema)(
-    withAuth(async (_req, ctx) => {
+    withAuth(async (req, ctx) => {
       const {
         tradingKeyId,
         aiKeyId,
@@ -28,6 +31,18 @@ export const POST = withApiMiddleware(
         accountValue,
         model
       } = ctx.data as ReportInput;
+
+      const rateLimitResult = rateLimit(getClientIp(req));
+      if (!rateLimitResult.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Too many requests. Please try again later.',
+            error: 'Rate limit exceeded'
+          },
+          { status: 429 }
+        );
+      }
 
       // Load keys and verify ownership
       const [tradingKey, aiKey, marketDataKey] = await Promise.all([
@@ -91,14 +106,20 @@ export const POST = withApiMiddleware(
       }
 
       // Fetch real market data
-      const marketData = new MarketDataService(new TwelveDataProvider(marketDataKey.apiKey));
+      const marketData = new MarketDataService(
+        new TwelveDataProvider(decryptSecret(marketDataKey.apiKey))
+      );
       const quote = await marketData.getQuote(targetSymbol);
       const candles = await marketData.getCandles(targetSymbol, '1day', 300);
 
       const indicators = computeIndicators(candles);
 
       // Generate AI report
-      const aiProvider = createAiProvider(aiKey.provider as AiProvider, aiKey.apiKey, model);
+      const aiProvider = createAiProvider(
+        aiKey.provider as AiProvider,
+        decryptSecret(aiKey.apiKey),
+        model
+      );
       const report = await aiProvider.generateReport({
         symbol: targetSymbol,
         companyName: quote.name,

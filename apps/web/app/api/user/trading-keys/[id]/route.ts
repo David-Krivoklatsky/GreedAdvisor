@@ -3,6 +3,7 @@ import { logKeyAudit } from '@/lib/audit';
 import { withApiMiddleware, withAuth, withValidation } from '@greed-advisor/middleware';
 import { updateT212ApiKeySchema } from '@greed-advisor/validations';
 import type { UpdateT212ApiKeyInput } from '@greed-advisor/validations';
+import { encryptSecret } from '@greed-advisor/crypto';
 import { NextResponse } from 'next/server';
 
 export const PUT = withApiMiddleware(
@@ -38,8 +39,8 @@ export const PUT = withApiMiddleware(
           title: title ?? existing.title,
           accessType: accessType ?? existing.accessType,
           environment: environment ?? existing.environment,
-          apiKey: apiKey ?? existing.apiKey,
-          apiSecret: apiSecret ?? existing.apiSecret,
+          apiKey: apiKey ? encryptSecret(apiKey) : existing.apiKey,
+          apiSecret: apiSecret ? encryptSecret(apiSecret) : existing.apiSecret,
           isActive: isActive ?? existing.isActive
         },
         select: {

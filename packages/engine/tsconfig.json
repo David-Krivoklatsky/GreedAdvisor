@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "paths": {
+      "@greed-advisor/db": ["../../packages/db"],
+      "@greed-advisor/crypto": ["../../packages/crypto"],
+      "@greed-advisor/ai": ["../../packages/ai"],
+      "@greed-advisor/alpaca": ["../../packages/alpaca"],
+      "@greed-advisor/trading": ["../../packages/trading"],
+      "@greed-advisor/market-data": ["../../packages/market-data"],
+      "@greed-advisor/trading212": ["../../packages/trading212"]
+    }
+  },
+  "include": ["index.ts", "src/**/*.ts"]
+}

@@ -120,7 +120,7 @@ export const DEFAULT_ENABLED_INDICATORS: Record<IndicatorKey, boolean> = {
   atr: false
 };
 
-const INTERVALS = ['5min', '15min', '1hour', '4hour', '1day'] as const;
+const INTERVALS = ['1min', '5min', '15min', '30min', '1hour', '4hour', '1day'] as const;
 
 function toUnix(datetime: string): UTCTimestamp {
   const date = new Date(datetime);

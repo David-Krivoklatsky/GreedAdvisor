@@ -9,7 +9,11 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^@greed-advisor/db$': '<rootDir>/../../packages/db',
-    '^@greed-advisor/alpaca$': '<rootDir>/../../packages/alpaca'
+    '^@greed-advisor/crypto$': '<rootDir>/../../packages/crypto',
+    '^@greed-advisor/alpaca$': '<rootDir>/../../packages/alpaca',
+    '^@greed-advisor/trading$': '<rootDir>/../../packages/trading',
+    '^@greed-advisor/engine$': '<rootDir>/../../packages/engine',
+    '^@greed-advisor/engine/src/(.*)$': '<rootDir>/../../packages/engine/src/$1'
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/']

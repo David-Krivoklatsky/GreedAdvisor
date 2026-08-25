@@ -1,12 +1,23 @@
 'use client';
 
-import { Bell, Home, LogOut, Settings, User as UserIcon } from 'lucide-react';
+import {
+  Bell,
+  Compass,
+  Cpu,
+  History,
+  Home,
+  LogOut,
+  Radar,
+  Settings,
+  User as UserIcon
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,12 +43,14 @@ interface NavbarProps {
 
 const NAV_LINKS = [
   { href: '/dashboard', label: 'Dashboard' },
+  { href: '/automation', label: 'Automation' },
   { href: '/profile', label: 'Profile' }
 ];
 
 export default function Navbar({ user, onLogout }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [unreadCount, setUnreadCount] = useState(0);
   const [fetchedUser, setFetchedUser] = useState<
     | { email?: string; firstName?: string; lastName?: string; profilePicture?: string }
     | null
@@ -64,6 +77,30 @@ export default function Navbar({ user, onLogout }: NavbarProps) {
       cancelled = true;
     };
   }, [user]);
+
+  // Unread notification count, refreshed every 60s
+  useEffect(() => {
+    if (!TokenManager.getAccessToken()) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const response = await TokenManager.makeAuthenticatedRequest(
+          '/api/user/notifications?limit=1'
+        );
+        if (cancelled || !response.ok) return;
+        const data = await response.json();
+        setUnreadCount(data.unreadCount ?? 0);
+      } catch {
+        // ignore
+      }
+    };
+    load();
+    const interval = setInterval(load, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [pathname]);
 
   const effectiveUser = user !== undefined ? user : fetchedUser;
   const displayName =
@@ -151,6 +188,11 @@ export default function Navbar({ user, onLogout }: NavbarProps) {
             aria-label="Notifications"
           >
             <Bell className="h-[1.2rem] w-[1.2rem]" />
+            {unreadCount > 0 && (
+              <Badge className="absolute -right-1 -top-1 h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px]">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Badge>
+            )}
           </Button>
 
           {/* User menu */}
@@ -176,6 +218,18 @@ export default function Navbar({ user, onLogout }: NavbarProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push('/dashboard')}>
                 <UserIcon className="mr-2 h-4 w-4" /> Dashboard
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/automation')}>
+                <Cpu className="mr-2 h-4 w-4" /> Autonomous Trading
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/signals')}>
+                <Radar className="mr-2 h-4 w-4" /> AI Signals
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/trades')}>
+                <History className="mr-2 h-4 w-4" /> Trade History
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/screen')}>
+                <Compass className="mr-2 h-4 w-4" /> Opportunity Screener
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push('/profile')}>
                 <Settings className="mr-2 h-4 w-4" /> Profile &amp; Keys
