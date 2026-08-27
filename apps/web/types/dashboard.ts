@@ -102,6 +102,11 @@ export interface T212Instrument {
   currency: string;
 }
 
+export interface PositionRisk {
+  stopLoss: number | null;
+  takeProfit: number | null;
+}
+
 export interface Position {
   averagePricePaid: number;
   createdAt: string;
@@ -110,6 +115,7 @@ export interface Position {
   quantity: number;
   quantityAvailableForTrading: number;
   quantityInPies: number;
+  risk?: PositionRisk | null;
   walletImpact: {
     currency: string;
     currentValue: number;
@@ -169,28 +175,52 @@ export interface AutomationRunLog {
   steps: AutomationRunStep[];
 }
 
+export interface BotSignal {
+  action: string;
+  entryPrice: number | null;
+  stopLoss: number | null;
+  takeProfit: number | null;
+  confidence: number;
+  status: string;
+  generatedAt: string;
+}
+
 export interface AutomationConfig {
   id: number;
   title: string;
   enabled: boolean;
   mode: 'advisory' | 'paper' | 'live';
+  execution: 'auto' | 'approval';
+  market: 'us' | 'eu' | 'crypto';
+  strategy: string;
   allowLive: boolean;
-  universe: string;
   scanIntervalMinutes: number;
+  universe: 'watchlist' | 'movers' | 'watchlist+movers';
+  symbols: string[];
   maxCandidates: number;
   maxPositions: number;
   maxRiskPerTradePct: number;
+  maxDailySpendPct: number;
   dailyLossLimitPct: number;
+  stopOnLoss: boolean;
+  maxDailyTrades: number;
   confidenceThreshold: number;
   manageStops: boolean;
   flattenAtClose: boolean;
   cooldownMinutes: number;
+  orderType: 'MARKET' | 'LIMIT';
   tradingKeyId: number | null;
   aiKeyId: number | null;
   marketDataKeyId: number | null;
+  model: string | null;
+  telegramChatId: string | null;
   nextRunAt: string;
   lastRunAt?: string | null;
   lastRunStatus?: string | null;
+  marketOpen?: boolean;
+  lastTradeAt?: string | null;
+  cooldownUntil?: string | null;
+  latestSignals?: Record<string, BotSignal>;
   latestRun?: AutomationRunLog | null;
 }
 

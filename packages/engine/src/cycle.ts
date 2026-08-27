@@ -16,7 +16,12 @@ import { notify } from './notify';
 import { checkGuardrails } from './guardrails';
 import { preScreenSymbol, rankCandidates } from './pre-screen';
 import type { CandidateScore } from './pre-screen';
-import { approximateUsMarketWindow, etDateOnly, getAlpacaWindow } from './market-hours';
+import {
+  approximateEuMarketWindow,
+  approximateUsMarketWindow,
+  etDateOnly,
+  getAlpacaWindow
+} from './market-hours';
 import { fetchNewsForSymbols } from './news';
 import { manageStops, reconcileOrders } from './positions';
 import { beginStep, endStep, recordStep } from './steps';
@@ -30,8 +35,46 @@ export interface CycleResult {
 const MAX_UNIVERSE = 25;
 const MAX_PRE_SCREEN = 15;
 
-function normalizeSymbol(symbol: string): string {
-  return symbol.split('_')[0].toUpperCase();
+function normalizeSymbol(symbol: string, crypto = false): string {
+  let s = symbol.split('_')[0].toUpperCase();
+  if (crypto) s = s.replace(/USD$/, '');
+  return s;
+}
+
+interface StrategyProfile {
+  interval: string;
+  bars: number;
+  reportType: string;
+}
+
+// Strategy → analysis timeframe + AI report type.
+function strategyProfile(strategy?: string | null): StrategyProfile {
+  switch (strategy) {
+    case 'scalp':
+      return { interval: '5min', bars: 120, reportType: 'scalp' };
+    case 'mean_reversion':
+      return { interval: '15min', bars: 120, reportType: 'mean reversion' };
+    case 'breakout':
+      return { interval: '15min', bars: 120, reportType: 'breakout' };
+    case 'trend':
+      return { interval: '1day', bars: 120, reportType: 'trend following' };
+    case 'swing':
+      return { interval: '1day', bars: 180, reportType: 'swing' };
+    default:
+      return { interval: '1h', bars: 120, reportType: 'momentum' };
+  }
+}
+
+// Broker symbol for an order. Alpaca crypto uses e.g. BTCUSD.
+function brokerSymbolForMarket(
+  symbol: string,
+  config: AutomationConfig,
+  binding: TradingClientBinding
+): string {
+  if (config.market === 'crypto' && binding.provider === 'alpaca') {
+    return `${symbol.replace('/', '')}USD`;
+  }
+  return symbol;
 }
 
 async function getDailyStat(config: AutomationConfig, accountEquity: number): Promise<DailyStat> {
@@ -77,13 +120,29 @@ async function buildUniverse(
   config: AutomationConfig,
   binding: TradingClientBinding
 ): Promise<string[]> {
-  const watchlist = await prisma.watchlistItem.findMany({
-    where: { userId: config.userId, isActive: true },
-    select: { ticker: true }
-  });
-  let symbols = [...new Set(watchlist.map(w => normalizeSymbol(w.ticker)))];
+  const universe = config.universe ?? 'watchlist';
+  const isCrypto = config.market === 'crypto';
 
-  if (config.universe === 'watchlist+movers' && binding.provider === 'alpaca') {
+  // Universe source: the bot's own symbols, else the user's watchlist, else
+  // nothing (pure movers/auto hunting).
+  let base: string[];
+  if (universe === 'movers') {
+    base = [];
+  } else if (config.symbols.length > 0) {
+    base = config.symbols.map(s => normalizeSymbol(s));
+  } else {
+    base = (
+      await prisma.watchlistItem.findMany({
+        where: { userId: config.userId, isActive: true },
+        select: { ticker: true }
+      })
+    ).map(w => normalizeSymbol(w.ticker));
+  }
+
+  let symbols = [...new Set(base)];
+
+  // Opportunity hunting: add movers / most-active (crypto for crypto bots).
+  if ((universe === 'movers' || universe === 'watchlist+movers') && binding.provider === 'alpaca') {
     try {
       const client = new AlpacaClient({
         apiKey: binding.key.apiKey,
@@ -91,7 +150,7 @@ async function buildUniverse(
         environment: binding.key.environment as AlpacaEnvironment
       });
       const [movers, mostActive] = await Promise.all([
-        client.getMarketMovers(20),
+        client.getMarketMovers(20, isCrypto ? 'crypto' : 'stocks'),
         client.getMostActive(20)
       ]);
       const extra = [...movers.map(m => m.symbol), ...mostActive.map(m => m.symbol)].slice(0, 40);
@@ -184,11 +243,15 @@ async function handleSignal(params: {
     volume: number;
   }[];
   news: unknown[];
-}): Promise<'acted' | 'signal' | 'ignored' | 'skipped'> {
-  const { config, binding, account, dailyStat, canTrade, symbol, report, candles, news } = params;
+  crypto?: boolean;
+}): Promise<'acted' | 'signal' | 'ignored' | 'skipped' | 'pending_approval'> {
+  const { config, binding, account, dailyStat, canTrade, symbol, report, candles, news, crypto } =
+    params;
 
   const positions = await binding.getPositions();
-  const existingPosition = positions.find(p => normalizeSymbol(p.instrument.ticker) === symbol);
+  const existingPosition = positions.find(
+    p => normalizeSymbol(p.instrument.ticker, crypto) === normalizeSymbol(symbol, crypto)
+  );
   const hasExistingPosition = !!existingPosition && existingPosition.quantity > 0;
 
   const signal = await prisma.tradeSignal.create({
@@ -258,9 +321,71 @@ async function handleSignal(params: {
     return 'signal';
   }
 
+  // Approval mode: persist the plan for the user to approve — do not place yet.
+  if (config.execution === 'approval') {
+    await prisma.tradeSignal.update({
+      where: { id: signal.id },
+      data: { status: 'pending_approval' }
+    });
+    await notify(
+      config.userId,
+      config.telegramChatId,
+      'signal',
+      `Approval needed: ${symbol} ${report.action} (${report.confidence}%)`,
+      report.summary,
+      { signalId: signal.id }
+    );
+    log('info', `Signal awaiting approval ${symbol} ${report.action}`);
+    return 'pending_approval';
+  }
+
+  await placeOrderForSignal({
+    config,
+    binding,
+    account,
+    dailyStat,
+    signal,
+    report,
+    candles,
+    crypto
+  });
+
+  return 'acted';
+}
+
+// Shared order placement for both auto mode and manual approval of a signal.
+async function placeOrderForSignal(params: {
+  config: AutomationConfig;
+  binding: TradingClientBinding;
+  account: AccountMeta;
+  dailyStat: DailyStat;
+  signal: { id: number; symbol: string };
+  report: AiReport;
+  candles: {
+    datetime: string;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }[];
+  crypto?: boolean;
+}): Promise<void> {
+  const { config, binding, account, dailyStat, signal, report, candles, crypto } = params;
+  const symbol = normalizeSymbol(signal.symbol, crypto);
+
+  const positions = await binding.getPositions();
+  const existingPosition = positions.find(
+    p => normalizeSymbol(p.instrument.ticker, crypto) === symbol
+  );
+
   // Recompute sizing — never trust the LLM's numbers blindly.
   const risk = deriveRiskParams(report, account.equity, candles, config);
-  const brokerTicker = await resolveBrokerTicker(binding, symbol);
+  const brokerTicker = brokerSymbolForMarket(
+    await resolveBrokerTicker(binding, symbol),
+    config,
+    binding
+  );
 
   let side: 'BUY' | 'SELL';
   let quantity: number;
@@ -272,12 +397,23 @@ async function handleSignal(params: {
         ? Math.max(1, Math.min(Math.floor(held * 0.5), Math.floor(risk.positionSize)))
         : held;
     if (quantity <= 0 || held <= 0) {
-      log('info', `Skipping ${report.action} for ${symbol}: nothing held`);
-      return 'skipped';
+      throw new Error(`No ${symbol} position to ${report.action}`);
     }
   } else {
     side = 'BUY';
     quantity = risk.positionSize;
+  }
+
+  // Max cash per day guardrail
+  let cost = 0;
+  if (side === 'BUY') {
+    cost = report.entryPrice > 0 ? report.entryPrice * quantity : risk.positionSize * quantity;
+    const cap = config.maxDailySpendPct * account.equity;
+    if (dailyStat.spentToday + cost > cap) {
+      throw new Error(
+        `Daily spend cap would be exceeded (${(dailyStat.spentToday + cost).toFixed(0)} > ${cap.toFixed(0)})`
+      );
+    }
   }
 
   const orderType = (config.orderType ?? 'MARKET') as PlaceOrderType;
@@ -334,7 +470,8 @@ async function handleSignal(params: {
     where: { id: dailyStat.id },
     data: {
       tradeCount: { increment: 1 },
-      dayTradeCount: side === 'SELL' ? { increment: 1 } : undefined
+      dayTradeCount: side === 'SELL' ? { increment: 1 } : undefined,
+      spentToday: side === 'BUY' ? { increment: cost } : undefined
     }
   });
 
@@ -351,8 +488,6 @@ async function handleSignal(params: {
     orderId: result.id,
     status: result.status
   });
-
-  return 'acted';
 }
 
 async function flattenAtClose(
@@ -522,19 +657,53 @@ async function runCycleLocked(config: AutomationConfig, runLogId: number): Promi
     patternDayTrader: account.patternDayTrader,
     unrealized,
     tradeCount: dailyStat.tradeCount,
-    dayTradeCount: dailyStat.dayTradeCount
+    dayTradeCount: dailyStat.dayTradeCount,
+    spentToday: dailyStat.spentToday
   });
+
+  // Kill-switch: if the automation is losing money beyond the daily loss
+  // limit, disable it entirely (not just block the next trade).
+  const dayLoss = dailyStat.realizedPnl + dailyStat.unrealizedPnl;
+  if (
+    config.stopOnLoss &&
+    dailyStat.startEquity > 0 &&
+    dayLoss <= -config.dailyLossLimitPct * dailyStat.startEquity
+  ) {
+    await prisma.automationConfig.update({
+      where: { id: config.id },
+      data: { enabled: false, lastRunStatus: 'stopped' }
+    });
+    await notify(
+      config.userId,
+      config.telegramChatId,
+      'daily_loss',
+      `Automation "${config.title}" stopped — daily loss limit reached`,
+      `Loss ${((dayLoss / dailyStat.startEquity) * 100).toFixed(1)}% vs limit ${(config.dailyLossLimitPct * 100).toFixed(1)}%`
+    );
+    log('info', `Automation ${config.id} stopped on daily loss`, { dayLoss });
+    return { status: 'skipped', reason: 'daily loss limit reached — stopped' };
+  }
 
   const marketData = new MarketDataService(
     new TwelveDataProvider(decryptSecret(marketDataKey.apiKey))
   );
 
-  // Market-hours gate
-  const hoursStep = await beginStep(runLogId, 'market_hours', 'Check market hours');
+  // Market-hours gate — the bot only runs while ITS market is open. Crypto is
+  // 24/7; EU uses approximate CET hours; US uses the Alpaca clock when available.
+  const hoursStep = await beginStep(
+    runLogId,
+    'market_hours',
+    `Check market hours (${config.market ?? 'us'})`
+  );
   let marketOpen = true;
   let closingSoon = false;
   let nextClose: string | undefined;
-  if (binding.provider === 'alpaca') {
+
+  if (config.market === 'crypto') {
+    marketOpen = true;
+  } else if (config.market === 'eu') {
+    marketOpen = approximateEuMarketWindow().open || config.extendedHours;
+  } else if (binding.provider === 'alpaca') {
     const window = await getAlpacaWindow(binding.key);
     if (window) {
       marketOpen = window.open || config.extendedHours;
@@ -549,10 +718,15 @@ async function runCycleLocked(config: AutomationConfig, runLogId: number): Promi
   }
 
   if (!marketOpen) {
-    await endStep(hoursStep, 'skipped', { open: false, nextClose });
-    return { status: 'skipped', reason: 'market closed' };
+    await endStep(hoursStep, 'skipped', { open: false, nextClose, market: config.market ?? 'us' });
+    return { status: 'skipped', reason: `${config.market ?? 'us'} market closed` };
   }
-  await endStep(hoursStep, 'ok', { open: true, closingSoon, nextClose });
+  await endStep(hoursStep, 'ok', {
+    open: true,
+    closingSoon,
+    nextClose,
+    market: config.market ?? 'us'
+  });
 
   if (config.flattenAtClose && closingSoon) {
     const flattenStep = await beginStep(runLogId, 'flatten', 'Flatten positions before close');
@@ -623,11 +797,13 @@ async function runCycleLocked(config: AutomationConfig, runLogId: number): Promi
 
   let analyzed = 0;
   let acted = 0;
+  const profile = strategyProfile(config.strategy);
+  const crypto = config.market === 'crypto';
   for (const symbol of candidates) {
     const symbolStep = await beginStep(runLogId, `analyze:${symbol}`, `AI analysis ${symbol}`);
     try {
       const quote = await marketData.getQuote(symbol);
-      const candles = await marketData.getCandles(symbol, '1day', 90);
+      const candles = await marketData.getCandles(symbol, profile.interval, profile.bars);
       const indicators = computeIndicators(candles);
       const earnings = await marketData.getEarnings(symbol);
       const report = await aiProvider.generateReport({
@@ -636,7 +812,7 @@ async function runCycleLocked(config: AutomationConfig, runLogId: number): Promi
         quote,
         candles: candles.slice(-60),
         indicators: indicators.snapshot,
-        reportType: 'autonomous',
+        reportType: profile.reportType,
         productType,
         riskProfile,
         accountValue: account.equity,
@@ -657,7 +833,8 @@ async function runCycleLocked(config: AutomationConfig, runLogId: number): Promi
         symbol,
         report,
         candles,
-        news: newsMap[symbol] ?? []
+        news: newsMap[symbol] ?? [],
+        crypto
       });
       const afterCount = await prisma.tradeRecord.count({
         where: { userId: config.userId, automationConfigId: config.id }
@@ -666,7 +843,11 @@ async function runCycleLocked(config: AutomationConfig, runLogId: number): Promi
 
       await endStep(
         symbolStep,
-        outcome === 'acted' ? 'ok' : outcome === 'signal' ? 'warn' : 'skipped',
+        outcome === 'acted'
+          ? 'ok'
+          : outcome === 'signal' || outcome === 'pending_approval'
+            ? 'warn'
+            : 'skipped',
         {
           action: report.action,
           confidence: report.confidence,
@@ -689,6 +870,115 @@ async function runCycleLocked(config: AutomationConfig, runLogId: number): Promi
     status: analyzed === 0 ? 'failed' : acted > 0 ? 'success' : 'partial',
     reason: `analyzed ${analyzed}/${candidates.length}, acted ${acted}`
   };
+}
+
+export async function approveSignal(
+  signalId: number
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const signal = await prisma.tradeSignal.findUnique({ where: { id: signalId } });
+  if (!signal) return { ok: false, error: 'Signal not found' };
+  if (signal.status !== 'pending_approval') {
+    return { ok: false, error: `Signal is not awaiting approval (${signal.status})` };
+  }
+  if (!signal.automationConfigId) {
+    return { ok: false, error: 'Signal has no automation config' };
+  }
+
+  const config = await prisma.automationConfig.findFirst({
+    where: { id: signal.automationConfigId, deletedAt: null }
+  });
+  if (!config || !config.enabled) {
+    return { ok: false, error: 'Automation is disabled — start it before approving' };
+  }
+
+  const tradingKey = config.tradingKeyId
+    ? await prisma.t212ApiKey.findFirst({
+        where: {
+          id: config.tradingKeyId,
+          userId: signal.userId,
+          deletedAt: null,
+          isActive: true
+        }
+      })
+    : null;
+  if (!tradingKey) return { ok: false, error: 'Trading key missing' };
+
+  const marketDataKey = config.marketDataKeyId
+    ? await prisma.marketDataKey.findFirst({
+        where: {
+          id: config.marketDataKeyId,
+          userId: signal.userId,
+          deletedAt: null,
+          isActive: true
+        }
+      })
+    : null;
+
+  const binding = await getActiveTradingClient(signal.userId, config.tradingKeyId ?? undefined);
+  if (!binding) return { ok: false, error: 'No active trading client' };
+
+  // Mode gate
+  const environment = binding.environment;
+  const mode = config.mode ?? 'advisory';
+  let canTrade = false;
+  if (mode === 'paper') {
+    canTrade = binding.provider === 'alpaca' ? environment === 'paper' : environment === 'demo';
+  } else if (mode === 'live') {
+    canTrade = config.allowLive === true && environment === 'live';
+  }
+  if (!canTrade) {
+    return { ok: false, error: `Mode ${mode} (${environment}) does not allow trading` };
+  }
+
+  const account = await binding.getAccountMeta();
+  const dailyStat = await getDailyStat(config, account.equity);
+
+  let candles: {
+    datetime: string;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }[] = [];
+  if (marketDataKey) {
+    try {
+      const md = new MarketDataService(new TwelveDataProvider(decryptSecret(marketDataKey.apiKey)));
+      candles = await md.getCandles(signal.symbol, '1day', 90);
+    } catch {
+      // fall back to empty candles (ATR unavailable)
+    }
+  }
+
+  const report = signal.report as unknown as AiReport;
+  try {
+    await placeOrderForSignal({
+      config,
+      binding,
+      account,
+      dailyStat,
+      signal,
+      report,
+      candles,
+      crypto: config.market === 'crypto'
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await prisma.tradeSignal.update({
+      where: { id: signal.id },
+      data: { status: 'ignored' }
+    });
+    await notify(
+      signal.userId,
+      config.telegramChatId,
+      'error',
+      `Order placement failed for ${signal.symbol}`,
+      message
+    );
+    return { ok: false, error: message };
+  }
+
+  return { ok: true };
 }
 
 export async function runCycle(configId: number): Promise<CycleResult> {

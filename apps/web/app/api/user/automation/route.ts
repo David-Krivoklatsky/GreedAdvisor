@@ -8,6 +8,24 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+// Market-hours check per bot market: crypto is 24/7, EU ≈ CET hours, US ≈ ET.
+function isMarketOpen(config: { extendedHours: boolean; market?: string | null }): boolean {
+  const market = config.market ?? 'us';
+
+  if (market === 'crypto') return true;
+
+  const timeZone = market === 'eu' ? 'Europe/Paris' : 'America/New_York';
+  const openMinutes = market === 'eu' ? 540 : 570; // 09:00 / 09:30
+  const closeMinutes = market === 'eu' ? 1050 : 960; // 17:30 / 16:00
+
+  if (config.extendedHours) return true;
+  const now = new Date();
+  const local = new Date(now.toLocaleString('en-US', { timeZone }));
+  const day = local.getUTCDay();
+  const minutes = local.getUTCHours() * 60 + local.getUTCMinutes();
+  return day >= 1 && day <= 5 && minutes >= openMinutes && minutes < closeMinutes;
+}
+
 export const GET = withApiMiddleware(
   withAuth(async (_req, ctx) => {
     const configs = await prisma.automationConfig.findMany({
@@ -17,12 +35,75 @@ export const GET = withApiMiddleware(
 
     const withRuns = await Promise.all(
       configs.map(async config => {
-        const latestRun = await prisma.automationRunLog.findFirst({
-          where: { automationConfigId: config.id },
-          orderBy: { startedAt: 'desc' },
-          include: { steps: { orderBy: { startedAt: 'asc' } } }
-        });
-        return { ...config, latestRun };
+        const [latestRun, lastTrade, signalRows] = await Promise.all([
+          prisma.automationRunLog.findFirst({
+            where: { automationConfigId: config.id },
+            orderBy: { startedAt: 'desc' },
+            include: { steps: { orderBy: { startedAt: 'asc' } } }
+          }),
+          prisma.tradeRecord.findFirst({
+            where: { automationConfigId: config.id },
+            orderBy: { createdAt: 'desc' },
+            select: { createdAt: true }
+          }),
+          prisma.tradeSignal.findMany({
+            where: { automationConfigId: config.id },
+            orderBy: { generatedAt: 'desc' },
+            take: 100,
+            select: {
+              symbol: true,
+              action: true,
+              entryPrice: true,
+              stopLoss: true,
+              takeProfit: true,
+              confidence: true,
+              status: true,
+              generatedAt: true
+            }
+          })
+        ]);
+
+        const latestSignals: Record<
+          string,
+          {
+            action: string;
+            entryPrice: number | null;
+            stopLoss: number | null;
+            takeProfit: number | null;
+            confidence: number;
+            status: string;
+            generatedAt: string;
+          }
+        > = {};
+        for (const s of signalRows) {
+          if (!latestSignals[s.symbol]) {
+            latestSignals[s.symbol] = {
+              action: s.action,
+              entryPrice: s.entryPrice,
+              stopLoss: s.stopLoss,
+              takeProfit: s.takeProfit,
+              confidence: s.confidence,
+              status: s.status,
+              generatedAt: s.generatedAt.toISOString()
+            };
+          }
+        }
+
+        const lastTradeAt = lastTrade?.createdAt ?? null;
+        let cooldownUntil: string | null = null;
+        if (lastTradeAt) {
+          const until = lastTradeAt.getTime() + config.cooldownMinutes * 60000;
+          if (until > Date.now()) cooldownUntil = new Date(until).toISOString();
+        }
+
+        return {
+          ...config,
+          marketOpen: isMarketOpen(config),
+          lastTradeAt: lastTradeAt ? lastTradeAt.toISOString() : null,
+          cooldownUntil,
+          latestSignals,
+          latestRun
+        };
       })
     );
 
@@ -112,13 +193,19 @@ export const POST = withApiMiddleware(
           title: data.title,
           enabled: data.enabled ?? false,
           mode: data.mode ?? 'advisory',
+          execution: data.execution ?? 'auto',
+          market: data.market ?? 'us',
+          strategy: data.strategy ?? 'momentum',
           allowLive: data.allowLive ?? false,
           scanIntervalMinutes: data.scanIntervalMinutes,
           universe: data.universe,
+          symbols: data.symbols ?? [],
           maxCandidates: data.maxCandidates,
           maxPositions: data.maxPositions,
           maxRiskPerTradePct: data.maxRiskPerTradePct,
+          maxDailySpendPct: data.maxDailySpendPct ?? 0.2,
           dailyLossLimitPct: data.dailyLossLimitPct,
+          stopOnLoss: data.stopOnLoss ?? true,
           maxDailyTrades: data.maxDailyTrades,
           confidenceThreshold: data.confidenceThreshold,
           respectPdt: data.respectPdt,

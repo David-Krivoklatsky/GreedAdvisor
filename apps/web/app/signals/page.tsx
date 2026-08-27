@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/components/ui/toast';
 import { TokenManager } from '@/lib/token-manager';
 import { Radar } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 interface TradeSignal {
@@ -35,6 +36,7 @@ const ACTION_STYLES: Record<string, string> = {
 
 const FILTERS = [
   { value: '', label: 'All' },
+  { value: 'pending_approval', label: 'Approval' },
   { value: 'open', label: 'Open' },
   { value: 'acted', label: 'Acted' },
   { value: 'ignored', label: 'Ignored' }
@@ -42,6 +44,7 @@ const FILTERS = [
 
 export default function SignalsPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [signals, setSignals] = useState<TradeSignal[]>([]);
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
@@ -78,6 +81,32 @@ export default function SignalsPage() {
       toast('Signal ignored', 'success');
       fetchSignals(filter);
     }
+  };
+
+  const approve = async (signal: TradeSignal) => {
+    try {
+      const response = await TokenManager.makeAuthenticatedRequest(
+        `/api/user/signals/${signal.id}/approve`,
+        { method: 'POST' }
+      );
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error || body?.message || 'Failed to approve signal');
+      }
+      toast(`Order placed for ${signal.symbol}`, 'success');
+      fetchSignals(filter);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to approve signal', 'error');
+    }
+  };
+
+  const showOnGraph = (signal: TradeSignal) => {
+    const params = new URLSearchParams();
+    params.set('symbol', signal.symbol);
+    if (signal.entryPrice != null) params.set('entry', String(signal.entryPrice));
+    if (signal.stopLoss != null) params.set('sl', String(signal.stopLoss));
+    if (signal.takeProfit != null) params.set('tp', String(signal.takeProfit));
+    router.push(`/dashboard?${params.toString()}`);
   };
 
   return (
@@ -133,7 +162,20 @@ export default function SignalsPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Button size="sm" variant="ghost" onClick={() => showOnGraph(signal)}>
+                        Show on graph
+                      </Button>
                       <span>{new Date(signal.generatedAt).toLocaleString()}</span>
+                      {signal.status === 'pending_approval' && (
+                        <>
+                          <Button size="sm" variant="default" onClick={() => approve(signal)}>
+                            Approve & place
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => markIgnored(signal.id)}>
+                            Reject
+                          </Button>
+                        </>
+                      )}
                       {signal.status === 'open' && (
                         <Button size="sm" variant="ghost" onClick={() => markIgnored(signal.id)}>
                           Ignore

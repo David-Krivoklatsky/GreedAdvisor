@@ -19,6 +19,7 @@
     "db:push": "turbo db:push",
     "db:seed": "turbo db:seed",
     "db:encrypt-keys": "npm run db:encrypt-keys --workspace @greed-advisor/db",
+    "db:rotate-keys": "npm run db:rotate-keys --workspace @greed-advisor/db",
     "engine:start": "npm run start --workspace @greed-advisor/engine",
     "engine:cycle": "npm run cycle --workspace @greed-advisor/engine",
     "clean": "npx rimraf .turbo apps/web/.next",

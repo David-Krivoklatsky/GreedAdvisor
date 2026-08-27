@@ -2,14 +2,14 @@
 
 import ErrorState from '@/components/common/error-state';
 import LoadingState from '@/components/common/loading-state';
-import AiAdvisorPanel from '@/components/dashboard/ai-advisor-panel';
 import AutomationOverview from '@/components/dashboard/automation-overview';
 import ChartPanel from '@/components/dashboard/chart-panel';
 import PortfolioOverview from '@/components/dashboard/portfolio-overview';
+import PositionRiskPanel from '@/components/dashboard/position-risk-panel';
 import TerminalHeader from '@/components/dashboard/terminal-header';
 import PageLayout from '@/components/layout/page-layout';
 import { useToast } from '@/components/ui/toast';
-import { TokenManager } from '@/lib/token-manager';
+import type { ChartMarkers } from '@/components/charts/lightweight-chart';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useEffect, useState } from 'react';
 
@@ -29,11 +29,11 @@ export default function DashboardPage() {
     setSelectedTradingKey,
     notification,
     clearNotification,
-    user,
     refetch
   } = useDashboardData();
   const { toast } = useToast();
-  const [riskUpdating, setRiskUpdating] = useState(false);
+  const [chartSymbol, setChartSymbol] = useState('');
+  const [chartMarkers, setChartMarkers] = useState<ChartMarkers | null>(null);
 
   useEffect(() => {
     if (notification) {
@@ -42,26 +42,32 @@ export default function DashboardPage() {
     }
   }, [notification, clearNotification, toast]);
 
-  const handleUpdateRiskProfile = async (data: { riskProfile: string }) => {
-    setRiskUpdating(true);
-    try {
-      const response = await TokenManager.makeAuthenticatedRequest('/api/user/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+  // Support deep-linking from signals/trades: /dashboard?symbol=AAPL&entry=..&close=..&sl=..&tp=..
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const sym = params.get('symbol');
+    if (!sym) return;
+    const num = (k: string) => {
+      const v = params.get(k);
+      return v ? Number(v) : undefined;
+    };
+    const entry = num('entry');
+    const close = num('close');
+    const sl = num('sl');
+    const tp = num('tp');
+    const markers: ChartMarkers = {};
+    if (entry != null && !Number.isNaN(entry)) markers.entry = entry;
+    if (close != null && !Number.isNaN(close)) markers.close = close;
+    if (sl != null && !Number.isNaN(sl)) markers.stopLoss = sl;
+    if (tp != null && !Number.isNaN(tp)) markers.takeProfit = tp;
+    setChartSymbol(sym.toUpperCase());
+    setChartMarkers(Object.keys(markers).length > 0 ? markers : null);
+  }, []);
 
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        throw new Error(body?.error || 'Failed to update risk profile');
-      }
-
-      await refetch.fetchUser();
-    } catch (err) {
-      throw err instanceof Error ? err : new Error('Failed to update risk profile');
-    } finally {
-      setRiskUpdating(false);
-    }
+  const showOnGraph = (symbol: string, markers?: ChartMarkers | null) => {
+    setChartSymbol(symbol);
+    setChartMarkers(markers ?? null);
   };
 
   if (loading) {
@@ -85,31 +91,29 @@ export default function DashboardPage() {
           refreshing={positionsLoading}
         />
 
-        {/* Autonomous trading — front and center */}
-        <AutomationOverview
-          automationConfigs={automationConfigs}
-          loading={automationsLoading}
-          onRefresh={refetch.fetchAutomations}
-        />
-
-        {/* Main grid: chart + advisor side by side */}
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-          <div className="xl:col-span-2">
-            <ChartPanel />
-          </div>
-          <div className="flex">
-            <AiAdvisorPanel
-              tradingKeys={tradingKeys}
-              aiKeys={aiKeys}
-              marketDataKeys={marketDataKeys}
-              selectedTradingKey={selectedTradingKey}
-              user={user}
-              onUpdateRiskProfile={handleUpdateRiskProfile}
-              riskUpdating={riskUpdating}
-              onNotification={({ message, type }) => toast(message, type)}
-            />
-          </div>
+        {/* Split: Trading bots (left) + Market chart (right) */}
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <AutomationOverview
+            automationConfigs={automationConfigs}
+            loading={automationsLoading}
+            onRefresh={refetch.fetchAutomations}
+            onShowOnGraph={showOnGraph}
+            tradingKeys={tradingKeys}
+            aiKeys={aiKeys}
+            marketDataKeys={marketDataKeys}
+          />
+          <ChartPanel
+            symbol={chartSymbol}
+            onSymbolChange={sym => {
+              setChartSymbol(sym);
+              setChartMarkers(null);
+            }}
+            markers={chartMarkers}
+          />
         </div>
+
+        {/* Position review (adjust SL/TP on bot-opened positions) */}
+        <PositionRiskPanel positions={positions} tradingKeyId={selectedTradingKey} />
 
         {/* Portfolio below */}
         <PortfolioOverview

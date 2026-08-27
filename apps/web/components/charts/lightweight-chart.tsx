@@ -5,12 +5,14 @@ import {
   CandlestickSeries,
   ColorType,
   createChart,
+  createSeriesMarkers,
   CrosshairMode,
   IChartApi,
   ISeriesApi,
   LineData,
   LineSeries,
   LineStyle,
+  SeriesMarker,
   Time,
   UTCTimestamp
 } from 'lightweight-charts';
@@ -37,6 +39,14 @@ export interface CandleData {
   low: number;
   close: number;
   volume: number;
+}
+
+// Trade levels overlaid on the chart (entry / close / stop-loss / take-profit).
+export interface ChartMarkers {
+  entry?: number;
+  close?: number;
+  stopLoss?: number;
+  takeProfit?: number;
 }
 
 export type IndicatorCategory = 'Trend' | 'Momentum' | 'Volume' | 'Volatility';
@@ -178,6 +188,10 @@ function format(value: number | null | undefined, digits = 2): string {
 
 type OverlaySeriesKey = 'ema9' | 'ema21' | 'sma200' | 'vwap' | 'bbUpper' | 'bbMiddle' | 'bbLower';
 
+interface MarkersPlugin {
+  setMarkers(markers: SeriesMarker<Time>[]): void;
+}
+
 const EMPTY_OVERLAYS: Record<OverlaySeriesKey, ISeriesApi<'Line'> | null> = {
   ema9: null,
   ema21: null,
@@ -195,6 +209,7 @@ export function LightweightChart({
   onSymbolChange,
   interval,
   onIntervalChange,
+  markers,
   loading = false,
   height = 480,
   enabled = DEFAULT_ENABLED_INDICATORS,
@@ -206,6 +221,7 @@ export function LightweightChart({
   onSymbolChange: (symbol: string) => void;
   interval: string;
   onIntervalChange: (interval: string) => void;
+  markers?: ChartMarkers | null;
   loading?: boolean;
   height?: number;
   enabled?: Record<IndicatorKey, boolean>;
@@ -214,6 +230,7 @@ export function LightweightChart({
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const markersPluginRef = useRef<MarkersPlugin | null>(null);
   const lineSeriesRef = useRef<Record<OverlaySeriesKey, ISeriesApi<'Line'> | null>>(EMPTY_OVERLAYS);
   const { resolvedTheme } = useTheme();
 
@@ -227,6 +244,69 @@ export function LightweightChart({
   indicatorsRef.current = indicators;
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
+  const markersRef = useRef(markers);
+  markersRef.current = markers;
+
+  const applyMarkers = useCallback(() => {
+    const plugin = markersPluginRef.current;
+    const candles = candlesRef.current;
+    const levels = markersRef.current;
+    if (!plugin) return;
+    if (!levels || candles.length === 0) {
+      plugin.setMarkers([]);
+      return;
+    }
+    const last = toUnix(candles[candles.length - 1].datetime);
+    const prev = candles.length > 1 ? toUnix(candles[candles.length - 2].datetime) : last;
+    const list: SeriesMarker<Time>[] = [];
+
+    if (levels.close != null) {
+      // Closed trade: entry (earlier bar) → close (latest bar).
+      list.push({
+        time: prev,
+        position: 'inBar',
+        color: '#3b82f6',
+        shape: 'circle',
+        text: `Entry ${levels.entry ?? ''}`
+      });
+      list.push({
+        time: last,
+        position: 'inBar',
+        color: '#f97316',
+        shape: 'square',
+        text: `Close ${levels.close}`
+      });
+    } else {
+      if (levels.entry != null) {
+        list.push({
+          time: last,
+          position: 'inBar',
+          color: '#3b82f6',
+          shape: 'circle',
+          text: `Entry ${levels.entry}`
+        });
+      }
+      if (levels.stopLoss != null) {
+        list.push({
+          time: last,
+          position: 'belowBar',
+          color: '#ef4444',
+          shape: 'arrowDown',
+          text: `SL ${levels.stopLoss}`
+        });
+      }
+      if (levels.takeProfit != null) {
+        list.push({
+          time: last,
+          position: 'aboveBar',
+          color: '#22c55e',
+          shape: 'arrowUp',
+          text: `TP ${levels.takeProfit}`
+        });
+      }
+    }
+    plugin.setMarkers(list);
+  }, []);
 
   const applyAllData = useCallback(() => {
     const chart = chartRef.current;
@@ -254,7 +334,9 @@ export function LightweightChart({
       line.setData(buildLineData(candlesRef.current, values));
       line.applyOptions({ visible });
     }
-  }, []);
+
+    applyMarkers();
+  }, [applyMarkers]);
 
   // Create/destroy chart
   useEffect(() => {
@@ -327,6 +409,9 @@ export function LightweightChart({
       wickDownColor: colors.down
     });
 
+    // Entry / stop-loss / take-profit markers plugin (v5 API)
+    const markersPlugin = createSeriesMarkers(candleSeries, []);
+
     const ema9Series = chart.addSeries(LineSeries, lineOptions(INDICATOR_META.ema9.color));
     const ema21Series = chart.addSeries(LineSeries, lineOptions(INDICATOR_META.ema21.color));
     const sma200Series = chart.addSeries(LineSeries, lineOptions(INDICATOR_META.sma200.color));
@@ -334,6 +419,7 @@ export function LightweightChart({
 
     chartRef.current = chart;
     candleSeriesRef.current = candleSeries;
+    markersPluginRef.current = markersPlugin as unknown as MarkersPlugin;
     lineSeriesRef.current = {
       ema9: ema9Series,
       ema21: ema21Series,
@@ -350,6 +436,7 @@ export function LightweightChart({
       chart.remove();
       chartRef.current = null;
       candleSeriesRef.current = null;
+      markersPluginRef.current = null;
       lineSeriesRef.current = EMPTY_OVERLAYS;
     };
   }, [isDark, interval, applyAllData]);
@@ -357,7 +444,7 @@ export function LightweightChart({
   // Keep series in sync as data/visibility changes
   useEffect(() => {
     applyAllData();
-  }, [candles, indicators, enabled, applyAllData]);
+  }, [candles, indicators, enabled, markers, applyAllData]);
 
   const handleSymbolChange = (sym: string) => {
     if (sym && sym !== symbol) {

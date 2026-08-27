@@ -38,6 +38,19 @@ CREATE TABLE "automation_configs" (
 -- AlterTable
 ALTER TABLE "automation_configs" ADD COLUMN "manageStops" BOOLEAN NOT NULL DEFAULT false;
 
+-- AlterTable
+ALTER TABLE "automation_configs" ADD COLUMN "execution" VARCHAR(20) NOT NULL DEFAULT 'auto';
+ALTER TABLE "automation_configs" ADD COLUMN "symbols" TEXT[];
+ALTER TABLE "automation_configs" ADD COLUMN "maxDailySpendPct" DOUBLE PRECISION NOT NULL DEFAULT 0.2;
+ALTER TABLE "automation_configs" ADD COLUMN "stopOnLoss" BOOLEAN NOT NULL DEFAULT true;
+
+-- AlterTable
+ALTER TABLE "daily_stats" ADD COLUMN "spentToday" DOUBLE PRECISION NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "automation_configs" ADD COLUMN "market" VARCHAR(10) NOT NULL DEFAULT 'us';
+ALTER TABLE "automation_configs" ADD COLUMN "strategy" VARCHAR(30) NOT NULL DEFAULT 'momentum';
+
 -- CreateTable
 CREATE TABLE "automation_run_steps" (
     "id" SERIAL NOT NULL,

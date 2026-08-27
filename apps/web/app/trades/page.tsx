@@ -8,6 +8,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { useToast } from '@/components/ui/toast';
 import { TokenManager } from '@/lib/token-manager';
 import { History, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 interface TradingKey {
@@ -26,6 +27,7 @@ interface TradeRecord {
   orderId: string;
   status: string;
   entryPrice: number | null;
+  exitPrice?: number | null;
   stopLoss: number | null;
   takeProfit: number | null;
   filledQuantity: number;
@@ -63,6 +65,7 @@ const STORAGE_KEY = 'ga.tradesKey';
 
 export default function TradesPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [trades, setTrades] = useState<TradeRecord[]>([]);
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
   const [tradingKeys, setTradingKeys] = useState<TradingKey[]>([]);
@@ -136,6 +139,16 @@ export default function TradesPage() {
   };
 
   const realizedTotal = trades.reduce((sum, t) => sum + (t.realizedPnl ?? 0), 0);
+
+  const showOnGraph = (trade: TradeRecord) => {
+    const params = new URLSearchParams();
+    params.set('symbol', trade.symbol);
+    if (trade.entryPrice != null) params.set('entry', String(trade.entryPrice));
+    if (trade.exitPrice != null) params.set('close', String(trade.exitPrice));
+    if (trade.stopLoss != null) params.set('sl', String(trade.stopLoss));
+    if (trade.takeProfit != null) params.set('tp', String(trade.takeProfit));
+    router.push(`/dashboard?${params.toString()}`);
+  };
 
   return (
     <PageLayout>
@@ -257,6 +270,9 @@ export default function TradesPage() {
                     <span className="text-xs text-muted-foreground">
                       {new Date(trade.createdAt).toLocaleString()}
                     </span>
+                    <Button size="sm" variant="ghost" onClick={() => showOnGraph(trade)}>
+                      Show on graph
+                    </Button>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
                     <span>Qty: {trade.quantity}</span>
