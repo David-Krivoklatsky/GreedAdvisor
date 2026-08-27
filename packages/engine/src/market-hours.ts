@@ -36,6 +36,15 @@ export function approximateUsMarketWindow(now = new Date()): MarketWindow {
   return { open };
 }
 
+// Approximate EU (CET) market hours (Mon–Fri 09:00–17:30).
+export function approximateEuMarketWindow(now = new Date()): MarketWindow {
+  const cet = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
+  const day = cet.getUTCDay();
+  const minutes = cet.getUTCHours() * 60 + cet.getUTCMinutes();
+  const open = day >= 1 && day <= 5 && minutes >= 540 && minutes < 1050;
+  return { open };
+}
+
 // Convert a date to an America/New_York calendar day (00:00 UTC-normalized).
 export function etDateOnly(date: Date = new Date()): Date {
   const et = new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));

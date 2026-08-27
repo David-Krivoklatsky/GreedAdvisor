@@ -36,15 +36,30 @@ export const GET = withApiMiddleware(
       MAX_RESULTS
     );
 
-    const instruments = cache.instruments
-      .filter(i =>
-        query
-          ? i.ticker.toLowerCase().includes(query) ||
-            (i.shortName ?? '').toLowerCase().includes(query) ||
-            (i.name ?? '').toLowerCase().includes(query)
-          : true
-      )
-      .slice(0, limit);
+    const matched = cache.instruments.filter(i =>
+      query
+        ? i.ticker.toLowerCase().includes(query) ||
+          (i.shortName ?? '').toLowerCase().includes(query) ||
+          (i.name ?? '').toLowerCase().includes(query)
+        : true
+    );
+
+    // Relevance: exact ticker prefix first, then name prefix, then partial.
+    if (query) {
+      const score = (i: UnifiedInstrument): number => {
+        const ticker = i.ticker.toLowerCase();
+        const shortName = (i.shortName ?? '').toLowerCase();
+        const name = (i.name ?? '').toLowerCase();
+        if (ticker.startsWith(query)) return 0;
+        if (shortName.startsWith(query)) return 1;
+        if (name.startsWith(query)) return 2;
+        if (ticker.includes(query)) return 3;
+        return 4;
+      };
+      matched.sort((a, b) => score(a) - score(b));
+    }
+
+    const instruments = matched.slice(0, limit);
 
     return NextResponse.json({ success: true, instruments });
   })

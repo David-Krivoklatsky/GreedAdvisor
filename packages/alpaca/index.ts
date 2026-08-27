@@ -304,10 +304,14 @@ export class AlpacaClient {
     return data.news ?? [];
   }
 
-  // Top gainers/losers for the trading session (data host).
-  async getMarketMovers(top = 10): Promise<AlpacaMover[]> {
+  // Top gainers/losers for the trading session (data host). `marketType` selects
+  // stocks or crypto.
+  async getMarketMovers(
+    top = 10,
+    marketType: 'stocks' | 'crypto' = 'stocks'
+  ): Promise<AlpacaMover[]> {
     const data = await this.request<AlpacaMover[]>(
-      `/v1beta1/screener/stocks/movers?top=${Math.max(1, Math.min(top, 50))}`,
+      `/v1beta1/screener/stocks/movers?top=${Math.max(1, Math.min(top, 50))}&market_type=${marketType}`,
       {},
       true
     );

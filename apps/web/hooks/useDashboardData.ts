@@ -126,7 +126,7 @@ export const useDashboardData = () => {
       const data = await response.json();
       setPositions(data.positions || []);
       setAccountSummary(data.accountSummary || null);
-    } catch (err) {
+    } catch {
       // Keep the previously loaded account data — a failed refresh must not
       // wipe the user's balances.
       showNotification({

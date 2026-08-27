@@ -10,6 +10,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx seed.ts",
     "db:encrypt-keys": "tsx encrypt-existing-keys.ts",
+    "db:rotate-keys": "tsx rotate-encryption-key.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {

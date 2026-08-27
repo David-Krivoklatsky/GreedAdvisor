@@ -44,7 +44,7 @@ interface NavbarProps {
 
 const NAV_LINKS = [
   { href: '/dashboard', label: 'Dashboard' },
-  { href: '/automation', label: 'Automation' },
+  { href: '/bots', label: 'Bots' },
   { href: '/profile', label: 'Profile' }
 ];
 
@@ -223,8 +223,8 @@ export default function Navbar({ user, onLogout }: NavbarProps) {
               <DropdownMenuItem onClick={() => router.push('/portfolio')}>
                 <Wallet className="mr-2 h-4 w-4" /> Portfolio (all accounts)
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push('/automation')}>
-                <Cpu className="mr-2 h-4 w-4" /> Autonomous Trading
+              <DropdownMenuItem onClick={() => router.push('/bots')}>
+                <Cpu className="mr-2 h-4 w-4" /> Bots Status
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push('/signals')}>
                 <Radar className="mr-2 h-4 w-4" /> AI Signals

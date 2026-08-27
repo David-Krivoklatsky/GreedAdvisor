@@ -117,13 +117,34 @@ export const automationSchema = z.object({
   title: z.string().min(1, 'Title is required').max(255),
   enabled: z.boolean().optional(),
   mode: z.enum({ advisory: 'advisory', paper: 'paper', live: 'live' }).optional(),
+  execution: z.enum({ auto: 'auto', approval: 'approval' }).optional(),
   allowLive: z.boolean().optional(),
+  market: z.enum({ us: 'us', eu: 'eu', crypto: 'crypto' }).optional(),
+  strategy: z
+    .enum({
+      momentum: 'momentum',
+      trend: 'trend',
+      mean_reversion: 'mean_reversion',
+      breakout: 'breakout',
+      scalp: 'scalp',
+      swing: 'swing'
+    })
+    .optional(),
   scanIntervalMinutes: z.coerce.number().int().min(1).max(1440).optional(),
-  universe: z.enum({ watchlist: 'watchlist', 'watchlist+movers': 'watchlist+movers' }).optional(),
+  universe: z
+    .enum({
+      watchlist: 'watchlist',
+      movers: 'movers',
+      'watchlist+movers': 'watchlist+movers'
+    })
+    .optional(),
+  symbols: z.array(z.string().trim().min(1).max(50)).optional(),
   maxCandidates: z.coerce.number().int().min(1).max(50).optional(),
   maxPositions: z.coerce.number().int().min(1).max(200).optional(),
   maxRiskPerTradePct: z.coerce.number().min(0.001).max(0.1).optional(),
+  maxDailySpendPct: z.coerce.number().min(0.01).max(1).optional(),
   dailyLossLimitPct: z.coerce.number().min(0.001).max(0.5).optional(),
+  stopOnLoss: z.boolean().optional(),
   maxDailyTrades: z.coerce.number().int().min(1).max(100).optional(),
   confidenceThreshold: z.coerce.number().int().min(0).max(100).optional(),
   respectPdt: z.boolean().optional(),
@@ -147,6 +168,11 @@ export const notificationReadSchema = z.object({
   all: z.boolean().optional()
 });
 
+export const positionAdjustSchema = z.object({
+  stopLoss: z.coerce.number().positive().optional().nullable(),
+  takeProfit: z.coerce.number().positive().optional().nullable()
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type AiApiKeyInput = z.infer<typeof aiApiKeySchema>;
@@ -164,3 +190,4 @@ export type ReportInput = z.infer<typeof reportSchema>;
 export type AutomationInput = z.infer<typeof automationSchema>;
 export type UpdateAutomationInput = z.infer<typeof updateAutomationSchema>;
 export type NotificationReadInput = z.infer<typeof notificationReadSchema>;
+export type PositionAdjustInput = z.infer<typeof positionAdjustSchema>;

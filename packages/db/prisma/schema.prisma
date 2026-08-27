@@ -176,16 +176,22 @@ model AutomationConfig {
   id                   Int       @id @default(autoincrement())
   userId               Int
   title                String    @db.VarChar(255)
-  enabled              Boolean   @default(false)
-  mode                 String    @default("advisory") @db.VarChar(20) // 'advisory' | 'paper' | 'live'
-  allowLive            Boolean   @default(false)
-  scanIntervalMinutes  Int       @default(5)
-  universe             String    @default("watchlist") @db.VarChar(30) // 'watchlist' | 'watchlist+movers'
-  maxCandidates        Int       @default(5)
-  maxPositions         Int       @default(10)
-  maxRiskPerTradePct   Float     @default(0.02)
-  dailyLossLimitPct    Float     @default(0.03)
-  maxDailyTrades       Int       @default(5)
+enabled             Boolean  @default(false)
+  mode                String   @default("advisory") @db.VarChar(20) // 'advisory' | 'paper' | 'live'
+  execution           String   @default("auto") @db.VarChar(20) // 'auto' | 'approval'
+  allowLive           Boolean  @default(false)
+  market              String   @default("us") @db.VarChar(10) // 'us' | 'eu' | 'crypto'
+  strategy            String   @default("momentum") @db.VarChar(30) // 'momentum' | 'trend' | 'mean_reversion' | 'breakout' | 'scalp' | 'swing'
+  scanIntervalMinutes Int      @default(5)
+  universe            String   @default("watchlist") @db.VarChar(30) // 'watchlist' | 'watchlist+movers'
+  symbols             String[]
+  maxCandidates       Int      @default(5)
+  maxPositions        Int      @default(10)
+  maxRiskPerTradePct  Float    @default(0.02)
+  maxDailySpendPct    Float    @default(0.2)
+  dailyLossLimitPct   Float    @default(0.03)
+  stopOnLoss          Boolean  @default(true)
+  maxDailyTrades      Int      @default(5)
   confidenceThreshold  Int       @default(70)
   respectPdt           Boolean   @default(true)
   flattenAtClose       Boolean   @default(false)
@@ -365,11 +371,12 @@ model DailyStat {
   userId             Int
   automationConfigId Int?
   date               DateTime @db.Date
-  startEquity        Float    @default(0)
-  realizedPnl        Float    @default(0)
-  unrealizedPnl      Float    @default(0)
-  tradeCount         Int      @default(0)
-  dayTradeCount      Int      @default(0)
+startEquity      Float    @default(0)
+  realizedPnl      Float    @default(0)
+  unrealizedPnl    Float    @default(0)
+  spentToday       Float    @default(0)
+  tradeCount       Int      @default(0)
+  dayTradeCount    Int      @default(0)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
