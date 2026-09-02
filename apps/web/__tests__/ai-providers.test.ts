@@ -89,7 +89,8 @@ describe('OpenCodeProvider', () => {
     for (const models of Object.values(AI_MODEL_OPTIONS)) {
       expect(models.length).toBeGreaterThan(0);
       for (const model of models) {
-        expect(model.value).toMatch(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/);
+        // Allow forward slashes for models like "openrouter/auto"
+        expect(model.value).toMatch(/^[a-zA-Z0-9][a-zA-Z0-9._/-]*$/);
         expect(model.label.length).toBeGreaterThan(0);
       }
     }

@@ -124,6 +124,12 @@ export interface AlpacaMover {
   volume?: number;
 }
 
+export interface AlpacaMostActive {
+  symbol: string;
+  volume: number;
+  trade_count: number;
+}
+
 const BASE_URLS: Record<AlpacaEnvironment, string> = {
   [AlpacaEnvironment.PAPER]: 'https://paper-api.alpaca.markets',
   [AlpacaEnvironment.LIVE]: 'https://api.alpaca.markets'
@@ -304,27 +310,38 @@ export class AlpacaClient {
     return data.news ?? [];
   }
 
-  // Top gainers/losers for the trading session (data host). `marketType` selects
-  // stocks or crypto.
+  // Top gainers/losers for the trading session (data host). `marketType` is a
+  // path segment, not a query parameter. The API returns { gainers, losers }.
   async getMarketMovers(
     top = 10,
     marketType: 'stocks' | 'crypto' = 'stocks'
   ): Promise<AlpacaMover[]> {
-    const data = await this.request<AlpacaMover[]>(
-      `/v1beta1/screener/stocks/movers?top=${Math.max(1, Math.min(top, 50))}&market_type=${marketType}`,
-      {},
-      true
-    );
-    return Array.isArray(data) ? data : [];
+    const data = await this.request<{
+      gainers?: Array<{ symbol: string; price: number; change: number; percent_change: number }>;
+      losers?: Array<{ symbol: string; price: number; change: number; percent_change: number }>;
+    }>(`/v1beta1/screener/${marketType}/movers?top=${Math.max(1, Math.min(top, 50))}`, {}, true);
+    return [...(data.gainers ?? []), ...(data.losers ?? [])].map(mover => ({
+      symbol: mover.symbol,
+      price: Number(mover.price) || 0,
+      change: Number(mover.change) || 0,
+      change_pct: Number(mover.percent_change) || 0
+    }));
   }
 
-  // Most actively traded stocks by volume or trade count (data host).
+  // Most actively traded stocks by volume or trade count (data host). The API
+  // returns { most_actives }, so normalize it to the shared mover shape.
   async getMostActive(top = 10, by: 'volume' | 'trades' = 'volume'): Promise<AlpacaMover[]> {
-    const data = await this.request<AlpacaMover[]>(
+    const data = await this.request<{ most_actives?: AlpacaMostActive[] }>(
       `/v1beta1/screener/stocks/most-actives?top=${Math.max(1, Math.min(top, 100))}&by=${by}`,
       {},
       true
     );
-    return Array.isArray(data) ? data : [];
+    return (data.most_actives ?? []).map(asset => ({
+      symbol: asset.symbol,
+      price: 0,
+      change: 0,
+      change_pct: 0,
+      volume: Number(asset.volume) || 0
+    }));
   }
 }

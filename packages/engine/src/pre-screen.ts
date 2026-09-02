@@ -14,10 +14,11 @@ export interface CandidateScore {
 // interesting (momentum + volume attention).
 export async function preScreenSymbol(
   service: MarketDataService,
-  symbol: string
+  symbol: string,
+  dataSymbol = symbol
 ): Promise<CandidateScore | null> {
   try {
-    const candles = await service.getCandles(symbol, '1h', 50);
+    const candles = await service.getCandles(dataSymbol, '1h', 50);
     if (candles.length < 26) return null;
 
     const { snapshot } = computeIndicators(candles);

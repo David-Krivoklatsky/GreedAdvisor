@@ -21,7 +21,12 @@ export interface AiKey {
   id: number;
   title: string;
   provider: string;
+  modelTier?: string;
   isActive: boolean;
+}
+
+export interface AiKeyOption extends AiKey {
+  keyType?: string;
 }
 
 export interface MarketDataKey {

@@ -3,6 +3,7 @@ import type { AutomationConfig, DailyStat } from '@greed-advisor/db';
 import { createAiProvider } from '@greed-advisor/ai';
 import type { AiProductType, AiProvider, AiReport, AiRiskProfile } from '@greed-advisor/ai';
 import {
+  AlpacaMarketDataProvider,
   computeIndicators,
   MarketDataService,
   TwelveDataProvider
@@ -36,9 +37,30 @@ const MAX_UNIVERSE = 25;
 const MAX_PRE_SCREEN = 15;
 
 function normalizeSymbol(symbol: string, crypto = false): string {
-  let s = symbol.split('_')[0].toUpperCase();
+  let s = symbol.replace('/', '').split('_')[0].toUpperCase();
   if (crypto) s = s.replace(/USD$/, '');
   return s;
+}
+
+function marketDataSymbol(symbol: string, crypto: boolean): string {
+  return crypto ? `${normalizeSymbol(symbol, true)}/USD` : symbol;
+}
+
+function createEngineMarketData(
+  config: AutomationConfig,
+  binding: TradingClientBinding,
+  twelveDataKey: string
+): MarketDataService {
+  if (binding.provider === 'alpaca' && (config.market === 'us' || config.market === 'crypto')) {
+    return new MarketDataService(
+      new AlpacaMarketDataProvider({
+        apiKey: binding.key.apiKey,
+        apiSecret: binding.key.apiSecret,
+        market: config.market
+      })
+    );
+  }
+  return new MarketDataService(new TwelveDataProvider(twelveDataKey));
 }
 
 interface StrategyProfile {
@@ -129,14 +151,14 @@ async function buildUniverse(
   if (universe === 'movers') {
     base = [];
   } else if (config.symbols.length > 0) {
-    base = config.symbols.map(s => normalizeSymbol(s));
+    base = config.symbols.map(s => normalizeSymbol(s, isCrypto));
   } else {
     base = (
       await prisma.watchlistItem.findMany({
         where: { userId: config.userId, isActive: true },
         select: { ticker: true }
       })
-    ).map(w => normalizeSymbol(w.ticker));
+    ).map(w => normalizeSymbol(w.ticker, isCrypto));
   }
 
   let symbols = [...new Set(base)];
@@ -149,11 +171,11 @@ async function buildUniverse(
         apiSecret: binding.key.apiSecret,
         environment: binding.key.environment as AlpacaEnvironment
       });
-      const [movers, mostActive] = await Promise.all([
-        client.getMarketMovers(20, isCrypto ? 'crypto' : 'stocks'),
-        client.getMostActive(20)
-      ]);
-      const extra = [...movers.map(m => m.symbol), ...mostActive.map(m => m.symbol)].slice(0, 40);
+      const movers = await client.getMarketMovers(20, isCrypto ? 'crypto' : 'stocks');
+      const mostActive = isCrypto ? [] : await client.getMostActive(20);
+      const extra = [...movers.map(m => m.symbol), ...mostActive.map(m => m.symbol)]
+        .map(s => normalizeSymbol(s, isCrypto))
+        .slice(0, 40);
       symbols = [...new Set([...symbols, ...extra])];
     } catch (error) {
       log('warn', 'Movers/most-active fetch failed', { error: String(error) });
@@ -578,11 +600,15 @@ async function runCycleLocked(config: AutomationConfig, runLogId: number): Promi
     prisma.user.findUnique({ where: { id: config.userId } })
   ]);
 
-  if (!tradingKey || !aiKey || !marketDataKey) {
+  const needsTwelveDataKey =
+    !tradingKey ||
+    tradingKey.provider !== 'alpaca' ||
+    (config.market !== 'us' && config.market !== 'crypto');
+  if (!tradingKey || !aiKey || (needsTwelveDataKey && !marketDataKey)) {
     const missing = [
       !tradingKey ? 'trading key' : null,
       !aiKey ? 'AI key' : null,
-      !marketDataKey ? 'market data key' : null
+      needsTwelveDataKey && !marketDataKey ? 'market data key' : null
     ]
       .filter(Boolean)
       .join(', ');
@@ -604,7 +630,7 @@ async function runCycleLocked(config: AutomationConfig, runLogId: number): Promi
   await endStep(keysStep, 'ok', {
     tradingKey: tradingKey.provider,
     aiKey: aiKey.provider,
-    marketDataKey: marketDataKey.provider
+    marketDataKey: marketDataKey?.provider ?? 'alpaca-data'
   });
 
   const binding = await getActiveTradingClient(config.userId, config.tradingKeyId ?? undefined);
@@ -684,8 +710,10 @@ async function runCycleLocked(config: AutomationConfig, runLogId: number): Promi
     return { status: 'skipped', reason: 'daily loss limit reached — stopped' };
   }
 
-  const marketData = new MarketDataService(
-    new TwelveDataProvider(decryptSecret(marketDataKey.apiKey))
+  const marketData = createEngineMarketData(
+    config,
+    binding,
+    marketDataKey ? decryptSecret(marketDataKey.apiKey) : ''
   );
 
   // Market-hours gate — the bot only runs while ITS market is open. Crypto is
@@ -773,6 +801,7 @@ async function runCycleLocked(config: AutomationConfig, runLogId: number): Promi
   );
   const productType = 'INVEST' as AiProductType;
   const riskProfile = (user?.riskProfile ?? 'balanced') as AiRiskProfile;
+  const cryptoMarket = config.market === 'crypto';
 
   const preScreenStep = await beginStep(
     runLogId,
@@ -782,7 +811,7 @@ async function runCycleLocked(config: AutomationConfig, runLogId: number): Promi
   const preScreenPool = universe.slice(0, MAX_PRE_SCREEN);
   const scored: CandidateScore[] = [];
   for (const symbol of preScreenPool) {
-    const score = await preScreenSymbol(marketData, symbol);
+    const score = await preScreenSymbol(marketData, symbol, marketDataSymbol(symbol, cryptoMarket));
     if (score) scored.push(score);
   }
   const candidates = rankCandidates(scored, universe, config.maxCandidates);
@@ -798,14 +827,14 @@ async function runCycleLocked(config: AutomationConfig, runLogId: number): Promi
   let analyzed = 0;
   let acted = 0;
   const profile = strategyProfile(config.strategy);
-  const crypto = config.market === 'crypto';
   for (const symbol of candidates) {
     const symbolStep = await beginStep(runLogId, `analyze:${symbol}`, `AI analysis ${symbol}`);
     try {
-      const quote = await marketData.getQuote(symbol);
-      const candles = await marketData.getCandles(symbol, profile.interval, profile.bars);
+      const dataSymbol = marketDataSymbol(symbol, cryptoMarket);
+      const quote = await marketData.getQuote(dataSymbol);
+      const candles = await marketData.getCandles(dataSymbol, profile.interval, profile.bars);
       const indicators = computeIndicators(candles);
-      const earnings = await marketData.getEarnings(symbol);
+      const earnings = await marketData.getEarnings(dataSymbol);
       const report = await aiProvider.generateReport({
         symbol,
         companyName: quote.name,
@@ -834,7 +863,7 @@ async function runCycleLocked(config: AutomationConfig, runLogId: number): Promi
         report,
         candles,
         news: newsMap[symbol] ?? [],
-        crypto
+        crypto: cryptoMarket
       });
       const afterCount = await prisma.tradeRecord.count({
         where: { userId: config.userId, automationConfigId: config.id }
@@ -941,9 +970,13 @@ export async function approveSignal(
     close: number;
     volume: number;
   }[] = [];
-  if (marketDataKey) {
+  if (marketDataKey || binding.provider === 'alpaca') {
     try {
-      const md = new MarketDataService(new TwelveDataProvider(decryptSecret(marketDataKey.apiKey)));
+      const md = createEngineMarketData(
+        config,
+        binding,
+        marketDataKey ? decryptSecret(marketDataKey.apiKey) : ''
+      );
       candles = await md.getCandles(signal.symbol, '1day', 90);
     } catch {
       // fall back to empty candles (ATR unavailable)

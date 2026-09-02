@@ -89,6 +89,7 @@ model AiApiKey {
   userId    Int
   title     String    @db.VarChar(255)
   provider  String    @db.VarChar(100) // 'openai', 'anthropic', 'google', etc.
+  modelTier String    @default("all") @db.VarChar(20) // 'free', 'paid', 'all'
   apiKey    String    @db.Text
   isActive  Boolean   @default(true)
   lastUsed  DateTime?

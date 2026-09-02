@@ -253,7 +253,7 @@ type BotStatus =
   | { kind: 'paused' }
   | { kind: 'running' }
   | { kind: 'stopped' }
-  | { kind: 'market_closed' }
+  | { kind: 'market_closed'; market: string }
   | { kind: 'cooldown'; progress: number; remainingMs: number }
   | { kind: 'idle'; progress: number; countdownMs: number };
 
@@ -261,7 +261,7 @@ function botStatus(config: AutomationConfig, now: number): BotStatus {
   if (!config.enabled) return { kind: 'paused' };
   if (config.latestRun?.status === 'running') return { kind: 'running' };
   if (config.lastRunStatus === 'stopped') return { kind: 'stopped' };
-  if (config.marketOpen === false) return { kind: 'market_closed' };
+  if (config.marketOpen === false) return { kind: 'market_closed', market: config.market ?? 'us' };
 
   if (config.cooldownUntil) {
     const until = new Date(config.cooldownUntil).getTime();
@@ -315,7 +315,11 @@ function StatusIndicator({ status }: { status: BotStatus }) {
     case 'market_closed':
       return (
         <span className="flex items-center gap-1.5 text-xs text-amber-600">
-          <Clock className="h-3.5 w-3.5" /> Market closed
+          <Clock className="h-3.5 w-3.5" />
+          Market closed
+          <span className="text-muted-foreground">
+            · opens {status.market === 'eu' ? '9:00 CET' : '9:30 ET'}
+          </span>
         </span>
       );
     case 'cooldown':
@@ -364,6 +368,11 @@ export default function AutomationOverview({
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBot, setEditingBot] = useState<AutomationConfig | null>(null);
+  const [showTip, setShowTip] = useState(true);
+
+  useEffect(() => {
+    setShowTip(!window.localStorage.getItem('ga.botsTipDismissed'));
+  }, []);
 
   const active = automationConfigs.filter(c => c.enabled);
 
@@ -437,6 +446,29 @@ export default function AutomationOverview({
               </Button>
             </div>
           </div>
+
+          {showTip && automationConfigs.length > 0 && (
+            <div className="mb-3 flex items-start justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+              <p>
+                <span className="font-semibold text-foreground">How it works:</span> a bot scans its
+                instruments, the AI builds a trade plan, you approve it (or it runs on auto), and
+                the bot manages stops &amp; the daily loss. Click an instrument —{' '}
+                <span className="font-semibold text-foreground">Show on graph</span> — to see its
+                entry / SL / TP on the chart.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  window.localStorage.setItem('ga.botsTipDismissed', '1');
+                  setShowTip(false);
+                }}
+                className="shrink-0 text-muted-foreground hover:text-foreground"
+                aria-label="Dismiss tip"
+              >
+                ×
+              </button>
+            </div>
+          )}
 
           {loading ? (
             <p className="py-8 text-center text-sm text-muted-foreground">Loading bots...</p>

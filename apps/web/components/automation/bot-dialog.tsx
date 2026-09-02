@@ -186,6 +186,9 @@ export default function BotDialog({
   const [saving, setSaving] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [form, setForm] = useState<BotFormState>(EMPTY_FORM);
+  const [modelOptions, setModelOptions] = useState<{ value: string; label: string }[]>(
+    () => AI_MODEL_OPTIONS.opencode
+  );
 
   // Sync the form whenever the dialog opens or switches to a different bot —
   // otherwise the form keeps the previously edited bot's data.
@@ -195,15 +198,46 @@ export default function BotDialog({
     setShowAdvanced(false);
   }, [open, editing]);
 
-  if (!open) return null;
+  const selectedAiKey = aiKeys.find(k => k.id === Number(form.aiKeyId));
+  const selectedAiProvider = selectedAiKey?.provider ?? 'opencode';
+  const selectedTier = selectedAiKey?.modelTier ?? 'all';
 
-  const selectedAiProvider =
-    aiKeys.find(k => k.id === Number(form.aiKeyId))?.provider ?? 'opencode';
-  const modelOptions =
-    (
+  // Fetch live model options for the selected provider, filtered by the AI
+  // key's tier. Falls back to the static AI_MODEL_OPTIONS when the fetch fails.
+  useEffect(() => {
+    if (!open || !form.aiKeyId) return;
+    let cancelled = false;
+    const staticFallback =
       AI_MODEL_OPTIONS[selectedAiProvider as keyof typeof AI_MODEL_OPTIONS] ??
-      AI_MODEL_OPTIONS.opencode
-    )?.map(m => ({ value: m.value, label: m.label })) ?? [];
+      AI_MODEL_OPTIONS.opencode;
+
+    setModelOptions(staticFallback);
+
+    fetch(
+      `/api/ai/models?provider=${encodeURIComponent(selectedAiProvider)}&tier=${encodeURIComponent(selectedTier)}`
+    )
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (cancelled) return;
+        if (data?.success && Array.isArray(data.models) && data.models.length > 0) {
+          setModelOptions(
+            data.models.map((m: { value: string; label: string }) => ({
+              value: m.value,
+              label: m.label
+            }))
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setModelOptions(staticFallback);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, form.aiKeyId, selectedAiProvider, selectedTier]);
+
+  if (!open) return null;
 
   const addSymbol = (symbol: string) => {
     const sym = symbol.toUpperCase();

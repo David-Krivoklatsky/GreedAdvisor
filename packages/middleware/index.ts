@@ -82,6 +82,7 @@ export function withErrorHandler(handler: RouteHandler): RouteHandler {
       if (error instanceof ZodError) {
         return validationErrorResponse(error);
       }
+      console.error(`[api] ${req.method} ${req.nextUrl.pathname}:`, error);
       return internalErrorResponse();
     }
   };
@@ -146,6 +147,7 @@ export const withApiMiddleware = (handler: RouteHandler): RouteHandler => {
     try {
       response = await handler(req, ctx);
     } catch (error) {
+      console.error(`[api] ${req.method} ${req.nextUrl.pathname}:`, error);
       response =
         error instanceof ZodError ? validationErrorResponse(error) : internalErrorResponse();
     }

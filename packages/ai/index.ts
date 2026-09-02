@@ -1,4 +1,4 @@
-export type AiProvider = 'openai' | 'anthropic' | 'google' | 'claude' | 'opencode';
+export type AiProvider = 'openai' | 'anthropic' | 'google' | 'claude' | 'opencode' | 'openrouter';
 
 export type AiAction = 'BUY' | 'SELL' | 'HOLD' | 'ADD' | 'TRIM';
 export type AiProductType = 'INVEST' | 'CFD' | 'CRYPTO';
@@ -440,6 +440,50 @@ export class OpenCodeProvider implements AiProviderClient {
   }
 }
 
+export class OpenRouterProvider implements AiProviderClient {
+  private static readonly BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+  constructor(
+    private readonly apiKey: string,
+    private readonly model = 'openrouter/auto'
+  ) {}
+
+  async generateReport(input: AiReportInput): Promise<AiReport> {
+    const response = await fetch(OpenRouterProvider.BASE_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://greedadvisor.app',
+        'X-Title': 'GreedAdvisor'
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages: [
+          { role: 'system', content: 'You are a financial analyst returning JSON only.' },
+          { role: 'user', content: REPORT_PROMPT(input) }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.3
+      })
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`OpenRouter API error ${response.status}: ${text}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    return this.parse(content, 'openrouter', input);
+  }
+
+  private parse(content: string, provider: AiProvider, input: AiReportInput): AiReport {
+    const raw = JSON.parse(content) as RawReport;
+    return toReport(raw, provider, input);
+  }
+}
+
 // Selectable models per provider. `opencode` lists the OpenCode GO gateway
 // models; other providers list their most common chat models.
 export const AI_MODEL_OPTIONS: Record<AiProvider, { value: string; label: string }[]> = {
@@ -493,8 +537,59 @@ export const AI_MODEL_OPTIONS: Record<AiProvider, { value: string; label: string
     { value: 'hy3-preview', label: 'Hy3 Preview' },
     { value: 'ox-alpha-free', label: 'Ox Alpha (free)' },
     { value: 'muse-spark-1.2-contributor', label: 'Muse Spark 1.2' }
+  ],
+  openrouter: [
+    { value: 'openrouter/auto', label: 'Auto (free models)' },
+    { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet' },
+    { value: 'anthropic/claude-3.5-haiku', label: 'Claude 3.5 Haiku' },
+    { value: 'openai/gpt-4o', label: 'GPT-4o' },
+    { value: 'openai/gpt-4o-mini', label: 'GPT-4o mini' },
+    { value: 'google/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash' },
+    { value: 'google/gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+    { value: 'meta-llama/llama-3.1-405b-instruct', label: 'Llama 3.1 405B' },
+    { value: 'meta-llama/llama-3.1-70b-instruct', label: 'Llama 3.1 70B' },
+    { value: 'meta-llama/llama-3.1-8b-instruct', label: 'Llama 3.1 8B' },
+    { value: 'mistralai/mistral-large', label: 'Mistral Large' },
+    { value: 'mistralai/mistral-nemo', label: 'Mistral Nemo' },
+    { value: 'qwen/qwen-2.5-72b-instruct', label: 'Qwen 2.5 72B' },
+    { value: 'deepseek/deepseek-chat', label: 'DeepSeek Chat' },
+    { value: 'microsoft/wizardlm-2-8x22b', label: 'WizardLM 2 8x22B' },
+    { value: 'gryphe/mythomax-l2-13b', label: 'MythoMax L2 13B' }
   ]
 };
+
+export type AiModelTier = 'free' | 'paid' | 'all';
+
+/**
+ * Fetch the live list of OpenRouter models via the public `/api/v1/models`
+ * endpoint (no API key required) and map them to the `AI_MODEL_OPTIONS`
+ * dropdown shape. `tier` filters to free/paid models; free detection uses
+ * `pricing.prompt`, `pricing.completion` and `pricing.request` all being "0".
+ * Returns `[]` if OpenRouter is unreachable so callers can fall back.
+ */
+export async function listOpenRouterModels(
+  tier: AiModelTier = 'all'
+): Promise<{ value: string; label: string }[]> {
+  const { OpenRouter } = await import('@openrouter/sdk');
+  const client = new OpenRouter();
+  const page = await client.models.list({ sort: 'most-popular' });
+  const models = page.result.data ?? [];
+
+  return models
+    .filter(model => {
+      const isFree =
+        model.pricing.prompt === '0' &&
+        model.pricing.completion === '0' &&
+        (model.pricing.request === undefined || model.pricing.request === '0');
+      if (tier === 'free') return isFree;
+      if (tier === 'paid') return !isFree;
+      return true;
+    })
+    .map(model => ({
+      value: model.id,
+      label: model.name || model.id
+    }));
+}
 
 export function createAiProvider(
   provider: AiProvider,
@@ -511,6 +606,8 @@ export function createAiProvider(
       return new GoogleProvider(apiKey, model);
     case 'opencode':
       return new OpenCodeProvider(apiKey, model);
+    case 'openrouter':
+      return new OpenRouterProvider(apiKey, model);
     default:
       throw new Error(`Unsupported AI provider: ${provider}`);
   }

@@ -10,12 +10,15 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required')
 });
 
-const AI_PROVIDERS = ['openai', 'anthropic', 'google', 'claude', 'opencode'] as const;
+const AI_PROVIDERS = ['openai', 'anthropic', 'google', 'claude', 'opencode', 'openrouter'] as const;
+
+const AI_MODEL_TIERS = ['free', 'paid', 'all'] as const;
 
 export const aiApiKeySchema = z.object({
   title: z.string().min(1, 'Title is required'),
   provider: z.enum(AI_PROVIDERS, { error: 'Provider is required' }),
-  apiKey: z.string().min(1, 'API key is required')
+  apiKey: z.string().min(1, 'API key is required'),
+  modelTier: z.enum(AI_MODEL_TIERS).default('all')
 });
 
 const TRADING_PROVIDERS = ['trading212', 'alpaca'] as const;
@@ -36,6 +39,7 @@ export const updateAiApiKeySchema = z.object({
   title: z.string().min(1, 'Title is required').optional(),
   provider: z.enum(AI_PROVIDERS).optional(),
   apiKey: z.string().min(1, 'API key is required').optional(),
+  modelTier: z.enum(AI_MODEL_TIERS).optional(),
   isActive: z.boolean().optional()
 });
 

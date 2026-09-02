@@ -16,6 +16,7 @@ export const GET = withApiMiddleware(
         id: true,
         title: true,
         provider: true,
+        modelTier: true,
         isActive: true,
         createdAt: true,
         lastUsed: true
@@ -30,7 +31,7 @@ export const GET = withApiMiddleware(
 export const POST = withApiMiddleware(
   withValidation(aiApiKeySchema)(
     withAuth(async (req, ctx) => {
-      const { title, provider, apiKey } = ctx.data as AiApiKeyInput;
+      const { title, provider, apiKey, modelTier } = ctx.data as AiApiKeyInput;
 
       const rateLimitResult = rateLimit(getClientIp(req));
       if (!rateLimitResult.success) {
@@ -65,6 +66,7 @@ export const POST = withApiMiddleware(
           userId: ctx.userId,
           title,
           provider,
+          modelTier,
           apiKey: encryptSecret(apiKey),
           isActive: true
         },
@@ -72,6 +74,7 @@ export const POST = withApiMiddleware(
           id: true,
           title: true,
           provider: true,
+          modelTier: true,
           isActive: true,
           createdAt: true
         }

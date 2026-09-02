@@ -12,11 +12,22 @@ import { Label } from '../../ui/label';
 
 interface AiKeysSectionProps {
   aiKeys: AiApiKey[];
-  onAdd: (data: { title: string; provider: string; apiKey: string }) => Promise<void>;
+  onAdd: (data: {
+    title: string;
+    provider: string;
+    apiKey: string;
+    modelTier?: string;
+  }) => Promise<void>;
   onToggle: (id: number, isActive: boolean) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   updating: boolean;
 }
+
+const MODEL_TIER_OPTIONS = [
+  { value: 'all', label: 'All models (free + paid)' },
+  { value: 'free', label: 'Free models only' },
+  { value: 'paid', label: 'Paid models only' }
+];
 
 export default function AiKeysSection({
   aiKeys,
@@ -29,15 +40,18 @@ export default function AiKeysSection({
   const [newKey, setNewKey] = useState({
     title: '',
     provider: 'openai',
-    apiKey: ''
+    apiKey: '',
+    modelTier: 'all'
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onAdd(newKey);
-    setNewKey({ title: '', provider: 'openai', apiKey: '' });
+    setNewKey({ title: '', provider: 'openai', apiKey: '', modelTier: 'all' });
     setShowAddForm(false);
   };
+
+  const showTier = newKey.provider === 'opencode' || newKey.provider === 'openrouter';
 
   return (
     <Card>
@@ -82,6 +96,7 @@ export default function AiKeysSection({
                       { value: 'openai', label: 'OpenAI' },
                       { value: 'anthropic', label: 'Anthropic (Claude)' },
                       { value: 'google', label: 'Google (Gemini)' },
+                      { value: 'openrouter', label: 'OpenRouter (auto free models)' },
                       { value: 'opencode', label: 'OpenCode' },
                       { value: 'other', label: 'Other' }
                     ]}
@@ -91,6 +106,24 @@ export default function AiKeysSection({
                     className="w-full mt-1"
                   />
                 </div>
+
+                {showTier && (
+                  <div>
+                    <Label>Model tier</Label>
+                    <Combobox
+                      options={MODEL_TIER_OPTIONS}
+                      value={newKey.modelTier}
+                      onValueChange={(value: string) => setNewKey({ ...newKey, modelTier: value })}
+                      placeholder="Select model tier..."
+                      className="w-full mt-1"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {newKey.provider === 'openrouter'
+                        ? 'Select which OpenRouter models are shown/recommended when you choose this key.'
+                        : 'Select which models are shown/recommended for this key.'}
+                    </p>
+                  </div>
+                )}
 
                 <ApiKeyInput
                   id="aiApiKey"
