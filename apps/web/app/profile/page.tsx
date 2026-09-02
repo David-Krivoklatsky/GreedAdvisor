@@ -130,7 +130,12 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAddAiKey = async (data: { title: string; provider: string; apiKey: string }) => {
+  const handleAddAiKey = async (data: {
+    title: string;
+    provider: string;
+    apiKey: string;
+    modelTier?: string;
+  }) => {
     setUpdating(true);
 
     try {

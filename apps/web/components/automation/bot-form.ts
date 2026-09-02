@@ -5,6 +5,7 @@ export interface BotKeyOption {
   id: number;
   title: string;
   provider?: string;
+  modelTier?: string;
   environment?: string;
 }
 

@@ -47,6 +47,15 @@ interface PendingOrder {
   limitPrice: number | null;
   stopPrice: number | null;
   createdAt: string;
+  orderClass?: string;
+}
+
+function pendingOrderLabel(order: PendingOrder): string {
+  if (order.orderClass === 'stop') return 'stop-loss leg';
+  if (order.orderClass === 'limit' && order.stopPrice == null) return 'take-profit leg';
+  if (order.orderClass === 'bracket') return 'bracket entry';
+  if (order.orderClass === 'simple') return 'order';
+  return order.type;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -211,7 +220,7 @@ export default function TradesPage() {
                         {order.side}
                       </Badge>
                       <span className="font-semibold">{order.ticker}</span>
-                      <Badge variant="outline">{order.type}</Badge>
+                      <Badge variant="outline">{pendingOrderLabel(order)}</Badge>
                       <span className="text-xs text-muted-foreground">
                         qty {order.quantity}
                         {order.filledQuantity > 0 ? ` (filled ${order.filledQuantity})` : ''}

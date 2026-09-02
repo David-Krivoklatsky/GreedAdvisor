@@ -128,7 +128,7 @@ export default function BotsStatusPage() {
           </div>
         )}
 
-        {best && (
+        {best && bots.some(b => b.totalTrades > 0) && (
           <Card className="border-primary/40">
             <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
               <div className="flex items-center gap-3">
@@ -201,7 +201,13 @@ export default function BotsStatusPage() {
                     <Stat
                       label="Long / Short"
                       value={`${bot.buys} / ${bot.sells}`}
-                      cls={bot.buys >= bot.sells ? 'text-green-600' : 'text-red-600'}
+                      cls={
+                        bot.buys + bot.sells > 0
+                          ? bot.buys >= bot.sells
+                            ? 'text-green-600'
+                            : 'text-red-600'
+                          : ''
+                      }
                     />
                     <Stat
                       label="Return"
@@ -219,12 +225,18 @@ export default function BotsStatusPage() {
                     </span>
                     {bot.invested > 0 && <span>Deployed {money(bot.invested)}</span>}
                     <span className="flex items-center gap-1">
-                      {bot.buys >= bot.sells ? (
-                        <TrendingUp className="h-3 w-3 text-green-600" />
+                      {bot.buys + bot.sells > 0 ? (
+                        <>
+                          {bot.buys >= bot.sells ? (
+                            <TrendingUp className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3 text-red-600" />
+                          )}
+                          {bot.buys >= bot.sells ? 'more longs' : 'more shorts'}
+                        </>
                       ) : (
-                        <TrendingDown className="h-3 w-3 text-red-600" />
+                        'no direction yet'
                       )}
-                      {bot.buys >= bot.sells ? 'more longs' : 'more shorts'}
                     </span>
                   </div>
                 </CardContent>

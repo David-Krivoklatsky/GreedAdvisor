@@ -12,6 +12,7 @@ export interface AiApiKey {
   id: number;
   title: string;
   provider: string;
+  modelTier?: string;
   isActive: boolean;
   lastUsed?: string;
   createdAt: string;

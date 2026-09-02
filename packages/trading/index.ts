@@ -59,6 +59,7 @@ export interface PendingOrder {
   limitPrice: number | null;
   stopPrice: number | null;
   createdAt: string;
+  orderClass?: string;
 }
 
 export interface OrderStatus {
@@ -398,7 +399,8 @@ function alpacaBinding(key: TradingKeyRecord): TradingClientBinding {
         filledQuantity: Number(o.filled_qty) || 0,
         limitPrice: o.limit_price ? Number(o.limit_price) : null,
         stopPrice: o.stop_price ? Number(o.stop_price) : null,
-        createdAt: o.created_at
+        createdAt: o.created_at,
+        orderClass: o.order_class
       }));
     },
     getOrder: async orderId => {

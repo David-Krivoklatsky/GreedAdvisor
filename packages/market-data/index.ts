@@ -30,7 +30,19 @@ export interface MarketDataProvider {
   getEarnings(symbol: string): Promise<EarningsInfo | null>;
 }
 
+export interface AlpacaMarketDataCredentials {
+  apiKey: string;
+  apiSecret: string;
+  market: 'us' | 'crypto';
+}
+
 const BASE_URL = 'https://api.twelvedata.com';
+const requestQueues = new Map<string, Promise<void>>();
+const lastRequestAt = new Map<string, number>();
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 export class TwelveDataProvider implements MarketDataProvider {
   private readonly apiKey: string;
@@ -39,15 +51,75 @@ export class TwelveDataProvider implements MarketDataProvider {
     this.apiKey = apiKey;
   }
 
-  async getQuote(symbol: string): Promise<MarketQuote> {
-    const url = `${BASE_URL}/quote?symbol=${encodeURIComponent(symbol)}&apikey=${this.apiKey}`;
-    const response = await fetch(url);
+  // TwelveData limits are shared by all bots using the same key. Serialize
+  // requests per key and retry rate-limit responses instead of failing every
+  // bot cycle immediately when several bots run together.
+  private async requestJson<T>(path: string): Promise<T> {
+    const previous = requestQueues.get(this.apiKey) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    const scheduled = previous.then(() => current);
+    requestQueues.set(this.apiKey, scheduled);
+    await previous;
 
-    if (!response.ok) {
-      throw new Error(`TwelveData quote error ${response.status}`);
+    try {
+      const minimumInterval = Math.max(0, Number(process.env.TWELVEDATA_MIN_INTERVAL_MS ?? 750));
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const earliest = (lastRequestAt.get(this.apiKey) ?? 0) + minimumInterval;
+        if (earliest > Date.now()) await delay(earliest - Date.now());
+        lastRequestAt.set(this.apiKey, Date.now());
+
+        const separator = path.includes('?') ? '&' : '?';
+        const response = await fetch(
+          `${BASE_URL}${path}${separator}apikey=${encodeURIComponent(this.apiKey)}`
+        );
+        const data = (await response.json()) as T & {
+          status?: string;
+          code?: number;
+          message?: string;
+        };
+        const rateLimited =
+          response.status === 429 ||
+          data.code === 429 ||
+          (data.status === 'error' && /rate limit|run out|credits/i.test(data.message ?? ''));
+
+        if (rateLimited && attempt < 2) {
+          const retryAfter = Number(response.headers.get('retry-after'));
+          const waitMs =
+            Number.isFinite(retryAfter) && retryAfter > 0
+              ? retryAfter * 1000
+              : 2500 * (attempt + 1);
+          await delay(waitMs);
+          continue;
+        }
+
+        if (!response.ok) {
+          throw new Error(`TwelveData request error ${response.status}`);
+        }
+        return data;
+      }
+      throw new Error('TwelveData rate limit exceeded after retries');
+    } finally {
+      release();
+      if (requestQueues.get(this.apiKey) === scheduled) requestQueues.delete(this.apiKey);
     }
+  }
 
-    const data = await response.json();
+  async getQuote(symbol: string): Promise<MarketQuote> {
+    const data = await this.requestJson<{
+      symbol: string;
+      name: string;
+      close: string;
+      previous_close: string;
+      change: string;
+      percent_change: string;
+      currency: string;
+      timestamp: string;
+      status?: string;
+      message?: string;
+    }>(`/quote?symbol=${encodeURIComponent(symbol)}`);
 
     if (data.status === 'error') {
       throw new Error(`TwelveData error: ${data.message}`);
@@ -66,14 +138,13 @@ export class TwelveDataProvider implements MarketDataProvider {
   }
 
   async getCandles(symbol: string, interval = '1day', count = 30): Promise<MarketCandle[]> {
-    const url = `${BASE_URL}/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${count}&apikey=${this.apiKey}`;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`TwelveData time_series error ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await this.requestJson<{
+      values?: Array<Record<string, string>>;
+      status?: string;
+      message?: string;
+    }>(
+      `/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${count}`
+    );
 
     if (data.status === 'error') {
       throw new Error(`TwelveData error: ${data.message}`);
@@ -92,10 +163,11 @@ export class TwelveDataProvider implements MarketDataProvider {
   // Next scheduled earnings announcement (graceful: null on failure).
   async getEarnings(symbol: string): Promise<EarningsInfo | null> {
     try {
-      const url = `${BASE_URL}/earnings?symbol=${encodeURIComponent(symbol)}&apikey=${this.apiKey}`;
-      const response = await fetch(url);
-      if (!response.ok) return null;
-      const data = await response.json();
+      const data = await this.requestJson<{
+        symbol?: string;
+        earnings?: Array<{ date?: string; eps_estimate?: string }>;
+        status?: string;
+      }>(`/earnings?symbol=${encodeURIComponent(symbol)}`);
       if (data.status === 'error') return null;
       const next = data.earnings?.[0];
       if (!next) return null;
@@ -107,6 +179,145 @@ export class TwelveDataProvider implements MarketDataProvider {
     } catch {
       return null;
     }
+  }
+}
+
+const ALPACA_DATA_URL = 'https://data.alpaca.markets';
+
+function alpacaTimeframe(interval: string): string {
+  switch (interval) {
+    case '1min':
+      return '1Min';
+    case '5min':
+      return '5Min';
+    case '15min':
+      return '15Min';
+    case '30min':
+      return '30Min';
+    case '1h':
+      return '1Hour';
+    case '4h':
+      return '4Hour';
+    default:
+      return '1Day';
+  }
+}
+
+// Alpaca market data provider for the engine. This keeps the primary
+// Alpaca+OpenCode path independent of TwelveData's per-key credit limits.
+export class AlpacaMarketDataProvider implements MarketDataProvider {
+  private readonly credentials: AlpacaMarketDataCredentials;
+
+  constructor(credentials: AlpacaMarketDataCredentials) {
+    this.credentials = credentials;
+  }
+
+  private async request<T>(path: string): Promise<T> {
+    const response = await fetch(`${ALPACA_DATA_URL}${path}`, {
+      headers: {
+        'APCA-API-KEY-ID': this.credentials.apiKey,
+        'APCA-API-SECRET-KEY': this.credentials.apiSecret
+      }
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Alpaca market-data error ${response.status}: ${text}`);
+    }
+    return (await response.json()) as T;
+  }
+
+  async getQuote(symbol: string): Promise<MarketQuote> {
+    if (this.credentials.market === 'crypto') {
+      const pair = `${symbol.replace('/', '').replace(/USD$/, '')}/USD`;
+      const data = await this.request<
+        Record<
+          string,
+          {
+            latestTrade?: { p?: number; t?: string };
+            latestQuote?: { ap?: number; bp?: number; t?: string };
+            prevDailyBar?: { c?: number };
+          }
+        >
+      >(`/v1beta3/crypto/us/snapshots?symbols=${encodeURIComponent(pair)}`);
+      const snapshot = data[pair];
+      const price =
+        snapshot?.latestTrade?.p ??
+        ((snapshot?.latestQuote?.ap ?? 0) + (snapshot?.latestQuote?.bp ?? 0)) / 2;
+      const previousClose = snapshot?.prevDailyBar?.c ?? price;
+      return {
+        symbol,
+        name: symbol,
+        price,
+        previousClose,
+        change: price - previousClose,
+        changePercent: previousClose ? ((price - previousClose) / previousClose) * 100 : 0,
+        currency: 'USD',
+        timestamp: snapshot?.latestTrade?.t ?? snapshot?.latestQuote?.t ?? new Date().toISOString()
+      };
+    }
+
+    const data = await this.request<{
+      symbol?: string;
+      latestTrade?: { p?: number; t?: string };
+      latestQuote?: { ap?: number; bp?: number; t?: string };
+      prevDailyBar?: { c?: number };
+    }>(`/v2/stocks/${encodeURIComponent(symbol)}/snapshot?feed=iex`);
+    const price =
+      data.latestTrade?.p ?? ((data.latestQuote?.ap ?? 0) + (data.latestQuote?.bp ?? 0)) / 2;
+    const previousClose = data.prevDailyBar?.c ?? price;
+    return {
+      symbol: data.symbol ?? symbol,
+      name: data.symbol ?? symbol,
+      price,
+      previousClose,
+      change: price - previousClose,
+      changePercent: previousClose ? ((price - previousClose) / previousClose) * 100 : 0,
+      currency: 'USD',
+      timestamp: data.latestTrade?.t ?? data.latestQuote?.t ?? new Date().toISOString()
+    };
+  }
+
+  async getCandles(symbol: string, interval = '1day', count = 30): Promise<MarketCandle[]> {
+    const timeframe = alpacaTimeframe(interval);
+    if (this.credentials.market === 'crypto') {
+      const pair = `${symbol.replace('/', '').replace(/USD$/, '')}/USD`;
+      const data = await this.request<{
+        bars?: Record<
+          string,
+          { t: string; o: number; h: number; l: number; c: number; v: number }[]
+        >;
+      }>(
+        `/v1beta3/crypto/us/bars?symbols=${encodeURIComponent(pair)}&timeframe=${timeframe}&limit=${Math.min(count, 1000)}`
+      );
+      return (data.bars?.[pair] ?? []).map(bar => ({
+        datetime: bar.t,
+        open: Number(bar.o),
+        high: Number(bar.h),
+        low: Number(bar.l),
+        close: Number(bar.c),
+        volume: Number(bar.v) || 0
+      }));
+    }
+
+    const data = await this.request<{
+      bars?: { t: string; o: number; h: number; l: number; c: number; v: number }[];
+    }>(
+      `/v2/stocks/${encodeURIComponent(symbol)}/bars?timeframe=${timeframe}&limit=${Math.min(count, 1000)}&feed=iex`
+    );
+    return (data.bars ?? []).map(bar => ({
+      datetime: bar.t,
+      open: Number(bar.o),
+      high: Number(bar.h),
+      low: Number(bar.l),
+      close: Number(bar.c),
+      volume: Number(bar.v) || 0
+    }));
+  }
+
+  async getEarnings(_symbol: string): Promise<EarningsInfo | null> {
+    // Alpaca does not expose an earnings calendar in this client. News and
+    // technical data remain available without spending TwelveData credits.
+    return null;
   }
 }
 
