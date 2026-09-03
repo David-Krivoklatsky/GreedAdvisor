@@ -1,9 +1,12 @@
 import { prisma } from '@/lib/prisma';
-import { getClientIp } from '@/lib/api';
-import { withApiMiddleware, withAuth, withValidation } from '@greed-advisor/middleware';
+import {
+  withApiMiddleware,
+  withAuth,
+  withValidation,
+  withRateLimit
+} from '@greed-advisor/middleware';
 import { automationSchema } from '@greed-advisor/validations';
 import type { AutomationInput } from '@greed-advisor/validations';
-import { rateLimit } from '@greed-advisor/rate-limit';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -72,29 +75,40 @@ export const GET = withApiMiddleware(
     // Group by configId for O(1) lookup
     const runLogsByConfig = new Map<number, (typeof runLogs)[0]>();
     for (const run of runLogs) {
-      if (!runLogsByConfig.has(run.automationConfigId)) {
-        runLogsByConfig.set(run.automationConfigId, run);
+      const configId = run.automationConfigId;
+      if (configId !== null && !runLogsByConfig.has(configId)) {
+        runLogsByConfig.set(configId, run);
       }
     }
 
     const lastTradesByConfig = new Map<number, Date>();
     for (const trade of lastTrades) {
-      if (!lastTradesByConfig.has(trade.automationConfigId)) {
-        lastTradesByConfig.set(trade.automationConfigId, trade.createdAt);
+      const configId = trade.automationConfigId;
+      if (configId !== null && !lastTradesByConfig.has(configId)) {
+        lastTradesByConfig.set(configId, trade.createdAt);
       }
     }
 
     const signalsByConfig = new Map<number, typeof signalRows>();
     for (const signal of signalRows) {
-      const existing = signalsByConfig.get(signal.automationConfigId) ?? [];
-      existing.push(signal);
-      signalsByConfig.set(signal.automationConfigId, existing);
+      const configId = signal.automationConfigId;
+      if (configId !== null) {
+        const existing = signalsByConfig.get(configId) ?? [];
+        existing.push(signal);
+        signalsByConfig.set(configId, existing);
+      }
     }
 
     const withRuns = configs.map(config => {
       const latestRun = runLogsByConfig.get(config.id) ?? null;
       const lastTradeAt = lastTradesByConfig.get(config.id) ?? null;
       const signals = signalsByConfig.get(config.id) ?? [];
+
+      let cooldownUntil: string | null = null;
+      if (lastTradeAt) {
+        const until = lastTradeAt.getTime() + config.cooldownMinutes * 60000;
+        if (until > Date.now()) cooldownUntil = new Date(until).toISOString();
+      }
 
       const latestSignals: Record<
         string,
@@ -122,12 +136,6 @@ export const GET = withApiMiddleware(
         }
       }
 
-      let cooldownUntil: string | null = null;
-      if (lastTradeAt) {
-        const until = lastTradeAt.getTime() + config.cooldownMinutes * 60000;
-        if (until > Date.now()) cooldownUntil = new Date(until).toISOString();
-      }
-
       return {
         ...config,
         marketOpen: isMarketOpen(config),
@@ -143,121 +151,116 @@ export const GET = withApiMiddleware(
 );
 
 export const POST = withApiMiddleware(
-  withValidation(automationSchema)(
-    withAuth(async (req, ctx) => {
-      const data = ctx.data as AutomationInput;
+  withRateLimit(
+    withValidation(automationSchema)(
+      withAuth(async (req, ctx) => {
+        const data = ctx.data as AutomationInput;
 
-      const rateLimitResult = rateLimit(getClientIp(req));
-      if (!rateLimitResult.success) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'Too many requests. Please try again later.',
-            error: 'Rate limit exceeded'
-          },
-          { status: 429 }
-        );
-      }
+        // Verify referenced keys belong to the user when provided
+        const [tradingKey, aiKey, marketDataKey] = await Promise.all([
+          data.tradingKeyId
+            ? prisma.t212ApiKey.findFirst({
+                where: {
+                  id: data.tradingKeyId,
+                  userId: ctx.userId,
+                  deletedAt: null,
+                  isActive: true
+                }
+              })
+            : Promise.resolve(null),
+          data.aiKeyId
+            ? prisma.aiApiKey.findFirst({
+                where: { id: data.aiKeyId, userId: ctx.userId, deletedAt: null, isActive: true }
+              })
+            : Promise.resolve(null),
+          data.marketDataKeyId
+            ? prisma.marketDataKey.findFirst({
+                where: {
+                  id: data.marketDataKeyId,
+                  userId: ctx.userId,
+                  deletedAt: null,
+                  isActive: true
+                }
+              })
+            : Promise.resolve(null)
+        ]);
 
-      // Verify referenced keys belong to the user when provided
-      const [tradingKey, aiKey, marketDataKey] = await Promise.all([
-        data.tradingKeyId
-          ? prisma.t212ApiKey.findFirst({
-              where: { id: data.tradingKeyId, userId: ctx.userId, deletedAt: null, isActive: true }
-            })
-          : Promise.resolve(null),
-        data.aiKeyId
-          ? prisma.aiApiKey.findFirst({
-              where: { id: data.aiKeyId, userId: ctx.userId, deletedAt: null, isActive: true }
-            })
-          : Promise.resolve(null),
-        data.marketDataKeyId
-          ? prisma.marketDataKey.findFirst({
-              where: {
-                id: data.marketDataKeyId,
-                userId: ctx.userId,
-                deletedAt: null,
-                isActive: true
-              }
-            })
-          : Promise.resolve(null)
-      ]);
-
-      if (data.tradingKeyId && !tradingKey) {
-        return NextResponse.json(
-          { success: false, message: 'Trading key not found', error: 'Trading key not found' },
-          { status: 404 }
-        );
-      }
-      if (data.aiKeyId && !aiKey) {
-        return NextResponse.json(
-          { success: false, message: 'AI key not found', error: 'AI key not found' },
-          { status: 404 }
-        );
-      }
-      if (data.marketDataKeyId && !marketDataKey) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'Market data key not found',
-            error: 'Market data key not found'
-          },
-          { status: 404 }
-        );
-      }
-
-      // Live mode is never allowed without the explicit allowLive flag
-      if (data.mode === 'live' && data.allowLive !== true) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'Live trading requires the allowLive flag to be enabled',
-            error: 'allowLive required for live mode'
-          },
-          { status: 400 }
-        );
-      }
-
-      const config = await prisma.automationConfig.create({
-        data: {
-          userId: ctx.userId,
-          title: data.title,
-          enabled: data.enabled ?? false,
-          mode: data.mode ?? 'advisory',
-          execution: data.execution ?? 'auto',
-          market: data.market ?? 'us',
-          strategy: data.strategy ?? 'momentum',
-          allowLive: data.allowLive ?? false,
-          scanIntervalMinutes: data.scanIntervalMinutes,
-          universe: data.universe,
-          symbols: data.symbols ?? [],
-          maxCandidates: data.maxCandidates,
-          maxPositions: data.maxPositions,
-          maxRiskPerTradePct: data.maxRiskPerTradePct,
-          maxDailySpendPct: data.maxDailySpendPct ?? 0.2,
-          dailyLossLimitPct: data.dailyLossLimitPct,
-          stopOnLoss: data.stopOnLoss ?? true,
-          maxDailyTrades: data.maxDailyTrades,
-          confidenceThreshold: data.confidenceThreshold,
-          respectPdt: data.respectPdt,
-          flattenAtClose: data.flattenAtClose,
-          manageStops: data.manageStops ?? false,
-          cooldownMinutes: data.cooldownMinutes,
-          orderType: data.orderType,
-          slippageTolerancePct: data.slippageTolerancePct,
-          extendedHours: data.extendedHours,
-          tradingKeyId: data.tradingKeyId ?? null,
-          aiKeyId: data.aiKeyId ?? null,
-          marketDataKeyId: data.marketDataKeyId ?? null,
-          model: data.model ?? null,
-          telegramChatId: data.telegramChatId ?? null
+        if (data.tradingKeyId && !tradingKey) {
+          return NextResponse.json(
+            { success: false, message: 'Trading key not found', error: 'Trading key not found' },
+            { status: 404 }
+          );
         }
-      });
+        if (data.aiKeyId && !aiKey) {
+          return NextResponse.json(
+            { success: false, message: 'AI key not found', error: 'AI key not found' },
+            { status: 404 }
+          );
+        }
+        if (data.marketDataKeyId && !marketDataKey) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: 'Market data key not found',
+              error: 'Market data key not found'
+            },
+            { status: 404 }
+          );
+        }
 
-      return NextResponse.json(
-        { success: true, message: 'Automation configuration created', automationConfig: config },
-        { status: 201 }
-      );
-    })
+        // Live mode is never allowed without the explicit allowLive flag
+        if (data.mode === 'live' && data.allowLive !== true) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: 'Live trading requires the allowLive flag to be enabled',
+              error: 'allowLive required for live mode'
+            },
+            { status: 400 }
+          );
+        }
+
+        const config = await prisma.automationConfig.create({
+          data: {
+            userId: ctx.userId,
+            title: data.title,
+            enabled: data.enabled ?? false,
+            mode: data.mode ?? 'advisory',
+            execution: data.execution ?? 'auto',
+            market: data.market ?? 'us',
+            strategy: data.strategy ?? 'momentum',
+            allowLive: data.allowLive ?? false,
+            scanIntervalMinutes: data.scanIntervalMinutes,
+            universe: data.universe,
+            symbols: data.symbols ?? [],
+            maxCandidates: data.maxCandidates,
+            maxPositions: data.maxPositions,
+            maxRiskPerTradePct: data.maxRiskPerTradePct,
+            maxDailySpendPct: data.maxDailySpendPct ?? 0.2,
+            dailyLossLimitPct: data.dailyLossLimitPct,
+            stopOnLoss: data.stopOnLoss ?? true,
+            maxDailyTrades: data.maxDailyTrades,
+            confidenceThreshold: data.confidenceThreshold,
+            respectPdt: data.respectPdt,
+            flattenAtClose: data.flattenAtClose,
+            manageStops: data.manageStops ?? false,
+            cooldownMinutes: data.cooldownMinutes,
+            orderType: data.orderType,
+            slippageTolerancePct: data.slippageTolerancePct,
+            extendedHours: data.extendedHours,
+            tradingKeyId: data.tradingKeyId ?? null,
+            aiKeyId: data.aiKeyId ?? null,
+            marketDataKeyId: data.marketDataKeyId ?? null,
+            model: data.model ?? null,
+            telegramChatId: data.telegramChatId ?? null
+          }
+        });
+
+        return NextResponse.json(
+          { success: true, message: 'Automation configuration created', automationConfig: config },
+          { status: 201 }
+        );
+      })
+    )
   )
 );

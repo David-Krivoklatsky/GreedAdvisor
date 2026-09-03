@@ -25,16 +25,35 @@ jest.mock('@greed-advisor/rate-limit', () => ({
 // Mock middleware
 jest.mock('@greed-advisor/middleware', () => ({
   withApiMiddleware: jest.fn((handler: any) => handler),
-  withValidation: jest.fn(() => (handler: any) => handler)
+  withValidation: jest.fn(() => (handler: any) => handler),
+  withRateLimit: jest.fn((handler: any) => {
+    return async (req: any, ctx: any) => {
+      // Call the rateLimit mock
+      const { rateLimit } = await import('@greed-advisor/rate-limit');
+      const result = rateLimit('test-ip');
+      if (!result.success) {
+        return {
+          status: 429,
+          json: async () => ({
+            success: false,
+            message: 'Too many requests. Please try again later.',
+            error: 'Rate limit exceeded',
+            statusCode: 429
+          })
+        };
+      }
+      return handler(req, ctx);
+    };
+  })
 }));
 
 // Import the route handler after mocks are set up
 import { POST } from '../../../app/api/auth/login/route';
 
 // Get references to mocked modules
-const { prisma } = require('@/lib/prisma');
-const { comparePassword, signAccessToken, signRefreshToken } = require('@greed-advisor/auth');
-const { rateLimit } = require('@greed-advisor/rate-limit');
+import { prisma } from '@/lib/prisma';
+import { comparePassword, signAccessToken, signRefreshToken } from '@greed-advisor/auth';
+import { rateLimit } from '@greed-advisor/rate-limit';
 
 describe('/api/auth/login', () => {
   beforeEach(() => {
@@ -59,11 +78,20 @@ describe('/api/auth/login', () => {
     password: 'hashedPassword',
     firstName: 'Test',
     lastName: 'User',
-    createdAt: new Date()
+    name: null,
+    provider: 'credentials',
+    providerAccountId: null,
+    profilePicture: null,
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    deletedAt: null,
+    openAiKey: null,
+    t212Key: null
   };
 
   it('should return tokens and user on successful login', async () => {
-    jest.mocked(prisma.user.findUnique).mockResolvedValue(mockUser);
+    jest.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
 
     const response = await POST(makeRequest(), {
       data: { email: mockUser.email, password: 'password123' }
@@ -91,7 +119,7 @@ describe('/api/auth/login', () => {
   });
 
   it('should return 401 when the password is wrong', async () => {
-    jest.mocked(prisma.user.findUnique).mockResolvedValue(mockUser);
+    jest.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
     jest.mocked(comparePassword).mockResolvedValue(false);
 
     const response = await POST(makeRequest(), {
