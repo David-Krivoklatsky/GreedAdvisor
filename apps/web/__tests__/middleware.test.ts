@@ -8,7 +8,7 @@ jest.mock('@greed-advisor/auth', () => ({
   verifyAccessToken: jest.fn()
 }));
 
-const { extractTokenFromHeader, verifyAccessToken } = require('@greed-advisor/auth');
+import { extractTokenFromHeader, verifyAccessToken } from '@greed-advisor/auth';
 
 import { withApiMiddleware, withAuth, withValidation } from '@greed-advisor/middleware';
 

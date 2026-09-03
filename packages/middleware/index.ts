@@ -120,22 +120,7 @@ export function withValidation<T>(schema: ZodSchema<T>) {
     return async (req, ctx = {}) => {
       try {
         const source =
-          req.method === 'GET'
-            ? Object.fromEntries(
-                req.nextUrl.searchParams.entries().reduce(
-                  (acc: [string, string[]], [k, v]) => {
-                    const existing = acc.find(([key]) => key === k);
-                    if (existing) {
-                      existing.push(v);
-                    } else {
-                      acc.push([k, [v]]);
-                    }
-                    return acc;
-                  },
-                  [] as [string, string[]][]
-                )
-              )
-            : await req.json();
+          req.method === 'GET' ? Object.fromEntries(req.nextUrl.searchParams) : await req.json();
         const data = schema.parse(source);
         return await handler(req, { ...ctx, data });
       } catch (error) {

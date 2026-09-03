@@ -25,8 +25,8 @@ jest.mock('@greed-advisor/middleware', () => ({
 import { POST } from '../../../app/api/auth/refresh/route';
 
 // Get references to mocked modules
-const { prisma } = require('@/lib/prisma');
-const { signAccessToken, verifyRefreshToken } = require('@greed-advisor/auth');
+import { prisma } from '@/lib/prisma';
+import { signAccessToken, verifyRefreshToken } from '@greed-advisor/auth';
 
 describe('/api/auth/refresh', () => {
   beforeEach(() => {
@@ -49,8 +49,19 @@ describe('/api/auth/refresh', () => {
       isActive: true,
       firstName: 'Test',
       lastName: 'User',
-      createdAt: new Date()
-    });
+      name: null,
+      provider: 'credentials',
+      providerAccountId: null,
+      profilePicture: null,
+      password: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
+      openAiKey: null,
+      t212Key: null,
+      riskProfile: null,
+      lastLogin: null
+    } as any);
 
     const response = await POST(makeRequest(true), {});
     const data = await response.json();
@@ -86,8 +97,19 @@ describe('/api/auth/refresh', () => {
       isActive: false,
       firstName: null,
       lastName: null,
-      createdAt: new Date()
-    });
+      name: null,
+      provider: 'credentials',
+      providerAccountId: null,
+      profilePicture: null,
+      password: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
+      openAiKey: null,
+      t212Key: null,
+      riskProfile: null,
+      lastLogin: null
+    } as any);
 
     const response = await POST(makeRequest(true), {});
 

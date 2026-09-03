@@ -26,16 +26,35 @@ jest.mock('@greed-advisor/rate-limit', () => ({
 // Mock middleware
 jest.mock('@greed-advisor/middleware', () => ({
   withApiMiddleware: jest.fn((handler: any) => handler),
-  withValidation: jest.fn(() => (handler: any) => handler)
+  withValidation: jest.fn(() => (handler: any) => handler),
+  withRateLimit: jest.fn((handler: any) => {
+    return async (req: any, ctx: any) => {
+      // Call the rateLimit mock
+      const { rateLimit } = await import('@greed-advisor/rate-limit');
+      const result = rateLimit('test-ip');
+      if (!result.success) {
+        return {
+          status: 429,
+          json: async () => ({
+            success: false,
+            message: 'Too many requests. Please try again later.',
+            error: 'Rate limit exceeded',
+            statusCode: 429
+          })
+        };
+      }
+      return handler(req, ctx);
+    };
+  })
 }));
 
 // Import the route handler after mocks are set up
 import { POST } from '../../../app/api/auth/register/route';
 
 // Get references to mocked modules
-const { prisma } = require('@/lib/prisma');
-const { hashPassword, signAccessToken, signRefreshToken } = require('@greed-advisor/auth');
-const { rateLimit } = require('@greed-advisor/rate-limit');
+import { prisma } from '@/lib/prisma';
+import { hashPassword, signAccessToken, signRefreshToken } from '@greed-advisor/auth';
+import { rateLimit } from '@greed-advisor/rate-limit';
 
 describe('/api/auth/register', () => {
   beforeEach(() => {

@@ -14,6 +14,10 @@ export default defineConfig([
       '@typescript-eslint/no-require-imports': 'error',
       '@typescript-eslint/no-empty-object-type': 'warn',
       'no-console': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/immutability': 'warn',
+      'react-hooks/refs': 'warn',
+      'react-hooks/preserve-manual-memoization': 'warn',
     },
   },
   {
