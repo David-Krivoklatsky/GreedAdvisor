@@ -2,13 +2,18 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, vercel-deployment]
   pull_request:
     branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     services:
       postgres:
@@ -74,8 +79,8 @@ jobs:
       - name: Run type checking
         run: npm run type-check
 
-      - name: Run database migrations
-        run: npm run db:migrate
+      - name: Sync database schema
+        run: npm run db:push
 
       - name: Run tests
         run: npm run test
@@ -84,22 +89,34 @@ jobs:
         run: npm run build
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         if: always()
         with:
           directory: ./coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
 
   security-scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Run security audit
         run: npm audit --audit-level=moderate
 
       - name: Run dependency vulnerability scan
-        uses: snyk/actions/node@master
+        uses: snyk/actions/node@0.4.0
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -109,6 +126,7 @@ jobs:
   build-and-deploy:
     needs: [lint-and-test, security-scan]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: github.ref == 'refs/heads/main'
 
     services:
@@ -149,7 +167,7 @@ jobs:
             sleep 2
           done
 
-      - name: Setup environment files for production
+      - name: Setup environment files for production build
         run: |
           chmod +x scripts/setup-env.sh
           ./scripts/setup-env.sh
@@ -157,9 +175,12 @@ jobs:
           CI: true
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/greed_advisor_prod
           NODE_ENV: production
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
 
-      - name: Run database migrations
-        run: npm run db:migrate
+      - name: Sync database schema
+        run: npm run db:push
 
       - name: Build for production
         run: npm run build

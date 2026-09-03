@@ -27,18 +27,19 @@ env loading all expect the repo-root layout (there is no separate
 
 ## Cron / Engine trigger
 
-The root `vercel.json` registers a cron that calls
-`GET /api/engine/run?all=true` every 5 minutes. The route authenticates the
-request against `ENGINE_WEBHOOK_SECRET`:
+The root `vercel.json` registers a cron that calls `GET /api/engine/run?all=true`
+every 5 minutes.
+
+- **Vercel cron** requests are authenticated automatically via the
+  `x-vercel-cron-schedule` header that Vercel adds to cron invocations — no
+  secret needs to be committed in `vercel.json`.
+- **External / manual** triggers authenticate with `ENGINE_WEBHOOK_SECRET`
+  through any of: the `x-engine-secret` header, a JSON body `secret`, or a
+  `?secret=` query param.
 
 ```bash
-# The cron path in vercel.json has no secret in the URL. Instead, Vercel Secrets
-# must be configured. The route accepts:
-#   - ?secret=<ENGINE_WEBHOOK_SECRET> (GET, cron)
-#   - x-engine-secret header          (POST)
-#   - JSON body { "secret": ... }     (POST)
-curl -G "https://<your-domain>/api/engine/run?all=true" \
-  --data-urlencode "secret=$ENGINE_WEBHOOK_SECRET"
+curl -X POST "https://<your-domain>/api/engine/run?configId=123" \
+  -H "x-engine-secret: $ENGINE_WEBHOOK_SECRET"
 ```
 
 ## Database

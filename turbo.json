@@ -5,7 +5,22 @@
     "build": {
       "dependsOn": ["^build", "db:generate"],
       "outputs": [".next/**", "!.next/cache/**"],
-      "env": ["DATABASE_URL", "JWT_SECRET", "ENCRYPTION_KEY", "RATE_LIMIT_MAX", "RATE_LIMIT_WINDOW", "NODE_ENV"]
+      "env": [
+        "DATABASE_URL",
+        "JWT_SECRET",
+        "ENCRYPTION_KEY",
+        "NEXTAUTH_SECRET",
+        "ENGINE_WEBHOOK_SECRET",
+        "TELEGRAM_BOT_TOKEN",
+        "NOTIFICATION_WEBHOOK_URL",
+        "TWELVEDATA_MIN_INTERVAL_MS",
+        "MAX_AI_KEYS",
+        "MAX_MARKET_DATA_KEYS",
+        "MAX_T212_KEYS",
+        "RATE_LIMIT_MAX",
+        "RATE_LIMIT_WINDOW",
+        "NODE_ENV"
+      ]
     },
     "lint": {},
     "lint:fix": {
@@ -32,7 +47,7 @@
     "db:generate": {
       "cache": true,
       "inputs": ["packages/db/prisma/schema.prisma", "packages/db/.env"],
-      "env": ["DATABASE_URL", "JWT_SECRET", "ENCRYPTION_KEY", "RATE_LIMIT_MAX", "RATE_LIMIT_WINDOW", "NODE_ENV"]
+      "env": ["DATABASE_URL", "JWT_SECRET", "ENCRYPTION_KEY", "NEXTAUTH_SECRET", "ENGINE_WEBHOOK_SECRET", "RATE_LIMIT_MAX", "RATE_LIMIT_WINDOW", "NODE_ENV"]
     },
     "db:migrate": {
       "cache": false,
