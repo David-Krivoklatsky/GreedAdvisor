@@ -1,5 +1,13 @@
 // Token management utility
 type RequestInit = globalThis.RequestInit;
+
+// Global redirect handler for client-side navigation
+let redirectToLogin: (() => void) | null = null;
+
+export function setRedirectHandler(handler: () => void): void {
+  redirectToLogin = handler;
+}
+
 export class TokenManager {
   private static ACCESS_TOKEN_KEY = 'accessToken';
 
@@ -40,8 +48,8 @@ export class TokenManager {
 
     if (!token) {
       // Redirect to login if no token
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+      if (typeof window !== 'undefined' && redirectToLogin) {
+        redirectToLogin();
       }
       throw new Error('No access token available');
     }
@@ -63,7 +71,9 @@ export class TokenManager {
         // Refresh failed, redirect to login
         if (typeof window !== 'undefined') {
           this.removeAccessToken();
-          window.location.href = '/login';
+          if (redirectToLogin) {
+            redirectToLogin();
+          }
         }
         throw new Error('Authentication failed');
       }

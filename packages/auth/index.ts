@@ -1,10 +1,17 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-if (!process.env.JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is not set');
+let JWT_SECRET: string | null = null;
+
+function getJwtSecret(): string {
+  if (!JWT_SECRET) {
+    JWT_SECRET = process.env.JWT_SECRET ?? null;
+    if (!JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is not set');
+    }
+  }
+  return JWT_SECRET;
 }
-const JWT_SECRET = process.env.JWT_SECRET;
 
 export function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
@@ -15,11 +22,11 @@ export function comparePassword(password: string, hashedPassword: string): Promi
 }
 
 export function signAccessToken(payload: object): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '30m' });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '30m' });
 }
 
 export function signRefreshToken(payload: object): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '30d' });
 }
 
 export interface TokenPayload {
@@ -29,7 +36,7 @@ export interface TokenPayload {
 
 export function verifyAccessToken(token: string): TokenPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
+    const decoded = jwt.verify(token, getJwtSecret()) as TokenPayload;
     if (!decoded || typeof decoded.userId === 'undefined') {
       throw new Error('Invalid token payload');
     }
@@ -47,5 +54,5 @@ export function extractTokenFromHeader(authHeader: string | null): string | null
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
   }
-  return authHeader.substring(7);
+  return authHeader.substring(7).trim();
 }
