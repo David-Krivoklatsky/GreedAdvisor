@@ -28,7 +28,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { TokenManager } from '@/lib/token-manager';
+import { TokenManager, setRedirectHandler } from '@/lib/token-manager';
 import { cn } from '@greed-advisor/utils';
 import { useEffect, useState } from 'react';
 
@@ -52,6 +52,11 @@ export default function Navbar({ user, onLogout }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // Set redirect handler for TokenManager to use Next.js router
+  useEffect(() => {
+    setRedirectHandler(() => router.push('/login'));
+  }, [router]);
   const [fetchedUser, setFetchedUser] = useState<
     | { email?: string; firstName?: string; lastName?: string; profilePicture?: string }
     | null

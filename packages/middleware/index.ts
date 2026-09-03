@@ -1,6 +1,7 @@
 import { extractTokenFromHeader, verifyAccessToken } from '@greed-advisor/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodError, ZodSchema } from 'zod';
+import { rateLimit } from '@greed-advisor/rate-limit';
 
 /**
  * Shared context passed through middleware wrappers to route handlers.
@@ -56,6 +57,20 @@ const validationErrorResponse = (error: ZodError): NextResponse =>
     { status: 400 }
   );
 
+const rateLimitResponse = (retryAfter: number): NextResponse =>
+  NextResponse.json(
+    {
+      success: false,
+      message: 'Too many requests. Please try again later.',
+      error: 'Rate limit exceeded',
+      statusCode: 429
+    } satisfies ApiErrorResponse,
+    {
+      status: 429,
+      headers: { 'Retry-After': String(retryAfter) }
+    }
+  );
+
 const internalErrorResponse = (): NextResponse =>
   NextResponse.json(
     {
@@ -105,7 +120,22 @@ export function withValidation<T>(schema: ZodSchema<T>) {
     return async (req, ctx = {}) => {
       try {
         const source =
-          req.method === 'GET' ? Object.fromEntries(req.nextUrl.searchParams) : await req.json();
+          req.method === 'GET'
+            ? Object.fromEntries(
+                req.nextUrl.searchParams.entries().reduce(
+                  (acc: [string, string[]], [k, v]) => {
+                    const existing = acc.find(([key]) => key === k);
+                    if (existing) {
+                      existing.push(v);
+                    } else {
+                      acc.push([k, [v]]);
+                    }
+                    return acc;
+                  },
+                  [] as [string, string[]][]
+                )
+              )
+            : await req.json();
         const data = schema.parse(source);
         return await handler(req, { ...ctx, data });
       } catch (error) {
@@ -134,6 +164,21 @@ export function withAuth(
     }
 
     return handler(req, { ...ctx, userId: decoded.userId });
+  };
+}
+
+/** Rate limits by IP address (uses x-forwarded-for or direct connection). */
+export function withRateLimit(handler: RouteHandler): RouteHandler {
+  return async (req, ctx = {}) => {
+    const ip =
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+      req.headers.get('x-real-ip') ??
+      'unknown';
+    const result = rateLimit(ip);
+    if (!result.success) {
+      return rateLimitResponse(result.retryAfter ?? 900);
+    }
+    return handler(req, ctx);
   };
 }
 

@@ -33,79 +33,110 @@ export const GET = withApiMiddleware(
       orderBy: { createdAt: 'desc' }
     });
 
-    const withRuns = await Promise.all(
-      configs.map(async config => {
-        const [latestRun, lastTrade, signalRows] = await Promise.all([
-          prisma.automationRunLog.findFirst({
-            where: { automationConfigId: config.id },
-            orderBy: { startedAt: 'desc' },
-            include: { steps: { orderBy: { startedAt: 'asc' } } }
-          }),
-          prisma.tradeRecord.findFirst({
-            where: { automationConfigId: config.id },
-            orderBy: { createdAt: 'desc' },
-            select: { createdAt: true }
-          }),
-          prisma.tradeSignal.findMany({
-            where: { automationConfigId: config.id },
-            orderBy: { generatedAt: 'desc' },
-            take: 100,
-            select: {
-              symbol: true,
-              action: true,
-              entryPrice: true,
-              stopLoss: true,
-              takeProfit: true,
-              confidence: true,
-              status: true,
-              generatedAt: true
-            }
-          })
-        ]);
+    if (configs.length === 0) {
+      return NextResponse.json({ success: true, automationConfigs: [] });
+    }
 
-        const latestSignals: Record<
-          string,
-          {
-            action: string;
-            entryPrice: number | null;
-            stopLoss: number | null;
-            takeProfit: number | null;
-            confidence: number;
-            status: string;
-            generatedAt: string;
-          }
-        > = {};
-        for (const s of signalRows) {
-          if (!latestSignals[s.symbol]) {
-            latestSignals[s.symbol] = {
-              action: s.action,
-              entryPrice: s.entryPrice,
-              stopLoss: s.stopLoss,
-              takeProfit: s.takeProfit,
-              confidence: s.confidence,
-              status: s.status,
-              generatedAt: s.generatedAt.toISOString()
-            };
-          }
+    const configIds = configs.map(c => c.id);
+
+    // Batch fetch all related data in 3 queries instead of N*3
+    const [runLogs, lastTrades, signalRows] = await Promise.all([
+      prisma.automationRunLog.findMany({
+        where: { automationConfigId: { in: configIds } },
+        orderBy: { startedAt: 'desc' },
+        include: { steps: { orderBy: { startedAt: 'asc' } } }
+      }),
+      prisma.tradeRecord.findMany({
+        where: { automationConfigId: { in: configIds } },
+        orderBy: { createdAt: 'desc' },
+        select: { automationConfigId: true, createdAt: true }
+      }),
+      prisma.tradeSignal.findMany({
+        where: { automationConfigId: { in: configIds } },
+        orderBy: { generatedAt: 'desc' },
+        take: 100,
+        select: {
+          automationConfigId: true,
+          symbol: true,
+          action: true,
+          entryPrice: true,
+          stopLoss: true,
+          takeProfit: true,
+          confidence: true,
+          status: true,
+          generatedAt: true
         }
-
-        const lastTradeAt = lastTrade?.createdAt ?? null;
-        let cooldownUntil: string | null = null;
-        if (lastTradeAt) {
-          const until = lastTradeAt.getTime() + config.cooldownMinutes * 60000;
-          if (until > Date.now()) cooldownUntil = new Date(until).toISOString();
-        }
-
-        return {
-          ...config,
-          marketOpen: isMarketOpen(config),
-          lastTradeAt: lastTradeAt ? lastTradeAt.toISOString() : null,
-          cooldownUntil,
-          latestSignals,
-          latestRun
-        };
       })
-    );
+    ]);
+
+    // Group by configId for O(1) lookup
+    const runLogsByConfig = new Map<number, (typeof runLogs)[0]>();
+    for (const run of runLogs) {
+      if (!runLogsByConfig.has(run.automationConfigId)) {
+        runLogsByConfig.set(run.automationConfigId, run);
+      }
+    }
+
+    const lastTradesByConfig = new Map<number, Date>();
+    for (const trade of lastTrades) {
+      if (!lastTradesByConfig.has(trade.automationConfigId)) {
+        lastTradesByConfig.set(trade.automationConfigId, trade.createdAt);
+      }
+    }
+
+    const signalsByConfig = new Map<number, typeof signalRows>();
+    for (const signal of signalRows) {
+      const existing = signalsByConfig.get(signal.automationConfigId) ?? [];
+      existing.push(signal);
+      signalsByConfig.set(signal.automationConfigId, existing);
+    }
+
+    const withRuns = configs.map(config => {
+      const latestRun = runLogsByConfig.get(config.id) ?? null;
+      const lastTradeAt = lastTradesByConfig.get(config.id) ?? null;
+      const signals = signalsByConfig.get(config.id) ?? [];
+
+      const latestSignals: Record<
+        string,
+        {
+          action: string;
+          entryPrice: number | null;
+          stopLoss: number | null;
+          takeProfit: number | null;
+          confidence: number;
+          status: string;
+          generatedAt: string;
+        }
+      > = {};
+      for (const s of signals) {
+        if (!latestSignals[s.symbol]) {
+          latestSignals[s.symbol] = {
+            action: s.action,
+            entryPrice: s.entryPrice,
+            stopLoss: s.stopLoss,
+            takeProfit: s.takeProfit,
+            confidence: s.confidence,
+            status: s.status,
+            generatedAt: s.generatedAt.toISOString()
+          };
+        }
+      }
+
+      let cooldownUntil: string | null = null;
+      if (lastTradeAt) {
+        const until = lastTradeAt.getTime() + config.cooldownMinutes * 60000;
+        if (until > Date.now()) cooldownUntil = new Date(until).toISOString();
+      }
+
+      return {
+        ...config,
+        marketOpen: isMarketOpen(config),
+        lastTradeAt: lastTradeAt ? lastTradeAt.toISOString() : null,
+        cooldownUntil,
+        latestSignals,
+        latestRun
+      };
+    });
 
     return NextResponse.json({ success: true, automationConfigs: withRuns });
   })

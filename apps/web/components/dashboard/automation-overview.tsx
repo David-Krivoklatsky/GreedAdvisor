@@ -41,7 +41,7 @@ import {
   type LucideIcon
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 
 interface AutomationOverviewProps {
   automationConfigs: AutomationConfig[];
@@ -113,15 +113,6 @@ function BotBadge({
       {label}
     </span>
   );
-}
-
-function useNow(intervalMs = 1000): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs]);
-  return now;
 }
 
 function money(value: number) {
@@ -353,6 +344,176 @@ function StatusIndicator({ status }: { status: BotStatus }) {
   }
 }
 
+// Memoized BotCard component with its own useNow hook
+interface BotCardProps {
+  config: AutomationConfig;
+  isExpanded: boolean;
+  onToggleExpanded: (id: number) => void;
+  onEdit: (config: AutomationConfig) => void;
+  onToggle: (config: AutomationConfig) => void;
+  onShowOnGraph?: (symbol: string, markers?: ChartMarkers | null) => void;
+}
+
+function useNow(intervalMs = 1000): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+  return now;
+}
+
+const BotCard = memo(function BotCard({
+  config,
+  isExpanded,
+  onToggleExpanded,
+  onEdit,
+  onToggle,
+  onShowOnGraph
+}: BotCardProps) {
+  const now = useNow(1000);
+  const status = botStatus(config, now);
+  const instruments = botInstruments(config);
+  const run = config.latestRun;
+
+  return (
+    <div key={config.id} className="rounded-lg border">
+      <div className="flex flex-wrap items-start justify-between gap-2 p-2.5">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+          <span className="mr-1.5 font-semibold">{config.title}</span>
+          <BotBadge
+            icon={Power}
+            label={config.enabled ? 'Active' : 'Paused'}
+            className={config.enabled ? 'bg-green-500/10 text-green-600' : ''}
+          />
+          <BotBadge icon={MODE_ICON[config.mode] ?? Eye} label={config.mode} title="Account mode" />
+          <BotBadge
+            icon={MARKET_ICON[config.market ?? 'us'] ?? Landmark}
+            label={config.market ?? 'us'}
+            title="Market"
+          />
+          <BotBadge
+            icon={STRATEGY_ICON[config.strategy] ?? Gauge}
+            label={config.strategy}
+            title="Strategy"
+          />
+          {config.execution === 'approval' && (
+            <BotBadge
+              icon={Hand}
+              label="approval"
+              title="Requires your approval per trade"
+              className="bg-blue-500/10 text-blue-600"
+            />
+          )}
+          <BotBadge
+            icon={Timer}
+            label={`every ${config.scanIntervalMinutes}m`}
+            title="Scan interval"
+          />
+          {config.manageStops && <BotBadge icon={Route} label="trail" title="Trailing stops" />}
+          {config.stopOnLoss && (
+            <BotBadge icon={ShieldAlert} label="loss stop" title="Stops on daily loss" />
+          )}
+          {config.flattenAtClose && (
+            <BotBadge icon={Sunset} label="flatten" title="Flatten before close" />
+          )}
+          {run && (
+            <BotBadge
+              icon={Activity}
+              label={run.status}
+              className={RUN_STATUS_STYLES[run.status] ?? 'bg-muted text-muted-foreground'}
+            />
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => onEdit(config)}
+            title="Edit bot"
+            aria-label="Edit bot"
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => onToggle(config)}
+            title={config.enabled ? 'Pause bot' : 'Start bot'}
+          >
+            {config.enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => onToggleExpanded(config.id)}
+            title={isExpanded ? 'Collapse trace' : 'Show run trace'}
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 px-2.5 pb-1.5">
+        <StatusIndicator status={status} />
+        <span className="text-[11px] text-muted-foreground">
+          {config.universe === 'movers'
+            ? 'auto-hunting movers'
+            : config.universe === 'watchlist+movers'
+              ? 'watchlist + movers'
+              : 'watchlist'}
+        </span>
+      </div>
+
+      {instruments.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 px-2.5 pb-1.5">
+          {instruments.map(({ symbol, markers }) => (
+            <button
+              key={symbol}
+              type="button"
+              onClick={() => onShowOnGraph?.(symbol, markers)}
+              className="group inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-[11px] transition-colors hover:border-primary hover:text-primary"
+              title={`Show ${symbol} on chart`}
+            >
+              <span className="font-semibold">{symbol}</span>
+              {markers && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+              <span className="text-[10px] text-muted-foreground group-hover:text-primary">
+                Show on graph
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {isExpanded && (
+        <div className="border-t p-2">
+          {!run ? (
+            <p className="px-2 py-4 text-center text-sm text-muted-foreground">
+              No run recorded yet — it runs automatically on its schedule.
+            </p>
+          ) : run.steps.length === 0 ? (
+            <p className="px-2 py-4 text-center text-sm text-muted-foreground">
+              Run completed without detailed steps.
+            </p>
+          ) : (
+            <div className="space-y-0.5">
+              {run.steps.map(step => (
+                <StepRow key={step.id} step={step} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+});
+
+BotCard.displayName = 'BotCard';
+
 export default function AutomationOverview({
   automationConfigs,
   loading,
@@ -364,7 +525,6 @@ export default function AutomationOverview({
 }: AutomationOverviewProps) {
   const { toast } = useToast();
   const router = useRouter();
-  const now = useNow(1000);
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBot, setEditingBot] = useState<AutomationConfig | null>(null);
@@ -452,7 +612,7 @@ export default function AutomationOverview({
               <p>
                 <span className="font-semibold text-foreground">How it works:</span> a bot scans its
                 instruments, the AI builds a trade plan, you approve it (or it runs on auto), and
-                the bot manages stops &amp; the daily loss. Click an instrument —{' '}
+                the bot manages stops & the daily loss. Click an instrument —{' '}
                 <span className="font-semibold text-foreground">Show on graph</span> — to see its
                 entry / SL / TP on the chart.
               </p>
@@ -483,162 +643,17 @@ export default function AutomationOverview({
             </div>
           ) : (
             <div className="space-y-3">
-              {automationConfigs.map(config => {
-                const run = config.latestRun;
-                const isExpanded = expanded[config.id];
-                const status = botStatus(config, now);
-                const instruments = botInstruments(config);
-                return (
-                  <div key={config.id} className="rounded-lg border">
-                    <div className="flex flex-wrap items-start justify-between gap-2 p-2.5">
-                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-                        <span className="mr-1.5 font-semibold">{config.title}</span>
-                        <BotBadge
-                          icon={Power}
-                          label={config.enabled ? 'Active' : 'Paused'}
-                          className={config.enabled ? 'bg-green-500/10 text-green-600' : ''}
-                        />
-                        <BotBadge
-                          icon={MODE_ICON[config.mode] ?? Eye}
-                          label={config.mode}
-                          title="Account mode"
-                        />
-                        <BotBadge
-                          icon={MARKET_ICON[config.market ?? 'us'] ?? Landmark}
-                          label={config.market ?? 'us'}
-                          title="Market"
-                        />
-                        <BotBadge
-                          icon={STRATEGY_ICON[config.strategy] ?? Gauge}
-                          label={config.strategy}
-                          title="Strategy"
-                        />
-                        {config.execution === 'approval' && (
-                          <BotBadge
-                            icon={Hand}
-                            label="approval"
-                            title="Requires your approval per trade"
-                            className="bg-blue-500/10 text-blue-600"
-                          />
-                        )}
-                        <BotBadge
-                          icon={Timer}
-                          label={`every ${config.scanIntervalMinutes}m`}
-                          title="Scan interval"
-                        />
-                        {config.manageStops && (
-                          <BotBadge icon={Route} label="trail" title="Trailing stops" />
-                        )}
-                        {config.stopOnLoss && (
-                          <BotBadge
-                            icon={ShieldAlert}
-                            label="loss stop"
-                            title="Stops on daily loss"
-                          />
-                        )}
-                        {config.flattenAtClose && (
-                          <BotBadge icon={Sunset} label="flatten" title="Flatten before close" />
-                        )}
-                        {run && (
-                          <BotBadge
-                            icon={Activity}
-                            label={run.status}
-                            className={
-                              RUN_STATUS_STYLES[run.status] ?? 'bg-muted text-muted-foreground'
-                            }
-                          />
-                        )}
-                      </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => openEdit(config)}
-                          title="Edit bot"
-                          aria-label="Edit bot"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => toggle(config)}
-                          title={config.enabled ? 'Pause bot' : 'Start bot'}
-                        >
-                          {config.enabled ? (
-                            <Pause className="h-4 w-4" />
-                          ) : (
-                            <Play className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => toggleExpanded(config.id)}
-                          title={isExpanded ? 'Collapse trace' : 'Show run trace'}
-                        >
-                          {isExpanded ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-2 px-2.5 pb-1.5">
-                      <StatusIndicator status={status} />
-                      <span className="text-[11px] text-muted-foreground">
-                        {config.universe === 'movers'
-                          ? 'auto-hunting movers'
-                          : config.universe === 'watchlist+movers'
-                            ? 'watchlist + movers'
-                            : 'watchlist'}
-                      </span>
-                    </div>
-
-                    {instruments.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1.5 px-2.5 pb-1.5">
-                        {instruments.map(({ symbol, markers }) => (
-                          <button
-                            key={symbol}
-                            type="button"
-                            onClick={() => onShowOnGraph?.(symbol, markers)}
-                            className="group inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-[11px] transition-colors hover:border-primary hover:text-primary"
-                            title={`Show ${symbol} on chart`}
-                          >
-                            <span className="font-semibold">{symbol}</span>
-                            {markers && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
-                            <span className="text-[10px] text-muted-foreground group-hover:text-primary">
-                              Show on graph
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {isExpanded && (
-                      <div className="border-t p-2">
-                        {!run ? (
-                          <p className="px-2 py-4 text-center text-sm text-muted-foreground">
-                            No run recorded yet — it runs automatically on its schedule.
-                          </p>
-                        ) : run.steps.length === 0 ? (
-                          <p className="px-2 py-4 text-center text-sm text-muted-foreground">
-                            Run completed without detailed steps.
-                          </p>
-                        ) : (
-                          <div className="space-y-0.5">
-                            {run.steps.map(step => (
-                              <StepRow key={step.id} step={step} />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {automationConfigs.map(config => (
+                <BotCard
+                  key={config.id}
+                  config={config}
+                  isExpanded={expanded[config.id]}
+                  onToggleExpanded={toggleExpanded}
+                  onEdit={openEdit}
+                  onToggle={toggle}
+                  onShowOnGraph={onShowOnGraph}
+                />
+              ))}
             </div>
           )}
         </CardContent>
