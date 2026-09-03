@@ -60,19 +60,5 @@ module.exports = {
       max_restarts: 5,
       kill_timeout: 5000
     }
-  ],
-
-  deploy: {
-    production: {
-      user: 'deploy',
-      host: 'your-server.com',
-      ref: 'origin/main',
-      repo: 'git@github.com:yourusername/greed-advisor.git',
-      path: '/var/www/greed-advisor',
-      'pre-deploy-local': '',
-      'post-deploy':
-        'npm install && npm run build && pm2 reload ecosystem.config.js --env production',
-      'pre-setup': ''
-    }
-  }
+  ]
 };

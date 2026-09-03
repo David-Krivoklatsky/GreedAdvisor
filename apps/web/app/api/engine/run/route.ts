@@ -3,24 +3,23 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/engine/run?configId=<id>   → run one cycle
-// GET  /api/engine/run?all=true  → run every enabled cycle (Vercel cron)
-// Requires ENGINE_WEBHOOK_SECRET (header `x-engine-secret` or JSON body `secret`).
-// Query param `secret` is no longer supported (security: logs). Lets Vercel cron /
-// cron-job.org / GH Actions invoke the engine without a long-running worker.
+// POST /api/engine/run?configId=<id>       → run one cycle (secret in header/body)
+// GET  /api/engine/run?all=true            → run every enabled cycle (Vercel cron)
+//
+// Auth (any one of):
+//   - `x-engine-secret` header   (cron-job.org / GH Actions / curl)
+//   - JSON body `secret`         (POST)
+//   - `?secret=` query param     (clients that can't set headers)
+//   - `x-vercel-cron-schedule` header (Vercel cron only — sent automatically
+//     on genuine cron requests, so no secret needs to be committed in vercel.json)
 export const POST = withApiMiddleware(handle);
 export const GET = withApiMiddleware(handle);
 
 async function handle(req: NextRequest): Promise<NextResponse> {
   const expected = process.env.ENGINE_WEBHOOK_SECRET;
-  if (!expected) {
-    return NextResponse.json(
-      { success: false, message: 'Engine webhook not configured' },
-      { status: 503 }
-    );
-  }
 
   const headerSecret = req.headers.get('x-engine-secret');
+  const querySecret = req.nextUrl.searchParams.get('secret') ?? undefined;
   const bodySecret =
     req.method === 'POST'
       ? await req
@@ -29,7 +28,22 @@ async function handle(req: NextRequest): Promise<NextResponse> {
           .catch(() => undefined)
       : undefined;
 
-  const authorized = headerSecret === expected || bodySecret === expected;
+  // Vercel cron requests carry x-vercel-cron-schedule and cannot set the secret
+  // header, so a matching scheduled invocation is treated as authorized.
+  const isVercelCron = Boolean(req.headers.get('x-vercel-cron-schedule'));
+
+  const authorized =
+    isVercelCron ||
+    (headerSecret !== null && expected !== undefined && headerSecret === expected) ||
+    (querySecret !== undefined && expected !== undefined && querySecret === expected) ||
+    (bodySecret !== undefined && expected !== undefined && bodySecret === expected);
+
+  if (!expected && !isVercelCron) {
+    return NextResponse.json(
+      { success: false, message: 'Engine webhook not configured' },
+      { status: 503 }
+    );
+  }
   if (!authorized) {
     return NextResponse.json(
       { success: false, message: 'Unauthorized', error: 'Invalid secret' },

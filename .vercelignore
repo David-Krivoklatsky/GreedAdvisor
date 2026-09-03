@@ -1,0 +1,13 @@
+# Ignore build artifacts, caches and local-only files not needed to serve the app.
+node_modules
+.next
+.turbo
+coverage
+test-results
+playwright-report
+.playwright-mcp
+apps/web/public/uploads
+.env
+.env.*.local
+.vercel
+*.log
