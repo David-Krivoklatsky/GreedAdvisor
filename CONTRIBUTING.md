@@ -215,4 +215,4 @@ If you have questions about contributing, please:
 2. Create a new issue with the `question` label
 3. Reach out to the maintainers
 
-Thank you for contributing to Greed Advisor!
+Thank you for contributing to Greed Advisor!!!
