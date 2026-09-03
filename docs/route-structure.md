@@ -1,130 +1,47 @@
-# Route Structure Improvement Summary
+# Route Structure
 
-## What Changed
+**Note**: The `routes/` directory described here was a proposal — it **does not exist** in the current codebase. Trust the code.
 
-### Before: Controllers in lib/
+## Current Structure
 
-- `lib/controllers/auth.ts` - Mixed auth handlers
-- `lib/controllers/user.ts` - Mixed user handlers
-- Route files delegated to controllers
-
-### After: Organized Routes Structure
-
-```
-routes/
-├── auth/
-│   ├── index.ts       # Export all auth handlers
-│   ├── login.ts       # POST /api/auth/login
-│   └── register.ts    # POST /api/auth/register
-├── user/
-│   ├── index.ts       # Export all user handlers
-│   ├── profile.ts     # GET /api/user/profile
-│   └── api-keys.ts    # PUT /api/user/api-keys
-├── index.ts           # Main route exports
-└── README.md          # Documentation
-```
-
-## Benefits Achieved
-
-### 1. **Clear Separation of Concerns**
-
-- Each endpoint has its own dedicated file
-- No mixing of different functionalities
-- Easy to locate specific route logic
-
-### 2. **Improved Readability**
-
-- File names match their endpoints exactly
-- `auth/login.ts` → `/api/auth/login`
-- `user/profile.ts` → `/api/user/profile`
-
-### 3. **Better Maintainability**
-
-- Changes to one endpoint don't affect others
-- Easy to add new routes without touching existing code
-- Clear import/export structure
-
-### 4. **Developer Experience**
-
-- TypeScript path mapping: `@/routes/auth`
-- Auto-completion for route imports
-- Consistent handler signatures
-
-### 5. **Thin API Route Files**
-
-Each `app/api/*/route.ts` is now just:
+API handlers live directly in `apps/web/app/api/**/route.ts` and compose middleware from `@greed-advisor/middleware`:
 
 ```typescript
-// One line import + export
-export { handlerName as METHOD } from '@/routes/feature';
+// apps/web/app/api/auth/register/route.ts
+import { withApiMiddleware, withValidation } from '@greed-advisor/middleware';
+import { registerSchema } from '@greed-advisor/validations';
+import { registerUser } from '@/lib/auth/register';
+
+export const POST = withApiMiddleware(withValidation(registerSchema)(registerUser));
 ```
 
-## File Structure Comparison
+Handler signature: `(req: NextRequest, ctx: { userId?: string; data?: any; params?: any }) => Promise<NextResponse>`
 
-### API Routes (Unchanged - Next.js App Router)
-
-```
-app/api/
-├── auth/
-│   ├── login/route.ts     # Still 3 lines
-│   └── register/route.ts  # Still 3 lines
-└── user/
-    ├── profile/route.ts   # Still 3 lines
-    └── api-keys/route.ts  # Still 3 lines
-```
-
-### Business Logic (New Organization)
-
-```
-routes/                    # NEW: Organized by feature
-├── auth/
-│   ├── login.ts          # Login logic
-│   └── register.ts       # Register logic
-└── user/
-    ├── profile.ts        # Profile logic
-    └── api-keys.ts       # API keys logic
-```
-
-## Usage Examples
-
-### Importing in API Routes
+## Middleware Chain
 
 ```typescript
-// Clean, specific imports
-export { registerUser as POST } from '@/routes/auth';
-export { getUserProfile as GET } from '@/routes/user';
+withApiMiddleware(withAuth(handler)); // auth required
+withApiMiddleware(withValidation(schema)(withAuth(handler))); // validate + auth
 ```
 
-### Importing in Tests
+Context: `ctx.userId`, `ctx.data` (validated), `ctx.params`
 
-```typescript
-// Direct access to handlers for testing
-import { loginUser } from '@/routes/auth/login';
-import { getUserProfile } from '@/routes/user/profile';
+## Error Envelope
+
+```json
+{ "success": false, "message": "...", "error": "..." }
 ```
 
-## Next Steps for Further Improvement
+500 errors never leak `error.message`.
 
-1. **Add middleware composition**:
+## Rate Limiting
 
-   ```typescript
-   export const withAuth = handler => async req => {
-     // Auth middleware logic
-     return handler(req);
-   };
-   ```
+Auth endpoints (`register`, `login`) call `rateLimit(ip)` manually inside handler.
+Other endpoints covered by middleware (orders, AI, automation, key creation).
 
-2. **Standardize error handling**:
+## Adding a New Endpoint
 
-   ```typescript
-   // routes/lib/errors.ts
-   export const handleRouteError = (error, context) => { ... }
-   ```
-
-3. **Add route validation helpers**:
-   ```typescript
-   // routes/lib/validation.ts
-   export const validateAndExecute = (schema, handler) => { ... }
-   ```
-
-This structure provides a solid foundation that scales well as the application grows.
+1. Create `apps/web/app/api/<feature>/<action>/route.ts`
+2. Import middleware + validation schema
+3. Write handler in `apps/web/lib/<feature>/<action>.ts` (or inline)
+4. Export `METHOD = withApiMiddleware(...)(handler)`

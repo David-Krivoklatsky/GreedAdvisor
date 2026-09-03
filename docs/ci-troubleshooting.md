@@ -1,139 +1,44 @@
-# CI/CD Troubleshooting Guide
+# CI Troubleshooting
 
-## Database Migration Errors in GitHub Actions
+## Common Issue: `DATABASE_URL` not found in Prisma
 
-### Common Error: "Environment variable not found: DATABASE_URL"
+**Cause**: Turbo runs `db:migrate` in `packages/db`; env vars don't propagate to Prisma process.
 
-**Problem**: The migration fails because `DATABASE_URL` is not available to the Prisma process in the CI environment, even when environment variables are set at the workflow level.
+**Fix**: CI workflow (`.github/workflows/ci.yml`) now:
 
-**Root Cause**: Turbo runs the migration in the `packages/db` directory, and environment variables may not propagate correctly to the Prisma process.
-
-**Solution**: The updated CI workflow now:
-
-1. **Creates .env files**: Instead of relying only on environment variables, the workflow creates actual `.env` files
-2. **Uses setup script**: A dedicated `scripts/setup-env.sh` script handles environment setup
-3. **Configures Turbo**: The `turbo.json` is configured to pass environment variables to database tasks
-
-### Updated CI Workflow Steps
-
-The workflow now includes these key steps:
-
-1. **PostgreSQL Service**: Starts automatically with health checks
-2. **Environment Setup**: Uses `scripts/setup-env.sh` to create `.env` files:
-
-   ```bash
-   - name: Setup environment files for CI
-     run: |
-       chmod +x scripts/setup-env.sh
-       ./scripts/setup-env.sh
-     env:
-       CI: true
-       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/greed_advisor_test
-       JWT_SECRET: test-jwt-secret-for-ci-environment-only
-       NEXTAUTH_SECRET: test-nextauth-secret-for-ci-environment
-       ENCRYPTION_KEY: test-encryption-key-32-characters
+1. Runs `scripts/setup-env.sh` to create `.env` files in root, `packages/db`, `apps/web`
+2. Turbo config passes env vars to DB tasks:
+   ```json
+   "db:migrate": { "cache": false, "env": ["DATABASE_URL", "JWT_SECRET", "NEXTAUTH_SECRET", "ENCRYPTION_KEY"] }
+   ```
+3. Waits for Postgres readiness before migrate:
+   ```yaml
+   - run: for i in {1..30}; do pg_isready -h localhost -p 5432 -U postgres && break; sleep 2; done
    ```
 
-3. **Environment Verification**: Checks that `.env` files are created correctly
-4. **Database Migration**: Runs with environment variables available
+## Debugging Locally
 
-### Turbo Configuration
-
-The `turbo.json` now includes environment variable configuration:
-
-```json
-"db:migrate": {
-  "cache": false,
-  "env": ["DATABASE_URL", "JWT_SECRET", "NEXTAUTH_SECRET", "ENCRYPTION_KEY"]
-}
+```bash
+docker run -d --name test-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=greed_advisor_test -p 5433:5432 postgres:15
+export DATABASE_URL="postgresql://postgres:postgres@localhost:5433/greed_advisor_test"
+export JWT_SECRET="test-jwt-secret"
+npm run db:migrate
 ```
 
-3. **Database Readiness Check**:
-   The workflow includes a step that waits for PostgreSQL to be ready:
-   ```yaml
-   - name: Wait for PostgreSQL to be ready
-     run: |
-       for i in {1..30}; do
-         if pg_isready -h localhost -p 5432 -U postgres; then
-           echo "PostgreSQL is ready"
-           break
-         fi
-         echo "Waiting for PostgreSQL... attempt $i"
-         sleep 2
-       done
-   ```
+## CI Pipeline Order
 
-### Steps to Fix CI Issues
+1. `lint` → 2. `type-check` (runs `db:generate` + `tsc --noEmit`) → 3. `db:migrate` → 4. `test` → 5. `build`
 
-1. **Ensure PostgreSQL Service is Running**:
-   - Check that the `services` section in `.github/workflows/ci.yml` is properly configured
-   - Verify the health check is working
+## Secrets vs Env Vars
 
-2. **Check Environment Variables**:
-   - All required environment variables are set in the workflow
-   - Variables are consistent across all steps that need them
+- **Production**: GitHub Secrets → `${{ secrets.DATABASE_URL }}`
+- **CI testing**: Hardcoded in workflow (test DB, test secrets)
 
-3. **Migration Order**:
-   - Database migration runs after dependencies are installed
-   - Migration runs before tests that might depend on the database
+## Quick Fixes
 
-4. **Local Testing**:
-
-   ```bash
-   # Test the exact same environment locally
-   docker run -d --name test-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=greed_advisor_test -p 5432:5432 postgres:15
-
-   export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/greed_advisor_test"
-   npm run db:migrate
-   ```
-
-## GitHub Secrets vs Environment Variables
-
-For **production deployments**, use GitHub Secrets:
-
-- Go to Repository Settings → Secrets and Variables → Actions
-- Add production DATABASE_URL as a secret
-- Reference it in deployment workflow: `${{ secrets.DATABASE_URL }}`
-
-For **CI testing**, use hardcoded environment variables in the workflow (as shown above).
-
-## Debugging Steps
-
-1. **Check CI Logs**:
-   - Look for PostgreSQL startup messages
-   - Verify environment variable values (non-sensitive ones)
-   - Check migration output
-
-2. **Test Locally**:
-   - Use the same PostgreSQL version (15)
-   - Use the same environment variables
-   - Run the same commands
-
-3. **Validate Prisma Schema**:
-
-   ```bash
-   npx prisma validate
-   ```
-
-4. **Check Database Connection**:
-   ```bash
-   npx prisma db push --preview-feature
-   ```
-
-## Common Solutions
-
-1. **PostgreSQL Service Not Ready**:
-   - Add longer wait time in the readiness check
-   - Increase health check intervals
-
-2. **Environment Variable Scope**:
-   - Ensure environment variables are set for the correct job/step
-   - Use `$GITHUB_ENV` for persistent environment variables
-
-3. **Database Name Mismatch**:
-   - Ensure database name in `DATABASE_URL` matches the one created by PostgreSQL service
-   - Default is `greed_advisor_test` in CI
-
-4. **Prisma Generate Issues**:
-   - Add explicit `prisma generate` step before migration if needed
-   - Ensure `@prisma/client` is properly installed
+| Issue                 | Fix                                               |
+| --------------------- | ------------------------------------------------- |
+| Postgres not ready    | Increase wait loop / health check interval        |
+| Env var scope         | Use `GITHUB_ENV` for persistence across steps     |
+| DB name mismatch      | Ensure `greed_advisor_test` matches CI service    |
+| Prisma generate fails | Add explicit `npx prisma generate` before migrate |

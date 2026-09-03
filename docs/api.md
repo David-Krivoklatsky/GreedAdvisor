@@ -1,197 +1,89 @@
-# 📚 Greed Advisor API Documentation
+# API Reference
 
-## Overview
+Base: `/api` (Next.js App Router handlers in `apps/web/app/api/**/route.ts`)
 
-RESTful API for managing user authentication and secure storage of API keys.
+Middleware chain: `withApiMiddleware(withAuth(handler))` or `withApiMiddleware(withValidation(schema)(withAuth(handler)))`
+Context: `ctx.userId`, `ctx.data` (validated), `ctx.params`
 
-## Base URL
+## Auth
 
-```
-http://localhost:3001/api
-```
+| Method | Endpoint         | Description                                 |
+| ------ | ---------------- | ------------------------------------------- |
+| POST   | `/auth/register` | Register (rate-limited inline)              |
+| POST   | `/auth/login`    | Login (rate-limited inline)                 |
+| POST   | `/auth/refresh`  | Refresh access token (reads refresh cookie) |
+| POST   | `/auth/logout`   | Clear refresh cookie                        |
 
-## Authentication
+## User
 
-All protected endpoints require a Bearer token in the Authorization header:
+| Method | Endpoint                    | Description                                                                  |
+| ------ | --------------------------- | ---------------------------------------------------------------------------- |
+| GET    | `/user/me`                  | Current user profile + keys                                                  |
+| PUT    | `/user/api-keys`            | Upsert encrypted API keys (provider: openai, twelvedata, trading212, alpaca) |
+| DELETE | `/user/api-keys?provider=x` | Delete a key                                                                 |
 
-```
-Authorization: Bearer <jwt_token>
-```
+## Watchlist
 
----
+| Method | Endpoint                   | Description   |
+| ------ | -------------------------- | ------------- |
+| GET    | `/user/watchlist`          | List symbols  |
+| POST   | `/user/watchlist`          | Add symbol    |
+| DELETE | `/user/watchlist?symbol=X` | Remove symbol |
 
-## Endpoints
+## Automation (Bots)
 
-### 🔐 Authentication
+| Method | Endpoint                             | Description              |
+| ------ | ------------------------------------ | ------------------------ |
+| GET    | `/user/automation`                   | List configs             |
+| POST   | `/user/automation`                   | Create config            |
+| GET    | `/user/automation/[id]`              | Get config + recent runs |
+| PATCH  | `/user/automation/[id]`              | Update config            |
+| DELETE | `/user/automation/[id]`              | Delete config            |
+| POST   | `/user/automation/[id]/run`          | Trigger one engine cycle |
+| GET    | `/user/automation/[id]/runs`         | Paginated run history    |
+| GET    | `/user/automation/[id]/runs/[runId]` | Run detail + steps       |
 
-#### POST /auth/register
+## Signals (approval flow)
 
-Create a new user account.
+| Method | Endpoint                     | Description                                                           |
+| ------ | ---------------------------- | --------------------------------------------------------------------- |
+| GET    | `/user/signals`              | List signals (`pending_approval`, `approved`, `rejected`, `executed`) |
+| POST   | `/user/signals/[id]/approve` | Approve → queue for execution                                         |
+| POST   | `/user/signals/[id]/reject`  | Reject                                                                |
 
-**Request Body:**
+## Positions & Market Data
 
-```json
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
-```
+| Method | Endpoint                                 | Description                                       |
+| ------ | ---------------------------------------- | ------------------------------------------------- |
+| GET    | `/user/positions`                        | Open/closed positions (with P&L)                  |
+| GET    | `/user/positions/[id]`                   | Position detail + trail/stop                      |
+| GET    | `/market/quote?symbol=X`                 | Twelve Data quote (requires user Market Data Key) |
+| GET    | `/market/candles?symbol=X&interval=1day` | Daily candles                                     |
+| GET    | `/market/earnings?symbol=X`              | Earnings calendar                                 |
+| GET    | `/market/movers?market=us                | eu                                                | crypto` | Top movers (Alpaca) |
 
-**Response (201):**
+## AI Reports
 
-```json
-{
-  "message": "User created successfully",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": 1,
-    "email": "user@example.com",
-    "createdAt": "2025-07-09T12:00:00.000Z"
-  }
-}
-```
+| Method | Endpoint              | Description                                                                          |
+| ------ | --------------------- | ------------------------------------------------------------------------------------ |
+| POST   | `/ai/generate-report` | Generate report (strategy-aware: momentum/trend/mean_reversion/breakout/scalp/swing) |
 
-**Error Responses:**
+## Engine (internal / cron)
 
-- `400` - Validation error
-- `409` - Email already exists
-- `429` - Rate limit exceeded
+| Method | Endpoint      | Description                                                           |
+| ------ | ------------- | --------------------------------------------------------------------- |
+| POST   | `/engine/run` | Vercel cron / cron-job.org trigger (requires `ENGINE_WEBHOOK_SECRET`) |
+| GET    | `/engine/run` | Health check                                                          |
 
----
-
-#### POST /auth/login
-
-Authenticate existing user.
-
-**Request Body:**
-
-```json
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
-```
-
-**Response (200):**
-
-```json
-{
-  "message": "Login successful",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": 1,
-    "email": "user@example.com",
-    "createdAt": "2025-07-09T12:00:00.000Z"
-  }
-}
-```
-
-**Error Responses:**
-
-- `400` - Validation error
-- `401` - Invalid credentials
-- `429` - Rate limit exceeded
-
----
-
-### 👤 User Management
-
-#### GET /user/profile
-
-Get current user profile. **[Protected]**
-
-**Headers:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
+## Error Envelope
 
 ```json
-{
-  "user": {
-    "id": 1,
-    "email": "user@example.com",
-    "openAiKey": "sk-...",
-    "t212Key": "xxx-xxx-xxx",
-    "createdAt": "2025-07-09T12:00:00.000Z"
-  }
-}
+{ "success": false, "message": "...", "error": "..." }
 ```
 
-**Error Responses:**
-
-- `401` - Invalid or missing token
-- `404` - User not found
-
----
-
-#### PUT /user/api-keys
-
-Update user's API keys. **[Protected]**
-
-**Headers:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Request Body:**
-
-```json
-{
-  "openAiKey": "sk-new-key-here",
-  "t212Key": "new-t212-key"
-}
-```
-
-**Response (200):**
-
-```json
-{
-  "message": "API keys updated successfully",
-  "user": {
-    "id": 1,
-    "email": "user@example.com",
-    "openAiKey": "sk-new-key-here",
-    "t212Key": "new-t212-key",
-    "updatedAt": "2025-07-09T12:00:00.000Z"
-  }
-}
-```
-
-**Error Responses:**
-
-- `400` - Validation error
-- `401` - Invalid or missing token
-
----
+500 errors never leak `error.message`.
 
 ## Rate Limiting
 
-- **Limit:** 100 requests per 15 minutes per IP address
-- **Headers:** Response includes remaining requests in custom headers
-- **Reset:** Counter resets every 15 minutes
-
-## Error Format
-
-All errors follow this format:
-
-```json
-{
-  "error": "Human readable error message",
-  "details": [...] // Optional validation details
-}
-```
-
-## Status Codes
-
-- `200` - Success
-- `201` - Created
-- `400` - Bad Request
-- `401` - Unauthorized
-- `404` - Not Found
-- `409` - Conflict
-- `429` - Too Many Requests
-- `500` - Internal Server Error
+- In-memory: 100 req / 15 min / IP
+- Covers: auth, orders, AI, automation, key creation

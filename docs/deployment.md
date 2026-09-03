@@ -1,375 +1,90 @@
-# Deployment Guide
+# Deployment
 
-## Overview
-
-This guide covers deploying Greed Advisor to various platforms. The application is built as a Next.js monorepo with PostgreSQL database.
-
-## Prerequisites
-
-- Node.js 18+
-- PostgreSQL database
-- Domain name (for production)
-
-## Environment Setup
-
-1. Copy `.env.example` to `.env.local` (development) or `.env.production` (production)
-2. Update all environment variables:
+## Vercel (Recommended)
 
 ```bash
-# Required for all environments
-DATABASE_URL="postgresql://username:password@host:port/database"
-JWT_SECRET="your-super-secure-random-string-32-chars-minimum"
-NODE_ENV="production"
-NEXT_PUBLIC_APP_URL="https://yourdomain.com"
+# 1. Push to GitHub
+# 2. Import in Vercel
+# 3. Root Directory: repo root (monorepo). The root `vercel.json` runs
+#    `npx turbo run build --filter=web`.
+# 4. Add Secrets (not plain env vars):
+#    - DATABASE_URL (Neon/Supabase/Railway)
+#    - JWT_SECRET (32+ chars)
+#    - ENCRYPTION_KEY (32 chars exactly)
+#    - NEXTAUTH_SECRET (32+ chars)
+#    - NEXTAUTH_URL (https://yourdomain.com)
+#    - ENGINE_WEBHOOK_SECRET (for cron)
+#    - TELEGRAM_BOT_TOKEN (optional)
+#    - NOTIFICATION_WEBHOOK_URL (optional)
+# 5. Deploy
 ```
 
-## Database Setup
+**Key setting**: Root Directory = repo root. The root `vercel.json` sets the
+install command (`npm ci`) and build command (`turbo build --filter=web`). Do
+**not** set Root Directory to `apps/web` — the cron, build command and engine
+env loading all expect the repo-root layout (there is no separate
+`apps/web/vercel.json`).
 
-### 1. Create Database
+## Cron / Engine trigger
 
-```sql
-CREATE DATABASE greedadvisor;
-CREATE USER greedadvisor_user WITH PASSWORD 'secure_password';
-GRANT ALL PRIVILEGES ON DATABASE greedadvisor TO greedadvisor_user;
-```
-
-### 2. Run Migrations
+The root `vercel.json` registers a cron that calls
+`GET /api/engine/run?all=true` every 5 minutes. The route authenticates the
+request against `ENGINE_WEBHOOK_SECRET`:
 
 ```bash
-npm run db:migrate
-npm run db:seed  # Optional: creates test user
+# The cron path in vercel.json has no secret in the URL. Instead, Vercel Secrets
+# must be configured. The route accepts:
+#   - ?secret=<ENGINE_WEBHOOK_SECRET> (GET, cron)
+#   - x-engine-secret header          (POST)
+#   - JSON body { "secret": ... }     (POST)
+curl -G "https://<your-domain>/api/engine/run?all=true" \
+  --data-urlencode "secret=$ENGINE_WEBHOOK_SECRET"
 ```
 
-## Deployment Options
+## Database
 
-### Option 1: Vercel (Recommended for MVP)
+- Use Neon / Supabase / Railway / Vercel Postgres
+- Run `DATABASE_URL="..." npm run db:push` once after deploy
+- **Do not run `migrate deploy` or `prisma migrate dev`** — migration history is
+  broken; the live DB is synced with `db:push`.
 
-#### Prerequisites
+## Environment Variables (3 files)
 
-- Vercel account
-- PostgreSQL database (Supabase, Railway, Neon, etc.)
+| Location             | Purpose                                                                                                                                                      |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Vercel Secrets       | `DATABASE_URL`, `JWT_SECRET`, `ENCRYPTION_KEY`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `ENGINE_WEBHOOK_SECRET`, `TELEGRAM_BOT_TOKEN`, `NOTIFICATION_WEBHOOK_URL` |
+| Root `.env` (engine) | `ENGINE_ENABLED=1`, `ENGINE_TICK_MS=60000`, `ENGINE_PAUSED=0`                                                                                                |
+| `packages/db/.env`   | `DATABASE_URL` for Prisma CLI                                                                                                                                |
 
-#### Steps
+## Engine (Production)
 
-1. **Connect Repository**
+PM2 single fork (never cluster):
 
-   ```bash
-   npm i -g vercel
-   vercel login
-   vercel
-   ```
+```bash
+pm2 start ecosystem.config.js --only greed-advisor-engine
+```
 
-2. **Configure Environment Variables** in Vercel dashboard:
-   - `DATABASE_URL` (Neon, Vercel Postgres, etc.)
-   - `JWT_SECRET` (min 32 chars)
-   - `NEXTAUTH_SECRET` (min 32 chars)
-   - `NEXTAUTH_URL` (your deployment URL)
-   - `ENCRYPTION_KEY` (exactly 32 chars)
-   - `NEXT_PUBLIC_APP_URL` (your deployment URL)
-   - `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW`
+## Docker (Alternative)
 
-3. **Build Settings** (Turborepo monorepo):
-   - **Root Directory: `apps/web`** — this is the key setting. Set it in the
-     Vercel project Settings → General. Without it Vercel treats the repo root
-     as the app root and the build fails.
-   - Framework: Next.js (auto-detected from `apps/web/vercel.json`)
-   - Build Command: `npx turbo run build --filter=web`
-   - Install Command: `npm install`
-   - Output Directory: `.next` (relative to `apps/web`)
+```bash
+# Build
+docker build -t greed-advisor -f apps/web/Dockerfile.prod .
 
-   `apps/web/vercel.json` already configures the framework and build commands, so
-   you only need to set the **Root Directory** in the dashboard.
-
-4. **Database Setup**:
-   ```bash
-   # Run migrations on production database
-   DATABASE_URL="your-prod-db-url" npm run db:migrate
-   npm run db:seed  # Optional: creates demo user
-   ```
-
-#### Database Providers for Vercel:
-
-- **Supabase**: Free tier with 500MB
-- **Railway**: PostgreSQL with generous free tier
-- **Neon**: Serverless PostgreSQL
-- **Vercel Postgres**: Native integration
-
-### Option 2: Railway
-
-#### Prerequisites
-
-- Railway account
-- GitHub repository
-
-#### Steps
-
-1. **Deploy to Railway**:
-   - Go to [railway.app](https://railway.app)
-   - Connect GitHub repository
-   - Select `apps/web` as root directory
-
-2. **Add PostgreSQL**:
-   - Add PostgreSQL service to your Railway project
-   - Copy connection string to `DATABASE_URL`
-
-3. **Environment Variables**:
-
-   ```bash
-   JWT_SECRET=your-secure-secret
-   NEXT_PUBLIC_APP_URL=https://yourapp.railway.app
-   ```
-
-4. **Custom Start Command**:
-   ```bash
-   cd apps/web && npm run build && npm run start
-   ```
-
-### Option 3: AWS/Digital Ocean VPS
-
-#### Prerequisites
-
-- VPS with Node.js and PostgreSQL
-- Domain name
-- SSL certificate (Let's Encrypt)
-
-#### Steps
-
-1. **Server Setup**:
-
-   ```bash
-   # Install dependencies
-   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-   sudo apt-get install -y nodejs postgresql nginx certbot
-
-   # Clone repository
-   git clone https://github.com/yourusername/greed-advisor.git
-   cd greed-advisor
-   npm install
-   ```
-
-2. **Database Setup**:
-
-   ```bash
-   sudo -u postgres createdb greedadvisor
-   sudo -u postgres createuser greedadvisor_user
-   sudo -u postgres psql -c "ALTER USER greedadvisor_user WITH PASSWORD 'secure_password';"
-   sudo -u postgres psql -c "GRANT ALL ON DATABASE greedadvisor TO greedadvisor_user;"
-   ```
-
-3. **Environment Configuration**:
-
-   ```bash
-   cp apps/web/.env.example apps/web/.env.production
-   # Edit .env.production with your values
-   ```
-
-4. **Build Application**:
-
-   ```bash
-   npm run build
-   ```
-
-5. **Process Manager (PM2)**:
-
-   ```bash
-   npm install -g pm2
-   pm2 start ecosystem.config.js
-   pm2 startup
-   pm2 save
-   ```
-
-6. **Nginx Configuration**:
-
-   ```nginx
-   server {
-       listen 80;
-       server_name yourdomain.com;
-
-       location / {
-           proxy_pass http://localhost:3000;
-           proxy_http_version 1.1;
-           proxy_set_header Upgrade $http_upgrade;
-           proxy_set_header Connection 'upgrade';
-           proxy_set_header Host $host;
-           proxy_set_header X-Real-IP $remote_addr;
-           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-           proxy_set_header X-Forwarded-Proto $scheme;
-           proxy_cache_bypass $http_upgrade;
-       }
-   }
-   ```
-
-7. **SSL with Let's Encrypt**:
-   ```bash
-   sudo certbot --nginx -d yourdomain.com
-   ```
-
-### Option 4: Docker Deployment
-
-#### Prerequisites
-
-- Docker and Docker Compose
-- VPS or cloud instance
-
-#### Steps
-
-1. **Create Production Dockerfile**:
-
-   ```dockerfile
-   # apps/web/Dockerfile.prod
-   FROM node:18-alpine AS deps
-   WORKDIR /app
-   COPY package*.json ./
-   RUN npm ci --only=production
-
-   FROM node:18-alpine AS builder
-   WORKDIR /app
-   COPY . .
-   COPY --from=deps /app/node_modules ./node_modules
-   RUN npm run build
-
-   FROM node:18-alpine AS runner
-   WORKDIR /app
-   ENV NODE_ENV production
-
-   RUN addgroup -g 1001 -S nodejs
-   RUN adduser -S nextjs -u 1001
-
-   COPY --from=builder /app/apps/web/.next/standalone ./
-   COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
-   COPY --from=builder /app/apps/web/public ./apps/web/public
-
-   USER nextjs
-   EXPOSE 3000
-   ENV PORT 3000
-
-   CMD ["node", "apps/web/server.js"]
-   ```
-
-2. **Update docker-compose for production**:
-
-   ```yaml
-   # docker-compose.prod.yml
-   version: '3.8'
-   services:
-     web:
-       build:
-         context: .
-         dockerfile: apps/web/Dockerfile.prod
-       ports:
-         - '3000:3000'
-       environment:
-         - DATABASE_URL=postgresql://user:password@db:5432/greedadvisor
-         - JWT_SECRET=your-secure-secret
-         - NODE_ENV=production
-       depends_on:
-         - db
-
-     db:
-       image: postgres:15
-       environment:
-         POSTGRES_DB: greedadvisor
-         POSTGRES_USER: user
-         POSTGRES_PASSWORD: password
-       volumes:
-         - postgres_data:/var/lib/postgresql/data
-       ports:
-         - '5432:5432'
-
-   volumes:
-     postgres_data:
-   ```
+# Run with compose
+docker-compose -f docker-compose.prod.yml up -d
+```
 
 ## Security Checklist
 
-- [ ] Use strong JWT secret (32+ characters)
-- [ ] Enable HTTPS in production
-- [ ] Set secure CORS origins
-- [ ] Use environment variables for secrets
-- [ ] Enable database SSL in production
-- [ ] Set up database backups
-- [ ] Configure rate limiting
-- [ ] Set up monitoring and alerts
-- [ ] Use strong database passwords
-- [ ] Keep dependencies updated
+- [ ] Strong `JWT_SECRET` (32+ chars) & `ENCRYPTION_KEY` (32 chars exactly)
+- [ ] HTTPS enforced
+- [ ] Database SSL enabled
+- [ ] Secrets in Vercel Secrets (not Environment Variables)
+- [ ] Rate limiting active
+- [ ] Monitoring: Sentry / Vercel Analytics / UptimeRobot
 
-## Monitoring
+## Rollback
 
-### Basic Health Check
-
-```bash
-curl https://yourdomain.com/api/health
-```
-
-### Database Health
-
-```bash
-curl https://yourdomain.com/api/health/db
-```
-
-### Recommended Tools
-
-- **Uptime Monitoring**: UptimeRobot, Pingdom
-- **Error Tracking**: Sentry
-- **Analytics**: Vercel Analytics, Google Analytics
-- **Logs**: Vercel/Railway logs, CloudWatch
-
-## Backup Strategy
-
-### Database Backups
-
-```bash
-# Daily automated backup
-pg_dump $DATABASE_URL > backup-$(date +%Y%m%d).sql
-
-# Upload to S3 or similar
-aws s3 cp backup-$(date +%Y%m%d).sql s3://your-backup-bucket/
-```
-
-### Environment Backups
-
-- Store environment variables securely
-- Use secret management tools (AWS Secrets Manager, etc.)
-- Document all configuration changes
-
-## Rollback Plan
-
-1. **Quick Rollback** (Vercel/Railway):
-   - Use platform's instant rollback feature
-   - Revert to previous deployment
-
-2. **Database Rollback**:
-
-   ```bash
-   # Restore from backup
-   psql $DATABASE_URL < backup-20231209.sql
-   ```
-
-3. **Code Rollback**:
-   ```bash
-   git revert <commit-hash>
-   git push origin main
-   ```
-
-## Performance Optimization
-
-### Production Checklist
-
-- [ ] Enable Next.js compression
-- [ ] Configure CDN for static assets
-- [ ] Optimize images with Next.js Image component
-- [ ] Set up database connection pooling
-- [ ] Enable database query caching
-- [ ] Monitor Core Web Vitals
-- [ ] Set up proper caching headers
-
-### Database Optimization
-
-```sql
--- Add indexes for frequently queried fields
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_created_at ON users(created_at);
-
--- Analyze query performance
-EXPLAIN ANALYZE SELECT * FROM users WHERE email = 'test@example.com';
-```
+- Vercel: Instant rollback via dashboard
+- Database: `psql $DATABASE_URL < backup.sql`
+- Code: `git revert <commit> && git push`

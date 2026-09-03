@@ -1,9 +1,0 @@
-- generic [active] [ref=f5e1]:
-  - generic [ref=f5e5]:
-    - generic [ref=f5e6]: greedadvisor — terminal
-    - generic [ref=f5e11]:
-      - paragraph [ref=f5e12]:
-        - text: greedadvisor@trading:~$
-        - generic [ref=f5e13]: ▍
-      - paragraph [ref=f5e14]: Loading dashboard...
-  - button "Open Next.js Dev Tools" [ref=f5e24] [cursor=pointer]
