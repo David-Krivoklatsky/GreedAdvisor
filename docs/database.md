@@ -1,55 +1,118 @@
 # Database Schema
 
-## Entity Relationship Diagram
+Prisma schema: `packages/db/prisma/schema.prisma`
 
-```mermaid
-erDiagram
-    User {
-        int id PK
-        string email UK
-        string password
-        string openAiKey
-        string t212Key
-        datetime createdAt
-        datetime updatedAt
-    }
+## Core Models
+
+### User
+
+```prisma
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  passwordHash  String
+  accessToken   String?   @unique
+  refreshToken  String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  apiKeys       ApiKey[]
+  automation    AutomationConfig[]
+  watchlist     WatchlistItem[]
+  dailyStats    DailyStat[]
+  positions     Position[]
+  notifications Notification[]
+}
 ```
 
-## Table: users
+### ApiKey (encrypted at rest)
 
-The main user table storing authentication and API key information.
+```prisma
+model ApiKey {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  provider  String   // "openai" | "twelvedata" | "trading212" | "alpaca"
+  keyEnc    String   // "enc:v1:..." AES-256-GCM
+  label     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-### Columns
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, provider])
+}
+```
 
-| Column    | Type         | Constraints             | Description                             |
-| --------- | ------------ | ----------------------- | --------------------------------------- |
-| id        | SERIAL       | PRIMARY KEY             | Auto-incrementing user ID               |
-| email     | TEXT         | NOT NULL, UNIQUE        | User's email address (login identifier) |
-| password  | TEXT         | NOT NULL                | Bcrypt hashed password                  |
-| openAiKey | TEXT         | NULL                    | Optional OpenAI API key for user        |
-| t212Key   | TEXT         | NULL                    | Optional Trading 212 API key for user   |
-| createdAt | TIMESTAMP(3) | NOT NULL, DEFAULT NOW() | Record creation timestamp               |
-| updatedAt | TIMESTAMP(3) | NOT NULL                | Record last update timestamp            |
+### AutomationConfig
 
-### Indexes
+```prisma
+model AutomationConfig {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  name              String
+  market            String   // "us" | "eu" | "crypto"
+  strategy          String   // "momentum" | "trend" | "mean_reversion" | "breakout" | "scalp" | "swing"
+  symbols           String[] // user-defined universe
+  execution         String   // "auto" | "approval"
+  maxDailySpendPct  Float    // % of cash/day
+  stopOnLoss        Float?   // auto-disable on daily loss %
+  manageStops       Boolean  @default(false)
+  allowLive         Boolean  @default(false)
+  enabled           Boolean  @default(true)
+  nextRunAt         DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-- `users_email_key`: Unique index on email column
-- `users_pkey`: Primary key index on id column
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  runs              AutomationRun[]
+}
+```
 
-### Business Rules
+### Position + AutomationRun + AutomationRunStep
 
-1. **Email Uniqueness**: Each email can only be registered once
-2. **Password Security**: Passwords are hashed using bcrypt with salt rounds of 12
-3. **API Keys**: Both OpenAI and Trading 212 keys are optional and can be added/updated after registration
-4. **Timestamps**: Automatically managed by Prisma for audit purposes
+```prisma
+model Position {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  automationId    Int?
+  symbol          String
+  qty             Float
+  avgEntry        Float
+  currentPrice    Float?
+  unrealizedPnl   Float?
+  realizedPnl     Float    @default(0)
+  status          String   // "open" | "closed" | "pending_approval"
+  stopPrice       Float?
+  trailPrice      Float?
+  openedAt        DateTime @default(now())
+  closedAt        DateTime?
 
-### Future Extensions
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  automation      AutomationConfig? @relation(fields: [automationId], references: [id], onDelete: SetNull)
+}
 
-This schema is designed to be extensible. Potential future additions:
+model AutomationRun {
+  id            Int      @id @default(autoincrement())
+  automationId  Int
+  status        String   // "success" | "partial" | "failed" | "no_signal"
+  startedAt     DateTime @default(now())
+  completedAt   DateTime?
+  error         String?
+  steps         AutomationRunStep[]
+}
 
-1. **User Profiles**: Add profile information (name, preferences, etc.)
-2. **Sessions**: Add session management table for better security
-3. **API Key Encryption**: Encrypt stored API keys at rest
-4. **User Roles**: Add role-based access control
-5. **Trading History**: Add tables for tracking user's trading decisions and performance
-6. **Advisor Settings**: Add table for user-specific advisor configurations
+model AutomationRunStep {
+  id        Int      @id @default(autoincrement())
+  runId     Int
+  step      String   // "analyze" | "signal" | "approve" | "execute" | "reconcile" | "manage_stops"
+  status    String   // "ok" | "failed" | "skipped"
+  payload   Json?
+  error     String?
+  createdAt DateTime @default(now())
+}
+```
+
+## Key Points
+
+- **API keys encrypted**: `enc:v1:...` format, decrypted at point of use via `@greed-advisor/crypto`
+- **Migration strategy**: `npm run db:push` (no `migrate deploy`; migration history is broken)
+- **Engine safety**: Advisory locks + `nextRunAt` guardrails + per-bot `maxDailySpendPct` / `stopOnLoss`
