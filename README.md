@@ -2,7 +2,7 @@
 
 Modern fullstack application for secure storage of API keys for OpenAI and Trading212.
 
-## 🏗️ Architecture
+## Architecture
 
 ### Monorepo Structure
 
