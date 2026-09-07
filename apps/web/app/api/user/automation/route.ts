@@ -252,7 +252,8 @@ export const POST = withApiMiddleware(
             aiKeyId: data.aiKeyId ?? null,
             marketDataKeyId: data.marketDataKeyId ?? null,
             model: data.model ?? null,
-            telegramChatId: data.telegramChatId ?? null
+            telegramChatId: data.telegramChatId ?? null,
+            modelTier: data.modelTier ?? 'all'
           }
         });
 

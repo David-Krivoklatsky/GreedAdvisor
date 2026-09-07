@@ -67,6 +67,7 @@ lerna-debug.log*
 *.pid
 *.seed
 *.pid.lock
+check-db.js
 
 # ===============================================
 # IDEs & Editors

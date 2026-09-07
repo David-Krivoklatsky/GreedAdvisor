@@ -205,6 +205,7 @@ enabled             Boolean  @default(false)
   aiKeyId              Int?
   marketDataKeyId      Int?
   model                String?   @db.VarChar(100)
+  modelTier            String    @default("all") @db.VarChar(10) // 'free' | 'paid' | 'all'
   telegramChatId       String?   @db.VarChar(255)
   nextRunAt            DateTime  @default(now())
   lastRunAt            DateTime?

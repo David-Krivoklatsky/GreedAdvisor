@@ -42,6 +42,7 @@ export interface EditableBot {
   marketDataKeyId: number | null;
   model: string | null;
   telegramChatId: string | null;
+  modelTier: string;
 }
 
 export interface BotFormState {
@@ -70,6 +71,7 @@ export interface BotFormState {
   marketDataKeyId: string;
   model: string;
   telegramChatId: string;
+  modelTier: string;
 }
 
 export const EMPTY_FORM: BotFormState = {
@@ -97,7 +99,8 @@ export const EMPTY_FORM: BotFormState = {
   aiKeyId: '',
   marketDataKeyId: '',
   model: '',
-  telegramChatId: ''
+  telegramChatId: '',
+  modelTier: 'all'
 };
 
 export function splitSymbols(text: string): string[] {
@@ -141,6 +144,7 @@ export function toFormState(editing?: EditableBot | null): BotFormState {
     aiKeyId: editing.aiKeyId ? String(editing.aiKeyId) : '',
     marketDataKeyId: editing.marketDataKeyId ? String(editing.marketDataKeyId) : '',
     model: editing.model ?? '',
-    telegramChatId: editing.telegramChatId ?? ''
+    telegramChatId: editing.telegramChatId ?? '',
+    modelTier: editing.modelTier ?? 'all'
   };
 }

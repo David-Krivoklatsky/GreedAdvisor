@@ -144,6 +144,7 @@ export const PUT = withApiMiddleware(
           model: data.model !== undefined ? data.model : existing.model,
           telegramChatId:
             data.telegramChatId !== undefined ? data.telegramChatId : existing.telegramChatId,
+          modelTier: data.modelTier ?? existing.modelTier,
           // When (re)enabled, run on the next heartbeat
           nextRunAt: data.enabled === true && !existing.enabled ? new Date() : existing.nextRunAt
         }

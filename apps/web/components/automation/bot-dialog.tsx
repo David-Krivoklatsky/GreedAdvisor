@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/toast';
 import { TokenManager } from '@/lib/token-manager';
-import { AI_MODEL_OPTIONS } from '@greed-advisor/ai';
+import { AI_MODEL_OPTIONS, type AiModelTier } from '@greed-advisor/ai';
 import { cn } from '@greed-advisor/utils';
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -68,6 +68,12 @@ const UNIVERSE_OPTIONS = [
 const ORDER_TYPE_OPTIONS = [
   { value: 'MARKET', label: 'Market orders' },
   { value: 'LIMIT', label: 'Limit orders (at AI entry price)' }
+];
+
+const MODEL_TIER_OPTIONS = [
+  { value: 'all', label: 'All models (free + paid)' },
+  { value: 'free', label: 'Free only' },
+  { value: 'paid', label: 'Paid only' }
 ];
 
 interface BotTemplate {
@@ -200,7 +206,7 @@ export default function BotDialog({
 
   const selectedAiKey = aiKeys.find(k => k.id === Number(form.aiKeyId));
   const selectedAiProvider = selectedAiKey?.provider ?? 'opencode';
-  const selectedTier = selectedAiKey?.modelTier ?? 'all';
+  const selectedTier = (form.modelTier as AiModelTier) ?? 'all';
 
   // Fetch live model options for the selected provider, filtered by the AI
   // key's tier. Falls back to the static AI_MODEL_OPTIONS when the fetch fails.
@@ -303,7 +309,8 @@ export default function BotDialog({
         aiKeyId: form.aiKeyId ? Number(form.aiKeyId) : null,
         marketDataKeyId: form.marketDataKeyId ? Number(form.marketDataKeyId) : null,
         model: form.model || null,
-        telegramChatId: form.telegramChatId || null
+        telegramChatId: form.telegramChatId || null,
+        modelTier: form.modelTier || 'all'
       };
 
       const response = await TokenManager.makeAuthenticatedRequest(
@@ -513,6 +520,20 @@ export default function BotDialog({
                 className="mt-1 w-full"
               />
             </div>
+            {form.aiKeyId && (
+              <div>
+                <Label>Model tier</Label>
+                <Combobox
+                  options={MODEL_TIER_OPTIONS}
+                  value={form.modelTier}
+                  onValueChange={value =>
+                    setForm({ ...form, modelTier: value as AiModelTier, model: '' })
+                  }
+                  placeholder="All models..."
+                  className="mt-1 w-full"
+                />
+              </div>
+            )}
             {form.aiKeyId && (
               <div>
                 <Label>AI model ({selectedAiProvider})</Label>

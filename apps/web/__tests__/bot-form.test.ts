@@ -29,6 +29,7 @@ function makeBot(overrides: Partial<EditableBot> = {}): EditableBot {
     marketDataKeyId: 5,
     model: 'glm-5.2',
     telegramChatId: null,
+    modelTier: 'all',
     ...overrides
   };
 }

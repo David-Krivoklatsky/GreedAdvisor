@@ -219,6 +219,7 @@ export interface AutomationConfig {
   marketDataKeyId: number | null;
   model: string | null;
   telegramChatId: string | null;
+  modelTier: string;
   nextRunAt: string;
   lastRunAt?: string | null;
   lastRunStatus?: string | null;

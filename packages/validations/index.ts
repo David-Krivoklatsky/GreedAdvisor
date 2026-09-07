@@ -162,7 +162,8 @@ export const automationSchema = z.object({
   aiKeyId: z.coerce.number().int().positive().optional().nullable(),
   marketDataKeyId: z.coerce.number().int().positive().optional().nullable(),
   model: z.string().min(1).max(100).optional().nullable(),
-  telegramChatId: z.string().max(255).optional().nullable()
+  telegramChatId: z.string().max(255).optional().nullable(),
+  modelTier: z.enum(AI_MODEL_TIERS).optional()
 });
 
 export const updateAutomationSchema = automationSchema.partial();
