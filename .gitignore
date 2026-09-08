@@ -201,3 +201,6 @@ lerna-debug.log*
 # Rush
 common/temp/
 common/deploy/
+
+# Linked git worktrees (e.g. worktrees/what-models-are-avaiable-free)
+worktrees/
